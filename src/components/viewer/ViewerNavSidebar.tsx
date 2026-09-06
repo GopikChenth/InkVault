@@ -22,7 +22,8 @@ import {
   Moon,
   Home,
   Columns,
-  PanelLeftClose
+  PanelLeftClose,
+  FolderTree
 } from 'lucide-react';
 import { 
   NavSidebarTab, 
@@ -31,8 +32,10 @@ import {
   PDFAttachment, 
   SearchMatch, 
   MultiDocSearchResult,
-  PDFAnnotation
+  PDFAnnotation,
+  LoadedPDF
 } from '../../types';
+import FolderTreeExplorer from '../study/FolderTreeExplorer';
 
 interface ThumbnailCardProps {
   pageNum: number;
@@ -273,6 +276,12 @@ interface ViewerNavSidebarProps {
   darkMode?: boolean;
   onToggleDarkMode?: () => void;
   onReturnToCover?: () => void;
+
+  // Multi-document / Study Mode folder explorer
+  allDocs?: LoadedPDF[];
+  activeDocId?: string;
+  onSelectDoc?: (doc: LoadedPDF) => void;
+  isStudyMode?: boolean;
 }
 
 export default function ViewerNavSidebar({
@@ -305,6 +314,10 @@ export default function ViewerNavSidebar({
   darkMode,
   onToggleDarkMode,
   onReturnToCover,
+  allDocs = [],
+  activeDocId,
+  onSelectDoc,
+  isStudyMode = false,
 }: ViewerNavSidebarProps) {
   // New bookmark state
   const [newBookmarkTitle, setNewBookmarkTitle] = useState('');
@@ -325,6 +338,17 @@ export default function ViewerNavSidebar({
       return next;
     });
   };
+
+  useEffect(() => {
+    if (
+      activeTab === 'outline' || 
+      activeTab === 'bookmarks' || 
+      activeTab === 'annotations' ||
+      (!isStudyMode && activeTab === 'files')
+    ) {
+      onTabChange?.('thumbnails');
+    }
+  }, [activeTab, isStudyMode, onTabChange]);
 
   const handleCreateBookmark = (e: React.FormEvent) => {
     e.preventDefault();
@@ -501,70 +525,19 @@ export default function ViewerNavSidebar({
         </div>
 
         {/* 2. Navigation Tab Switcher Strip */}
-        <div className="flex items-center justify-between px-2 py-1.5 bg-surface dark:bg-surface gap-1">
+        <div className="flex items-center justify-between px-2 py-1.5 bg-surface dark:bg-surface gap-1.5 w-full overflow-hidden">
           <button
             type="button"
             onClick={() => onTabChange?.('thumbnails')}
             title="Page Thumbnails"
-            className={`flex-1 flex items-center justify-center gap-1 py-1 rounded-md text-[11px] font-medium transition-all ${
+            className={`flex-1 min-w-0 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-md text-[11px] font-medium transition-all ${
               activeTab === 'thumbnails'
                 ? 'bg-card text-accent font-semibold shadow-2xs border border-border/70'
                 : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
             }`}
           >
-            <Grid className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Pages</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onTabChange?.('outline')}
-            title="Document Outline / Table of Contents"
-            className={`flex-1 flex items-center justify-center gap-1 py-1 rounded-md text-[11px] font-medium transition-all ${
-              activeTab === 'outline'
-                ? 'bg-card text-accent font-semibold shadow-2xs border border-border/70'
-                : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
-            }`}
-          >
-            <ListTree className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Outline</span>
-            {outline && outline.length > 0 ? (
-              <span className="text-[9px] font-mono opacity-70">({outline.length})</span>
-            ) : null}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onTabChange?.('bookmarks')}
-            title="Bookmarks"
-            className={`flex-1 flex items-center justify-center gap-1 py-1 rounded-md text-[11px] font-medium transition-all ${
-              activeTab === 'bookmarks'
-                ? 'bg-card text-accent font-semibold shadow-2xs border border-border/70'
-                : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
-            }`}
-          >
-            <Bookmark className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Marks</span>
-            {bookmarks && bookmarks.length > 0 ? (
-              <span className="text-[9px] font-mono opacity-70">({bookmarks.length})</span>
-            ) : null}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onTabChange?.('annotations')}
-            title="Annotations & Comments"
-            className={`flex-1 flex items-center justify-center gap-1 py-1 rounded-md text-[11px] font-medium transition-all ${
-              activeTab === 'annotations'
-                ? 'bg-card text-accent font-semibold shadow-2xs border border-border/70'
-                : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
-            }`}
-          >
-            <MessageSquare className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Markups</span>
-            {annotations && annotations.length > 0 ? (
-              <span className="text-[9px] font-mono opacity-70">({annotations.length})</span>
-            ) : null}
+            <Grid className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">Pages</span>
           </button>
 
           {attachments && attachments.length > 0 ? (
@@ -572,15 +545,32 @@ export default function ViewerNavSidebar({
               type="button"
               onClick={() => onTabChange?.('attachments')}
               title="Embedded Attachments"
-              className={`flex-1 flex items-center justify-center gap-1 py-1 rounded-md text-[11px] font-medium transition-all ${
+              className={`flex-1 min-w-0 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-md text-[11px] font-medium transition-all ${
                 activeTab === 'attachments'
                   ? 'bg-card text-accent font-semibold shadow-2xs border border-border/70'
                   : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
               }`}
             >
-              <Paperclip className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Files</span>
-              <span className="text-[9px] font-mono opacity-70">({attachments.length})</span>
+              <Paperclip className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">Files</span>
+              <span className="text-[9px] font-mono opacity-70 shrink-0">({attachments.length})</span>
+            </button>
+          ) : null}
+
+          {isStudyMode && allDocs && allDocs.length > 0 ? (
+            <button
+              type="button"
+              onClick={() => onTabChange?.('files')}
+              title="Folder Structure Explorer"
+              className={`flex-1 min-w-0 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-md text-[11px] font-medium transition-all ${
+                activeTab === 'files'
+                  ? 'bg-card text-accent font-semibold shadow-2xs border border-border/70'
+                  : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+              }`}
+            >
+              <FolderTree className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">Folder</span>
+              <span className="text-[9px] font-mono opacity-70 shrink-0">({allDocs.length})</span>
             </button>
           ) : null}
         </div>
@@ -905,6 +895,28 @@ export default function ViewerNavSidebar({
                 )}
               </div>
             )}
+          </div>
+        ) : null}
+
+        {/* TAB 6: FOLDER EXPLORER (VS CODE TREE) */}
+        {isStudyMode && activeTab === 'files' && allDocs && allDocs.length > 0 ? (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between pb-1.5 border-b border-border/80">
+              <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
+                <FolderTree className="h-4 w-4 text-accent" />
+                <span>Folder Structure</span>
+              </span>
+              <span className="text-[10px] font-mono text-zinc-400">
+                {allDocs.length} {allDocs.length === 1 ? 'file' : 'files'}
+              </span>
+            </div>
+            <FolderTreeExplorer
+              docs={allDocs}
+              activeDocId={activeDocId}
+              onSelectDoc={(selected) => onSelectDoc?.(selected)}
+              isCompact={true}
+              showControls={true}
+            />
           </div>
         ) : null}
 

@@ -142,7 +142,7 @@ export default function FloatingAnnotationToolbar({
         title="Select & Navigate (V)"
         className={`h-8 w-8 rounded-xl flex items-center justify-center flex-shrink-0 transition-all ${
           activeTool === 'select' 
-            ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-xs font-bold' 
+            ? 'bg-accent text-white shadow-xs font-bold' 
             : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-200'
         }`}
       >

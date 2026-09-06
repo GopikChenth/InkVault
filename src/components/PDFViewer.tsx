@@ -16,7 +16,7 @@ import {
   Eye,
   ChevronDown,
   PanelLeftOpen,
-  GraduationCap
+  Folder
 } from 'lucide-react';
 import { 
   LoadedPDF, 
@@ -123,9 +123,7 @@ export default function PDFViewer({
   const [focusMode, setFocusMode] = useState<boolean>(() => initialAppMode === 'reader'); // Zen / background dimming mode
   const [isReflowOpen, setIsReflowOpen] = useState<boolean>(false);
   const [isStudyMode, setIsStudyMode] = useState<boolean>(() => initialAppMode === 'study');
-  const [studyTint, setStudyTint] = useState<'default' | 'sepia' | 'dark'>(() => 
-    initialAppMode === 'reader' ? 'sepia' : 'default'
-  );
+  const [studyTint, setStudyTint] = useState<'default' | 'dark'>('default');
   const [isStudyBarPinned, setIsStudyBarPinned] = useState<boolean>(true);
   const [isStudyBarHovered, setIsStudyBarHovered] = useState<boolean>(false);
 
@@ -159,7 +157,7 @@ export default function PDFViewer({
     if (initialAppMode === 'reader') {
       setLayoutMode('facing-pages');
       setFocusMode(true);
-      setStudyTint('sepia');
+      setStudyTint('default');
       setIsStudyMode(false);
       setIsNavSidebarOpen(false);
     } else if (initialAppMode === 'study') {
@@ -1224,12 +1222,6 @@ export default function PDFViewer({
 
   const tintStyle = useMemo(() => {
     if (!isStudyMode || studyTint === 'default') return {};
-    if (studyTint === 'sepia') {
-      return {
-        filter: 'sepia(0.35) contrast(0.95)',
-        backgroundColor: '#f5f0e6',
-      };
-    }
     if (studyTint === 'dark') {
       return {
         filter: 'invert(0.92) hue-rotate(180deg) contrast(0.95)',
@@ -1333,7 +1325,7 @@ export default function PDFViewer({
       } else if (e.key === 'f' || e.key === 'F') {
         if (!e.ctrlKey && !e.metaKey) {
           e.preventDefault();
-          handleToggleStudyMode();
+          handleToggleFullscreen();
         }
       } else if (e.key === 'v' || e.key === 'V') {
         if (!e.ctrlKey && !e.metaKey) setActiveAnnotationTool('select');
@@ -1380,6 +1372,7 @@ export default function PDFViewer({
     onOpenDocument,
     isStudyMode,
     handleToggleStudyMode,
+    handleToggleFullscreen,
     handleFitWidth,
     handleFitPage,
     scrollToPage,
@@ -1518,10 +1511,10 @@ export default function PDFViewer({
               onToggleSidebar={() => toggleNavSidebar()}
               isSearchOpen={isSearchOpen}
               onToggleSearch={() => setIsSearchOpen((s) => !s)}
-              studyTint={studyTint}
-              onSelectStudyTint={setStudyTint}
               isPinned={isStudyBarPinned}
               onTogglePin={() => setIsStudyBarPinned((p) => !p)}
+              isFullscreen={isFullscreen}
+              onToggleFullscreen={handleToggleFullscreen}
               onExitStudyMode={handleToggleStudyMode}
             />
           </div>
@@ -1537,12 +1530,18 @@ export default function PDFViewer({
 
           {/* Document Title */}
           <div className="flex items-center gap-1.5 min-w-0">
-            <div className="h-7 w-7 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 flex items-center justify-center flex-shrink-0 shadow-xs">
+            <div className="h-7 w-7 rounded-lg bg-accent/10 border border-accent/20 text-accent flex items-center justify-center flex-shrink-0 shadow-xs">
               <FileText className="h-3.5 w-3.5" />
             </div>
             <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate max-w-[140px] sm:max-w-xs md:max-w-sm">
               {doc.name}
             </span>
+            {isStudyMode && doc.subjectName && (
+              <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-md bg-accent/10 text-accent border border-accent/20 flex-shrink-0">
+                <Folder className="h-3 w-3" />
+                <span>{doc.subjectName}</span>
+              </span>
+            )}
           </div>
 
           <div className="h-4 w-[1px] bg-border hidden md:block" />
@@ -1709,23 +1708,24 @@ export default function PDFViewer({
 
           <div className="h-4 w-[1px] bg-border mx-0.5 hidden sm:block" />
 
-          {/* Minimal Fullscreen Study Mode Button */}
+          {/* Fullscreen Button */}
           <button
             type="button"
-            onClick={handleToggleStudyMode}
-            title="Minimal Study Mode [F] — Distraction-free full reading view"
+            onClick={handleToggleFullscreen}
+            title={isFullscreen ? 'Exit Fullscreen [F]' : 'Fullscreen [F]'}
             className="h-8 px-2.5 rounded-lg border border-border hover:bg-surface flex items-center gap-1.5 text-xs font-semibold text-zinc-700 dark:text-zinc-200 transition-colors shadow-xs"
           >
-            <GraduationCap className="h-4 w-4 text-blue-500" />
-            <span className="hidden xl:inline">Study Mode</span>
-          </button>
-
-          <button
-            onClick={handleToggleFullscreen}
-            title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
-            className="h-8 w-8 rounded-lg border border-border hover:bg-surface flex items-center justify-center text-zinc-600 dark:text-zinc-300 transition-colors shadow-xs"
-          >
-            {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+            {isFullscreen ? (
+              <>
+                <Minimize2 className="h-4 w-4 text-accent" />
+                <span className="hidden xl:inline">Exit Fullscreen</span>
+              </>
+            ) : (
+              <>
+                <Maximize2 className="h-4 w-4 text-accent" />
+                <span className="hidden xl:inline">Fullscreen</span>
+              </>
+            )}
           </button>
 
           {onClose && (
@@ -1811,6 +1811,10 @@ export default function PDFViewer({
             darkMode={darkMode}
             onToggleDarkMode={onToggleDarkMode}
             onReturnToCover={onReturnToCover}
+            allDocs={allDocs}
+            activeDocId={doc.id}
+            onSelectDoc={onSelectDoc}
+            isStudyMode={isStudyMode}
           />
         ) : (
           <div className="absolute top-3 left-3 z-30">

@@ -6,13 +6,11 @@ import {
   Plus,
   Search,
   Minimize2,
+  Maximize2,
   PanelLeftClose,
   PanelLeftOpen,
   Pin,
   PinOff,
-  Sun,
-  Moon,
-  BookOpen,
   FileText,
   Columns
 } from 'lucide-react';
@@ -35,10 +33,10 @@ interface MinimalStudyBarProps {
   onToggleSidebar: () => void;
   isSearchOpen: boolean;
   onToggleSearch: () => void;
-  studyTint: 'default' | 'sepia' | 'dark';
-  onSelectStudyTint: (tint: 'default' | 'sepia' | 'dark') => void;
   isPinned: boolean;
   onTogglePin: () => void;
+  isFullscreen?: boolean;
+  onToggleFullscreen?: () => void;
   onExitStudyMode: () => void;
 }
 
@@ -58,10 +56,10 @@ export default function MinimalStudyBar({
   onToggleSidebar,
   isSearchOpen,
   onToggleSearch,
-  studyTint,
-  onSelectStudyTint,
   isPinned,
   onTogglePin,
+  isFullscreen,
+  onToggleFullscreen,
   onExitStudyMode,
 }: MinimalStudyBarProps) {
   const [inputVal, setInputVal] = useState<string>(String(currentPage));
@@ -81,7 +79,7 @@ export default function MinimalStudyBar({
   };
 
   return (
-    <div className="h-10 bg-zinc-950 border-b border-zinc-800/80 px-2 sm:px-4 flex items-center justify-between text-zinc-300 select-none shadow-lg z-50 flex-shrink-0">
+    <div className="h-10 bg-surface dark:bg-zinc-950 border-b border-border dark:border-zinc-800/80 px-2 sm:px-4 flex items-center justify-between text-zinc-700 dark:text-zinc-300 select-none shadow-md z-50 flex-shrink-0">
       
       {/* Left: Sidebar toggle & Page Navigation */}
       <div className="flex items-center gap-1.5 sm:gap-2">
@@ -89,7 +87,7 @@ export default function MinimalStudyBar({
           type="button"
           onClick={onToggleSidebar}
           title={isSidebarOpen ? "Hide Thumbnails Sidebar [B]" : "Show Thumbnails Sidebar [B]"}
-          className="h-7 w-7 rounded-md flex items-center justify-center hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors"
+          className="h-7 w-7 rounded-md flex items-center justify-center hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
         >
           {isSidebarOpen ? (
             <PanelLeftClose className="h-4 w-4" />
@@ -98,7 +96,7 @@ export default function MinimalStudyBar({
           )}
         </button>
 
-        <div className="h-4 w-[1px] bg-zinc-800 mx-0.5" />
+        <div className="h-4 w-[1px] bg-zinc-300 dark:bg-zinc-800 mx-0.5" />
 
         {/* Prev Page */}
         <button
@@ -106,7 +104,7 @@ export default function MinimalStudyBar({
           onClick={() => onPageChange(Math.max(1, currentPage - 1))}
           disabled={currentPage <= 1}
           title="Previous Page [← / PageUp]"
-          className="h-7 w-7 rounded-md flex items-center justify-center hover:bg-zinc-800 disabled:opacity-30 text-zinc-300 hover:text-white transition-colors"
+          className="h-7 w-7 rounded-md flex items-center justify-center hover:bg-zinc-200 dark:hover:bg-zinc-800 disabled:opacity-30 text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white transition-colors"
         >
           <ChevronLeft className="h-4 w-4" />
         </button>
@@ -119,10 +117,10 @@ export default function MinimalStudyBar({
             onChange={(e) => setInputVal(e.target.value)}
             onKeyDown={handleInputSubmit}
             onBlur={handleInputSubmit}
-            className="w-10 h-6 bg-zinc-900 border border-zinc-700/80 rounded text-center text-xs font-semibold text-zinc-100 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 tabular-nums"
+            className="w-10 h-6 bg-card dark:bg-zinc-900 border border-border dark:border-zinc-700/80 rounded text-center text-xs font-semibold text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 tabular-nums"
             title="Jump to page"
           />
-          <span className="text-zinc-500 text-xs">of {totalPages || 1}</span>
+          <span className="text-zinc-500 dark:text-zinc-400 text-xs">of {totalPages || 1}</span>
         </div>
 
         {/* Next Page */}
@@ -131,7 +129,7 @@ export default function MinimalStudyBar({
           onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
           disabled={currentPage >= totalPages}
           title="Next Page [→ / PageDown]"
-          className="h-7 w-7 rounded-md flex items-center justify-center hover:bg-zinc-800 disabled:opacity-30 text-zinc-300 hover:text-white transition-colors"
+          className="h-7 w-7 rounded-md flex items-center justify-center hover:bg-zinc-200 dark:hover:bg-zinc-800 disabled:opacity-30 text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white transition-colors"
         >
           <ChevronRight className="h-4 w-4" />
         </button>
@@ -144,7 +142,7 @@ export default function MinimalStudyBar({
           onClick={onZoomOut}
           disabled={scale <= 0.4}
           title="Zoom Out [-]"
-          className="h-7 w-7 rounded-md flex items-center justify-center hover:bg-zinc-800 disabled:opacity-30 text-zinc-400 hover:text-zinc-100 transition-colors"
+          className="h-7 w-7 rounded-md flex items-center justify-center hover:bg-zinc-200 dark:hover:bg-zinc-800 disabled:opacity-30 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
         >
           <Minus className="h-3.5 w-3.5" />
         </button>
@@ -153,7 +151,7 @@ export default function MinimalStudyBar({
           type="button"
           onClick={onZoomReset}
           title="Reset Zoom to 100%"
-          className="h-6 px-2 rounded-md hover:bg-zinc-800 text-[11px] font-mono font-semibold text-zinc-300 hover:text-white transition-colors tabular-nums"
+          className="h-6 px-2 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-800 text-[11px] font-mono font-semibold text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white transition-colors tabular-nums"
         >
           {Math.round(scale * 100)}%
         </button>
@@ -163,19 +161,19 @@ export default function MinimalStudyBar({
           onClick={onZoomIn}
           disabled={scale >= 2.5}
           title="Zoom In [+]"
-          className="h-7 w-7 rounded-md flex items-center justify-center hover:bg-zinc-800 disabled:opacity-30 text-zinc-400 hover:text-zinc-100 transition-colors"
+          className="h-7 w-7 rounded-md flex items-center justify-center hover:bg-zinc-200 dark:hover:bg-zinc-800 disabled:opacity-30 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
         >
           <Plus className="h-3.5 w-3.5" />
         </button>
 
-        <div className="h-4 w-[1px] bg-zinc-800 mx-1 hidden sm:block" />
+        <div className="h-4 w-[1px] bg-zinc-300 dark:bg-zinc-800 mx-1 hidden sm:block" />
 
         {/* Fit Width */}
         <button
           type="button"
           onClick={onFitWidth}
           title="Fit to Width [W]"
-          className="h-6 px-2 rounded-md hover:bg-zinc-800 text-[11px] font-medium text-zinc-400 hover:text-zinc-100 transition-colors hidden sm:inline-flex items-center"
+          className="h-6 px-2 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-800 text-[11px] font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors hidden sm:inline-flex items-center"
         >
           Fit W
         </button>
@@ -185,7 +183,7 @@ export default function MinimalStudyBar({
           type="button"
           onClick={onFitPage}
           title="Fit Page [P]"
-          className="h-6 px-2 rounded-md hover:bg-zinc-800 text-[11px] font-medium text-zinc-400 hover:text-zinc-100 transition-colors hidden sm:inline-flex items-center"
+          className="h-6 px-2 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-800 text-[11px] font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors hidden sm:inline-flex items-center"
         >
           Fit H
         </button>
@@ -195,7 +193,7 @@ export default function MinimalStudyBar({
           type="button"
           onClick={onToggleLayoutMode}
           title={layoutMode === 'continuous' ? "Switch to Single Page Presentation" : "Switch to Continuous Scroll"}
-          className="h-7 px-2 rounded-md hover:bg-zinc-800 text-[11px] font-medium text-zinc-400 hover:text-zinc-100 transition-colors hidden md:inline-flex items-center gap-1"
+          className="h-7 px-2 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-800 text-[11px] font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors hidden md:inline-flex items-center gap-1"
         >
           {layoutMode === 'continuous' ? (
             <>
@@ -211,58 +209,13 @@ export default function MinimalStudyBar({
         </button>
       </div>
 
-      {/* Right: Pomodoro Timer, Study Tints, Search, Pin Toolbar, and Exit */}
+      {/* Right: Pomodoro Timer, Search, Pin Toolbar, and Exit */}
       <div className="flex items-center gap-1 sm:gap-1.5">
         
         {/* Pomodoro Study Timer with Custom Intervals */}
         <PomodoroTimer />
 
-        <div className="h-4 w-[1px] bg-zinc-800 mx-0.5 hidden sm:block" />
-
-        {/* Study Tint Options (Eye Strain Protection) */}
-        <div className="flex items-center bg-zinc-900 border border-zinc-800 rounded-lg p-0.5" title="Reading Tint for Eye Comfort">
-          <button
-            type="button"
-            onClick={() => onSelectStudyTint('default')}
-            title="Natural Paper"
-            className={`h-6 px-1.5 rounded text-[10px] font-medium transition-colors flex items-center gap-1 ${
-              studyTint === 'default'
-                ? 'bg-zinc-800 text-white font-semibold shadow-xs'
-                : 'text-zinc-400 hover:text-zinc-200'
-            }`}
-          >
-            <Sun className="h-3 w-3" />
-            <span className="hidden xl:inline">Normal</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onSelectStudyTint('sepia')}
-            title="Warm Paper (Sepia / Eye-Care)"
-            className={`h-6 px-1.5 rounded text-[10px] font-medium transition-colors flex items-center gap-1 ${
-              studyTint === 'sepia'
-                ? 'bg-amber-600 text-white font-semibold shadow-xs'
-                : 'text-amber-500/80 hover:text-amber-400'
-            }`}
-          >
-            <BookOpen className="h-3 w-3" />
-            <span className="hidden xl:inline">Sepia</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onSelectStudyTint('dark')}
-            title="Dark Invert (Night Study)"
-            className={`h-6 px-1.5 rounded text-[10px] font-medium transition-colors flex items-center gap-1 ${
-              studyTint === 'dark'
-                ? 'bg-indigo-600 text-white font-semibold shadow-xs'
-                : 'text-zinc-400 hover:text-zinc-200'
-            }`}
-          >
-            <Moon className="h-3 w-3" />
-            <span className="hidden xl:inline">Night</span>
-          </button>
-        </div>
+        <div className="h-4 w-[1px] bg-zinc-300 dark:bg-zinc-800 mx-0.5 hidden sm:block" />
 
         {/* Search */}
         <button
@@ -272,11 +225,23 @@ export default function MinimalStudyBar({
           className={`h-7 w-7 rounded-md flex items-center justify-center transition-colors ${
             isSearchOpen
               ? 'bg-blue-600 text-white'
-              : 'hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100'
+              : 'hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
           }`}
         >
           <Search className="h-3.5 w-3.5" />
         </button>
+
+        {/* Toggle Fullscreen */}
+        {onToggleFullscreen && (
+          <button
+            type="button"
+            onClick={onToggleFullscreen}
+            title={isFullscreen ? "Exit Fullscreen (F11)" : "Fullscreen (F11)"}
+            className="h-7 w-7 rounded-md flex items-center justify-center transition-colors hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
+          >
+            {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+          </button>
+        )}
 
         {/* Pin / Auto-Hide Top Bar */}
         <button
@@ -285,24 +250,24 @@ export default function MinimalStudyBar({
           title={isPinned ? "Toolbar Pinned (Click to auto-hide while reading)" : "Toolbar Auto-Hiding (Click to pin)"}
           className={`h-7 w-7 rounded-md flex items-center justify-center transition-colors hidden sm:flex ${
             isPinned 
-              ? 'text-blue-400 hover:bg-zinc-800' 
-              : 'text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300'
+              ? 'text-blue-500 dark:text-blue-400 hover:bg-zinc-200 dark:hover:bg-zinc-800' 
+              : 'text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-800 hover:text-zinc-800 dark:hover:text-zinc-300'
           }`}
         >
           {isPinned ? <Pin className="h-3.5 w-3.5" /> : <PinOff className="h-3.5 w-3.5" />}
         </button>
 
-        <div className="h-4 w-[1px] bg-zinc-800 mx-0.5" />
+        <div className="h-4 w-[1px] bg-zinc-300 dark:bg-zinc-800 mx-0.5" />
 
         {/* Exit Study Mode */}
         <button
           type="button"
           onClick={onExitStudyMode}
           title="Exit Minimal Study Mode [Esc]"
-          className="h-7 px-2.5 rounded-md bg-zinc-900 hover:bg-rose-500/20 hover:text-rose-400 border border-zinc-800 hover:border-rose-500/40 text-xs font-medium text-zinc-300 transition-all flex items-center gap-1.5 shadow-xs"
+          className="h-7 px-2.5 rounded-md bg-card dark:bg-zinc-900 hover:bg-rose-500/10 dark:hover:bg-rose-500/20 hover:text-rose-600 dark:hover:text-rose-400 border border-border dark:border-zinc-800 hover:border-rose-500/40 text-xs font-medium text-zinc-700 dark:text-zinc-300 transition-all flex items-center gap-1.5 shadow-xs"
         >
           <Minimize2 className="h-3.5 w-3.5" />
-          <span>Exit <kbd className="hidden md:inline text-[9px] font-mono opacity-70 bg-zinc-800 px-1 rounded">Esc</kbd></span>
+          <span>Exit <kbd className="hidden md:inline text-[9px] font-mono opacity-70 bg-zinc-200 dark:bg-zinc-800 px-1 rounded">Esc</kbd></span>
         </button>
       </div>
 

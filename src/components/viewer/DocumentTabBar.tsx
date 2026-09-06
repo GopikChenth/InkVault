@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { FileText, Plus, X } from 'lucide-react';
+import { FileText, Plus, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { LoadedPDF } from '../../types';
 
 interface DocumentTabBarProps {
@@ -70,10 +70,10 @@ const DocumentTabItem = React.memo(function DocumentTabItem({
         }}
         title="Close Tab (⌘W / Ctrl+W)"
         aria-label={`Close ${doc.name}`}
-        className={`h-4 w-4 rounded-full flex items-center justify-center transition-all ${
+        className={`h-4 w-4 rounded-full flex items-center justify-center transition-all z-20 cursor-pointer ${
           isActive
-            ? 'opacity-70 hover:opacity-100 hover:bg-surface text-zinc-500 hover:text-rose-500'
-            : 'opacity-0 group-hover:opacity-70 hover:!opacity-100 hover:bg-surface text-zinc-400 hover:text-rose-500'
+            ? 'opacity-80 hover:opacity-100 hover:bg-surface text-zinc-500 hover:text-rose-500'
+            : 'opacity-40 group-hover:opacity-100 hover:bg-surface text-zinc-400 hover:text-rose-500'
         }`}
       >
         <X className="h-3 w-3" />
@@ -103,6 +103,26 @@ export default function DocumentTabBar({
     }
   }, [activeDocId]);
 
+  // Enable horizontal mouse wheel scrolling across tabs
+  useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const handleWheel = (e: WheelEvent) => {
+      if (e.deltaY !== 0) {
+        e.preventDefault();
+        el.scrollLeft += e.deltaY;
+      }
+    };
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => el.removeEventListener('wheel', handleWheel);
+  }, []);
+
+  const scrollByAmount = (amount: number) => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({ left: amount, behavior: 'smooth' });
+    }
+  };
+
   if (docs.length === 0) return null;
 
   return (
@@ -111,6 +131,7 @@ export default function DocumentTabBar({
       {/* Scrollable Tabs List */}
       <div 
         ref={scrollContainerRef}
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         className="flex-1 flex items-end gap-1 overflow-x-auto no-scrollbar scroll-smooth h-full pt-1.5"
       >
         {docs.map((doc) => {
@@ -133,15 +154,37 @@ export default function DocumentTabBar({
           onClick={onNewTab}
           title="Open Document in New Tab (⌘T / Ctrl+T)"
           aria-label="New Tab"
-          className="h-7 w-7 mb-1 rounded-lg flex items-center justify-center text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-card border border-transparent hover:border-border transition-all flex-shrink-0 active:scale-95"
+          className="h-7 w-7 mb-1 rounded-lg flex items-center justify-center text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-card border border-transparent hover:border-border transition-all flex-shrink-0 active:scale-95 cursor-pointer"
         >
           <Plus className="h-3.5 w-3.5" />
         </button>
       </div>
 
+      {/* Navigation chevron arrows when many tabs are open */}
+      {docs.length > 5 ? (
+        <div className="flex items-center gap-0.5 pb-1 px-1 flex-shrink-0">
+          <button
+            type="button"
+            onClick={() => scrollByAmount(-220)}
+            className="h-6 w-6 rounded hover:bg-card flex items-center justify-center text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors"
+            title="Scroll Tabs Left"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => scrollByAmount(220)}
+            className="h-6 w-6 rounded hover:bg-card flex items-center justify-center text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors"
+            title="Scroll Tabs Right"
+          >
+            <ChevronRight className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      ) : null}
+
       {/* Tab count indicator when 3+ tabs are open */}
       {docs.length >= 3 ? (
-        <div className="hidden sm:flex items-center gap-1 text-[10px] font-mono text-zinc-400 pb-1.5 px-2 flex-shrink-0">
+        <div className="hidden sm:flex items-center gap-1 text-[10px] font-mono text-zinc-400 pb-1.5 px-1.5 flex-shrink-0">
           <span className="px-1.5 py-0.5 rounded bg-surface border border-border">
             {docs.length} tabs
           </span>

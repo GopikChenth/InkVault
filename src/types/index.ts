@@ -27,6 +27,19 @@ export interface LoadedPDF {
   currentPage?: number;
   zoomScale?: number;
   rotation?: number;
+  subjectId?: string;
+  subjectName?: string;
+  folderPath?: string;
+  filePath?: string;
+}
+
+export interface StudySubject {
+  id: string;
+  name: string;
+  color: string;
+  createdAt: string;
+  icon?: string;
+  folderPath?: string;
 }
 
 export interface OrganizerPageItem {
@@ -55,7 +68,7 @@ export interface ToolItem {
 
 export type PageLayoutMode = 'continuous' | 'single' | 'two-page' | 'facing-pages';
 
-export type NavSidebarTab = 'thumbnails' | 'outline' | 'bookmarks' | 'annotations' | 'attachments' | 'search';
+export type NavSidebarTab = 'thumbnails' | 'outline' | 'bookmarks' | 'annotations' | 'attachments' | 'search' | 'files';
 
 export interface PDFOutlineNode {
   title: string;

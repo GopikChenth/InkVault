@@ -598,7 +598,7 @@ export default function PageOrganizer({ doc, onSaveModifiedDoc, onOpenInViewer }
                     />
 
                     {/* Original Source Reference */}
-                    <span className="absolute bottom-1 right-1 text-[8px] font-mono px-1.5 py-0.5 rounded bg-zinc-900 text-white border border-zinc-700 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="absolute bottom-1 right-1 text-[8px] font-mono px-1.5 py-0.5 rounded bg-card dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 border border-border opacity-0 group-hover:opacity-100 transition-opacity shadow-xs">
                       Src #{item.originalPageNumber}
                     </span>
                   </div>

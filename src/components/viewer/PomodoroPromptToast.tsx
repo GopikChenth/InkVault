@@ -27,12 +27,11 @@ export default function PomodoroPromptToast() {
   return (
     <div className="fixed top-14 left-1/2 -translate-x-1/2 z-[100] max-w-md w-[92vw] sm:w-auto animate-in fade-in slide-in-from-top-4 duration-200">
       <div 
-        className={`p-4 rounded-2xl shadow-2xl border flex flex-col gap-3 select-none ${
+        className={`p-4 rounded-2xl shadow-2xl border flex flex-col gap-3 select-none bg-card dark:bg-zinc-900 ${
           isFocusCompleted
-            ? 'bg-zinc-900 border-emerald-500/50 shadow-[0_20px_60px_rgba(16,185,129,0.35)] text-zinc-100'
-            : 'bg-zinc-900 border-rose-500/50 shadow-[0_20px_60px_rgba(244,63,94,0.35)] text-zinc-100'
+            ? 'border-emerald-500/50 shadow-[0_20px_60px_rgba(16,185,129,0.2)] text-zinc-900 dark:text-zinc-100'
+            : 'border-rose-500/50 shadow-[0_20px_60px_rgba(244,63,94,0.2)] text-zinc-900 dark:text-zinc-100'
         }`}
-        style={{ backgroundColor: '#18181b' }}
       >
         
         {/* Header line */}
@@ -40,21 +39,21 @@ export default function PomodoroPromptToast() {
           <div className="flex items-center gap-2.5">
             <div className={`h-9 w-9 rounded-xl flex items-center justify-center shadow-md ${
               isFocusCompleted 
-                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
-                : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' 
+                : 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30'
             }`}>
               <Timer className="h-5 w-5" />
             </div>
 
             <div>
-              <div className="flex items-center gap-1.5 font-bold text-sm text-zinc-100">
+              <div className="flex items-center gap-1.5 font-bold text-sm text-zinc-900 dark:text-zinc-100">
                 {isFocusCompleted ? (
                   <span>Focus Session Complete</span>
                 ) : (
                   <span>Break Time Over</span>
                 )}
               </div>
-              <p className="text-xs text-zinc-400 mt-0.5">
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
                 {isFocusCompleted 
                   ? `Great momentum! Ready to start your ${targetDurationMin}-minute break?` 
                   : `Recharged? Ready to start your ${targetDurationMin}-minute work session?`
@@ -68,14 +67,14 @@ export default function PomodoroPromptToast() {
             type="button"
             onClick={dismissPrompt}
             title="Dismiss"
-            className="h-6 w-6 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 flex items-center justify-center transition-colors"
+            className="h-6 w-6 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 flex items-center justify-center transition-colors"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-2 pt-1 border-t border-zinc-800/80">
+        <div className="flex items-center gap-2 pt-1 border-t border-zinc-200 dark:border-zinc-800/80">
           {/* Primary Action: Start the requested break or work */}
           <button
             type="button"
@@ -97,7 +96,7 @@ export default function PomodoroPromptToast() {
             type="button"
             onClick={() => extendTime(isFocusCompleted ? 5 : 2)}
             title={isFocusCompleted ? "Extend work by 5 minutes" : "Snooze break by 2 minutes"}
-            className="h-9 px-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white font-medium text-xs flex items-center gap-1 transition-colors"
+            className="h-9 px-3 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white font-medium text-xs flex items-center gap-1 transition-colors border border-zinc-200 dark:border-zinc-700/60"
           >
             <Plus className="h-3.5 w-3.5" />
             <span>{isFocusCompleted ? '+5m Work' : '+2m Break'}</span>
@@ -107,7 +106,7 @@ export default function PomodoroPromptToast() {
           <button
             type="button"
             onClick={dismissPrompt}
-            className="h-9 px-2.5 rounded-xl hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 text-xs transition-colors"
+            className="h-9 px-2.5 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 text-xs transition-colors"
           >
             Later
           </button>

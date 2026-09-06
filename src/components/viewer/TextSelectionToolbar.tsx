@@ -109,26 +109,25 @@ export default function TextSelectionToolbar({
         left: `${clampedX}px`,
         top: `${targetY}px`,
         transform: placeBelow ? 'translate(-50%, 0)' : 'translate(-50%, -100%)',
-        backgroundColor: '#18181b',
       }}
-      className="z-[90] flex flex-col gap-1 p-1 rounded-xl bg-zinc-900 border border-zinc-700/90 shadow-[0_16px_50px_rgba(0,0,0,0.65)] text-zinc-100 select-none animate-in fade-in zoom-in-95 duration-150"
+      className="z-[90] flex flex-col gap-1 p-1 rounded-xl bg-card dark:bg-zinc-900 border border-border dark:border-zinc-700/90 shadow-[0_16px_50px_rgba(0,0,0,0.18)] dark:shadow-[0_16px_50px_rgba(0,0,0,0.65)] text-zinc-800 dark:text-zinc-100 select-none animate-in fade-in zoom-in-95 duration-150"
     >
       {/* Main Action Bar */}
       <div className="flex items-center gap-1">
         
         {/* 1. Highlight Button */}
-        <div className="flex items-center rounded-lg bg-zinc-800/80 hover:bg-zinc-800 border border-zinc-700/60 transition-colors p-0.5">
+        <div className="flex items-center rounded-lg bg-zinc-100 dark:bg-zinc-800/80 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-700/60 transition-colors p-0.5">
           <button
             type="button"
             onClick={(e) => handleQuickHighlight(e)}
             title={`Highlight text in ${currentColor} (Click to highlight)`}
-            className="flex items-center gap-1.5 px-2 py-1 text-xs font-semibold text-zinc-200 hover:text-white transition-colors"
+            className="flex items-center gap-1.5 px-2 py-1 text-xs font-semibold text-zinc-700 dark:text-zinc-200 hover:text-zinc-900 dark:hover:text-white transition-colors"
           >
             <div 
-              className="h-3 w-3 rounded-full shadow-xs ring-1 ring-black/40 flex-shrink-0"
+              className="h-3 w-3 rounded-full shadow-xs ring-1 ring-black/20 flex-shrink-0"
               style={{ backgroundColor: currentColor }}
             />
-            <Highlighter className="h-3.5 w-3.5 text-zinc-300" />
+            <Highlighter className="h-3.5 w-3.5 text-zinc-500 dark:text-zinc-300" />
             <span>Highlight</span>
           </button>
 
@@ -140,22 +139,22 @@ export default function TextSelectionToolbar({
               setShowPalette((prev) => !prev);
             }}
             title="Choose highlight color"
-            className="h-6 w-6 rounded flex items-center justify-center hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 transition-colors"
+            className="h-6 w-6 rounded flex items-center justify-center hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors"
           >
             <Palette className="h-3 w-3" />
           </button>
         </div>
 
-        <div className="w-[1px] h-4 bg-zinc-800 mx-0.5" />
+        <div className="w-[1px] h-4 bg-zinc-200 dark:bg-zinc-800 mx-0.5" />
 
         {/* 2. Search Online (Web Search) */}
         <button
           type="button"
           onClick={handleSearchOnline}
           title="Search Google in new tab"
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-zinc-800 text-zinc-200 hover:text-white text-xs font-medium transition-colors"
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-200 hover:text-zinc-900 dark:hover:text-white text-xs font-medium transition-colors"
         >
-          <Globe className="h-3.5 w-3.5 text-blue-400" />
+          <Globe className="h-3.5 w-3.5 text-blue-500 dark:text-blue-400" />
           <span>Search Online</span>
         </button>
 
@@ -168,9 +167,9 @@ export default function TextSelectionToolbar({
               onSearchInDoc(text);
             }}
             title="Find all occurrences in this document (Ctrl+F)"
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-zinc-800 text-zinc-200 hover:text-white text-xs font-medium transition-colors"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-200 hover:text-zinc-900 dark:hover:text-white text-xs font-medium transition-colors"
           >
-            <Search className="h-3.5 w-3.5 text-amber-400" />
+            <Search className="h-3.5 w-3.5 text-amber-500 dark:text-amber-400" />
             <span className="hidden sm:inline">Find in Doc</span>
           </button>
         )}
@@ -184,30 +183,30 @@ export default function TextSelectionToolbar({
               onAddStickyNote(text);
             }}
             title="Create Sticky Note for this quote"
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-zinc-800 text-zinc-200 hover:text-white text-xs font-medium transition-colors"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-200 hover:text-zinc-900 dark:hover:text-white text-xs font-medium transition-colors"
           >
-            <StickyNote className="h-3.5 w-3.5 text-emerald-400" />
+            <StickyNote className="h-3.5 w-3.5 text-emerald-500 dark:text-emerald-400" />
             <span className="hidden md:inline">Note</span>
           </button>
         )}
 
-        <div className="w-[1px] h-4 bg-zinc-800 mx-0.5" />
+        <div className="w-[1px] h-4 bg-zinc-200 dark:bg-zinc-800 mx-0.5" />
 
         {/* 5. Copy Text Button */}
         <button
           type="button"
           onClick={handleCopy}
           title="Copy selected text to clipboard"
-          className="h-7 px-2 rounded-lg hover:bg-zinc-800 text-zinc-300 hover:text-white text-xs flex items-center gap-1 transition-colors"
+          className="h-7 px-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white text-xs flex items-center gap-1 transition-colors"
         >
           {copied ? (
             <>
-              <Check className="h-3.5 w-3.5 text-emerald-400" />
-              <span className="text-[11px] text-emerald-400 font-medium">Copied!</span>
+              <Check className="h-3.5 w-3.5 text-emerald-500 dark:text-emerald-400" />
+              <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">Copied!</span>
             </>
           ) : (
             <>
-              <Copy className="h-3.5 w-3.5 text-zinc-400" />
+              <Copy className="h-3.5 w-3.5 text-zinc-500 dark:text-zinc-400" />
               <span className="text-[11px]">Copy</span>
             </>
           )}
@@ -221,7 +220,7 @@ export default function TextSelectionToolbar({
             onClose();
           }}
           title="Dismiss selection menu"
-          className="h-7 w-7 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 flex items-center justify-center transition-colors ml-0.5"
+          className="h-7 w-7 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 flex items-center justify-center transition-colors ml-0.5"
         >
           <X className="h-3.5 w-3.5" />
         </button>
@@ -229,8 +228,8 @@ export default function TextSelectionToolbar({
 
       {/* Expandable Highlight Colors Strip */}
       {showPalette && (
-        <div className="flex items-center justify-between gap-1.5 px-2 py-1.5 border-t border-zinc-800/80 mt-0.5 bg-zinc-950/80 rounded-lg">
-          <span className="text-[10px] font-mono text-zinc-400 uppercase font-semibold">Highlight Color:</span>
+        <div className="flex items-center justify-between gap-1.5 px-2 py-1.5 border-t border-zinc-200 dark:border-zinc-800/80 mt-0.5 bg-zinc-50 dark:bg-zinc-950/80 rounded-lg">
+          <span className="text-[10px] font-mono text-zinc-500 dark:text-zinc-400 uppercase font-semibold">Highlight Color:</span>
           <div className="flex items-center gap-1.5">
             {HIGHLIGHT_COLORS.map((c) => (
               <button
@@ -240,7 +239,7 @@ export default function TextSelectionToolbar({
                 title={`Highlight in ${c.label}`}
                 className={`h-5 w-5 rounded-full transition-all flex items-center justify-center ${
                   currentColor === c.hex
-                    ? 'ring-2 ring-white scale-110 shadow-sm'
+                    ? 'ring-2 ring-blue-500 dark:ring-white scale-110 shadow-sm'
                     : 'hover:scale-110 opacity-85 hover:opacity-100'
                 }`}
                 style={{ backgroundColor: c.hex }}
@@ -254,7 +253,7 @@ export default function TextSelectionToolbar({
 
       {/* Study Mode Indicator Badge */}
       {isStudyMode && (
-        <div className="px-2 py-0.5 bg-blue-950/60 border-t border-blue-800/40 rounded-b-lg flex items-center justify-between text-[9px] font-mono text-blue-300">
+        <div className="px-2 py-0.5 bg-blue-500/10 dark:bg-blue-950/60 border-t border-blue-500/20 dark:border-blue-800/40 rounded-b-lg flex items-center justify-between text-[9px] font-mono text-blue-600 dark:text-blue-300">
           <span>Study Mode Active</span>
           <span>Instant Capture</span>
         </div>

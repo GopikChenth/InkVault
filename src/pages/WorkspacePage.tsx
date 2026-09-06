@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { invoke } from '@tauri-apps/api/core';
 import { 
   Sun, 
   Moon, 
@@ -11,14 +12,29 @@ import {
   Clock, 
   ArrowRight,
   UploadCloud,
-  CheckCircle2
+  CheckCircle2,
+  FolderUp,
+  Folder,
+  GraduationCap,
+  FolderTree,
+  LayoutGrid
 } from 'lucide-react';
 import { NAV_ITEMS, TOOL_ITEMS } from '../constants/mockData';
-import { LoadedPDF, PDFAnnotation, AppMode } from '../types';
+import { LoadedPDF, PDFAnnotation, AppMode, StudySubject } from '../types';
 import PDFViewer, { globalDocProxyCache, globalTextIndexCache } from '../components/PDFViewer';
 import EmptyState from '../components/EmptyState';
 import { PomodoroProvider } from '../context/PomodoroContext';
 import PomodoroPromptToast from '../components/viewer/PomodoroPromptToast';
+import StudySubjectSetupCard from '../components/study/StudySubjectSetupCard';
+import FolderTreeExplorer from '../components/study/FolderTreeExplorer';
+import { 
+  saveDocumentsToStorage, 
+  loadDocumentsFromStorage, 
+  removeDocumentFromStorage, 
+  removeDocumentsBySubject,
+  loadMetadataCache,
+  saveMetadataCache
+} from '../utils/documentStorage';
 
 // Lazy-load heavy offline manipulation tools to prevent upfront bundle weight
 const MergeTool = React.lazy(() => import('../components/tools/MergeTool'));
@@ -36,11 +52,20 @@ function ToolLoadingFallback() {
   );
 }
 
+function formatFileSize(bytes: number): string {
+  if (!bytes || bytes <= 0) return '0 KB';
+  if (bytes < 1024 * 1024) {
+    return (bytes / 1024).toFixed(1) + ' KB';
+  }
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
 interface RecentDocCardProps {
   doc: LoadedPDF;
   isCurrentlyActive: boolean;
   onOpen: (doc: LoadedPDF) => void;
   onRemove: (docId: string, e: React.MouseEvent) => void;
+  subjectColor?: string;
 }
 
 const RecentDocCard = React.memo(function RecentDocCard({
@@ -48,6 +73,7 @@ const RecentDocCard = React.memo(function RecentDocCard({
   isCurrentlyActive,
   onOpen,
   onRemove,
+  subjectColor,
 }: RecentDocCardProps) {
   return (
     <div
@@ -67,10 +93,26 @@ const RecentDocCard = React.memo(function RecentDocCard({
           <FileText className="h-5 w-5" />
         </div>
         <div className="min-w-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <h4 className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 group-hover:text-accent transition-colors truncate">
               {doc.name}
             </h4>
+            {doc.subjectName && (
+              <span
+                className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-md border flex-shrink-0"
+                style={{
+                  backgroundColor: subjectColor ? `${subjectColor}15` : 'rgba(99, 102, 241, 0.1)',
+                  borderColor: subjectColor ? `${subjectColor}35` : 'rgba(99, 102, 241, 0.25)',
+                  color: subjectColor || '#6366f1',
+                }}
+              >
+                <span
+                  className="w-1.5 h-1.5 rounded-full"
+                  style={{ backgroundColor: subjectColor || '#6366f1' }}
+                />
+                {doc.subjectName}
+              </span>
+            )}
             {isCurrentlyActive ? (
               <span className="flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                 <CheckCircle2 className="h-3 w-3" /> Active
@@ -158,7 +200,13 @@ export default function WorkspacePage({
       setActiveTab(openDocs.length > 0 ? 'viewer' : 'recent');
     }
   }, [currentMode, activeTab, openDocs.length, setActiveTab]);
-  const [activeDocId, setActiveDocId] = useState<string | null>(null);
+  const [activeDocId, setActiveDocId] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem('inkvault_active_doc_id') || null;
+    } catch {
+      return null;
+    }
+  });
 
   const activeDoc = React.useMemo(() => {
     if (!activeDocId && openDocs.length > 0) return openDocs[0];
@@ -169,24 +217,210 @@ export default function WorkspacePage({
     if (onActiveDocChange) {
       onActiveDocChange(activeDoc ? activeDoc.name : null);
     }
-  }, [activeDoc, onActiveDocChange]);
+    if (activeDocId) {
+      try {
+        localStorage.setItem('inkvault_active_doc_id', activeDocId);
+      } catch {}
+    }
+  }, [activeDoc, activeDocId, onActiveDocChange]);
 
-  const [recentDocs, setRecentDocs] = useState<LoadedPDF[]>([]);
+  const [recentDocs, setRecentDocs] = useState<LoadedPDF[]>(() => {
+    return loadMetadataCache();
+  });
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [conversionStatus, setConversionStatus] = useState<string | null>(null);
+
+  // Study Subjects state & local persistence
+  const [studySubjects, setStudySubjects] = useState<StudySubject[]>(() => {
+    try {
+      const saved = localStorage.getItem('inkvault_study_subjects');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Failed to load study subjects from localStorage:', e);
+    }
+    return [];
+  });
+
+interface TauriFolderScanResult {
+  folder_name: string;
+  folder_path: string;
+  files: Array<{
+    name: string;
+    path: string;
+    size: number;
+    bytes: number[];
+  }>;
+}
+
+  const [activeSubjectId, setActiveSubjectId] = useState<string | 'all'>(() => {
+    try {
+      return localStorage.getItem('inkvault_active_subject_id') || 'all';
+    } catch {
+      return 'all';
+    }
+  });
+  const [studyExplorerView, setStudyExplorerView] = useState<'tree' | 'cards'>(() => {
+    try {
+      return (localStorage.getItem('inkvault_study_explorer_view') as 'tree' | 'cards') || 'tree';
+    } catch {
+      return 'tree';
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('inkvault_study_subjects', JSON.stringify(studySubjects));
+    } catch (e) {
+      console.error('Failed to save study subjects to localStorage:', e);
+    }
+  }, [studySubjects]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('inkvault_active_subject_id', activeSubjectId);
+    } catch {}
+  }, [activeSubjectId]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('inkvault_study_explorer_view', studyExplorerView);
+    } catch {}
+  }, [studyExplorerView]);
+
+  // Restore saved documents from IndexedDB on initial mount
+  useEffect(() => {
+    let isMounted = true;
+    loadDocumentsFromStorage().then((savedDocs) => {
+      if (!isMounted || savedDocs.length === 0) return;
+      setRecentDocs((prev) => {
+        const byName = new Map<string, LoadedPDF>();
+        prev.forEach((d) => byName.set(d.name, d));
+        savedDocs.forEach((d) => {
+          const existing = byName.get(d.name);
+          if (existing) {
+            byName.set(d.name, {
+              ...existing,
+              ...d,
+              blobUrl: d.blobUrl || existing.blobUrl,
+              file: d.file.size > 0 ? d.file : existing.file,
+              filePath: existing.filePath || d.filePath,
+            });
+          } else {
+            byName.set(d.name, d);
+          }
+        });
+        return Array.from(byName.values());
+      });
+      setOpenDocs((prev) => {
+        if (prev.length > 0) return prev;
+        return savedDocs.filter((d) => Boolean(d.blobUrl));
+      });
+    });
+    return () => { isMounted = false; };
+  }, []);
+
+  // In Tauri desktop app, automatically re-scan all saved subject folders on mount to ensure complete sync
+  useEffect(() => {
+    const isTauri = typeof window !== 'undefined' && Boolean((window as any).__TAURI_INTERNALS__);
+    if (!isTauri) return;
+
+    studySubjects.forEach(async (sub) => {
+      if (!sub.folderPath) return;
+      try {
+        const scanResult = await invoke<TauriFolderScanResult | null>('scan_subject_folder', { folderPath: sub.folderPath });
+        if (scanResult && scanResult.files && scanResult.files.length > 0) {
+          const scannedDocs: LoadedPDF[] = scanResult.files.map((f, idx) => {
+            const dummyBlob = new Blob([], { type: 'application/pdf' });
+            const dummyFile = new File([dummyBlob], f.name, { type: 'application/pdf' });
+            return {
+              id: `${sub.id}-${idx}-${f.name}`,
+              name: f.name,
+              size: formatFileSize(f.size),
+              rawSize: f.size,
+              blobUrl: '',
+              file: dummyFile,
+              loadedAt: new Date(),
+              subjectId: sub.id,
+              subjectName: sub.name,
+              folderPath: sub.folderPath,
+              filePath: f.path,
+            };
+          });
+
+          setRecentDocs((prev) => {
+            const byName = new Map<string, LoadedPDF>();
+            prev.forEach((d) => byName.set(d.name, d));
+            scannedDocs.forEach((sd) => {
+              const existing = byName.get(sd.name);
+              if (existing) {
+                byName.set(sd.name, {
+                  ...existing,
+                  filePath: sd.filePath,
+                  subjectId: sd.subjectId,
+                  subjectName: sd.subjectName,
+                  folderPath: sd.folderPath,
+                  rawSize: sd.rawSize,
+                  size: sd.size,
+                });
+              } else {
+                byName.set(sd.name, sd);
+              }
+            });
+            const merged = Array.from(byName.values());
+            saveMetadataCache(merged);
+            return merged;
+          });
+        }
+      } catch (err) {
+        console.warn(`Could not auto-rescan subject folder "${sub.name}":`, err);
+      }
+    });
+  }, [studySubjects]);
+
+  const activeSubject = React.useMemo(() => {
+    if (activeSubjectId === 'all') return null;
+    return studySubjects.find((s) => s.id === activeSubjectId) || null;
+  }, [studySubjects, activeSubjectId]);
+
+  const displayedRecentDocs = React.useMemo(() => {
+    if (currentMode === 'study') {
+      if (activeSubjectId === 'all') return recentDocs;
+      return recentDocs.filter(
+        (d) => d.subjectId === activeSubjectId || (activeSubject && d.subjectName === activeSubject.name)
+      );
+    }
+    if (currentMode === 'editor') {
+      // In Studio Editor, do not show study mode subject folders or their documents
+      return recentDocs.filter((d) => !d.subjectId);
+    }
+    return recentDocs;
+  }, [recentDocs, currentMode, activeSubjectId, activeSubject]);
+
+  const handleDeleteSubject = useCallback((subjectId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setStudySubjects((prev) => prev.filter((s) => s.id !== subjectId));
+    setActiveSubjectId((current) => (current === subjectId ? 'all' : current));
+    setRecentDocs((prev) => prev.map((doc) => doc.subjectId === subjectId ? { ...doc, subjectId: undefined, subjectName: undefined } : doc));
+    setOpenDocs((prev) => prev.map((doc) => doc.subjectId === subjectId ? { ...doc, subjectId: undefined, subjectName: undefined } : doc));
+    removeDocumentsBySubject(subjectId).catch((err) => console.warn('Remove subject docs error:', err));
+  }, []);
 
   // Tab session cache (instant tab switching, scroll preservation, zoom and annotations)
   const tabSessionMapRef = useRef<Map<string, { page: number; scale: number; rotation: number; annotations: PDFAnnotation[] }>>(new Map());
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const folderInputRef = useRef<HTMLInputElement>(null);
 
-  // Helper to format file size
-  const formatFileSize = (bytes: number): string => {
-    if (bytes < 1024 * 1024) {
-      return (bytes / 1024).toFixed(1) + ' KB';
+  // Set webkitdirectory on folderInputRef DOM element for strict browser compatibility
+  useEffect(() => {
+    if (folderInputRef.current) {
+      folderInputRef.current.setAttribute('webkitdirectory', '');
+      folderInputRef.current.setAttribute('directory', '');
+      folderInputRef.current.setAttribute('mozdirectory', '');
+      (folderInputRef.current as any).webkitdirectory = true;
+      (folderInputRef.current as any).directory = true;
     }
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-  };
+  }, []);
 
   // Open Document handler: triggers the system file picker
   const handleTriggerOpenFile = useCallback(() => {
@@ -196,8 +430,175 @@ export default function WorkspacePage({
     }
   }, []);
 
-  // Process chosen File(s) (supporting PDF, EPUB, CBZ, CBR, CBN in Books & Comics mode)
-  const processFiles = useCallback(async (files: FileList | File[]) => {
+  // Forward declaration of processFiles ref so handleTriggerImportFolder can invoke it safely
+  const processFilesRef = useRef<(files: FileList | File[], subjectId?: string, subjectName?: string, folderPath?: string) => Promise<void>>();
+
+  // Import Folder handler: opens native folder picker (Tauri native dialog / File System Access API / webkitdirectory fallback)
+  // Automatically keeps the folder name as it is without asking the user to set a name
+  const handleTriggerImportFolder = useCallback(async () => {
+    // 1. If running inside Tauri desktop app, use native OS folder dialog via Tauri command
+    const isTauri = typeof window !== 'undefined' && Boolean((window as any).__TAURI_INTERNALS__);
+    if (isTauri) {
+      try {
+        const result = await invoke<TauriFolderScanResult | null>('pick_study_folder');
+        if (result && result.folder_name) {
+          const folderName = result.folder_name;
+          let subject = studySubjects.find((s) => s.name.toLowerCase() === folderName.toLowerCase());
+          let targetSubjectId: string;
+          let targetSubjectName = folderName;
+
+          if (subject) {
+            targetSubjectId = subject.id;
+            targetSubjectName = subject.name;
+            if (result.folder_path && subject.folderPath !== result.folder_path) {
+              setStudySubjects((prev) =>
+                prev.map((s) => (s.id === targetSubjectId ? { ...s, folderPath: result.folder_path } : s))
+              );
+            }
+          } else {
+            const palette = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#f43f5e', '#a855f7', '#14b8a6', '#f97316'];
+            const assignedColor = palette[studySubjects.length % palette.length];
+            const newSubject: StudySubject = {
+              id: `subj-${Date.now()}`,
+              name: folderName,
+              color: assignedColor,
+              createdAt: new Date().toISOString(),
+              folderPath: result.folder_path,
+            };
+            setStudySubjects((prev) => [...prev, newSubject]);
+            targetSubjectId = newSubject.id;
+          }
+
+          setActiveSubjectId(targetSubjectId);
+
+          if (result.files && result.files.length > 0) {
+            const scannedDocs: LoadedPDF[] = result.files.map((f, idx) => {
+              const dummyBlob = new Blob([], { type: 'application/pdf' });
+              const dummyFile = new File([dummyBlob], f.name, { type: 'application/pdf' });
+              return {
+                id: `${targetSubjectId}-${Date.now()}-${idx}-${f.name}`,
+                name: f.name,
+                size: formatFileSize(f.size),
+                rawSize: f.size,
+                blobUrl: '',
+                file: dummyFile,
+                loadedAt: new Date(),
+                subjectId: targetSubjectId,
+                subjectName: targetSubjectName,
+                folderPath: result.folder_path,
+                filePath: f.path,
+              };
+            });
+
+            setRecentDocs((prev) => {
+              const byName = new Map<string, LoadedPDF>();
+              prev.forEach((d) => byName.set(d.name, d));
+              scannedDocs.forEach((sd) => byName.set(sd.name, sd));
+              const merged = Array.from(byName.values());
+              saveMetadataCache(merged);
+              saveDocumentsToStorage(merged).catch((e) => console.warn('Save error:', e));
+              return merged;
+            });
+
+            setActiveDocId(scannedDocs[0].id);
+            if (currentMode === 'study' && scannedDocs.length > 1) {
+              setActiveTab('recent');
+            } else {
+              setActiveTab('viewer');
+            }
+          } else {
+            alert(`Folder "${folderName}" was imported, but contains no supported documents (.pdf, .epub, .cbz).`);
+          }
+          return;
+        }
+        return;
+      } catch (tauriErr) {
+        console.warn('Tauri folder picker error, falling back to browser API:', tauriErr);
+      }
+    }
+
+    // 2. Modern browser File System Access API
+    if (typeof (window as any).showDirectoryPicker === 'function') {
+      try {
+        const dirHandle = await (window as any).showDirectoryPicker();
+        if (dirHandle) {
+          const folderName = dirHandle.name;
+          async function scanDirHandle(handle: any, prefix = ''): Promise<File[]> {
+            const collected: File[] = [];
+            for await (const entry of handle.values()) {
+              if (entry.kind === 'file') {
+                const file = await entry.getFile();
+                const lower = file.name.toLowerCase();
+                if (lower.endsWith('.pdf') || lower.endsWith('.epub') || lower.endsWith('.cbz') || lower.endsWith('.cbr') || lower.endsWith('.cbn')) {
+                  const relName = prefix ? `${prefix}/${file.name}` : file.name;
+                  collected.push(new File([file], relName, { type: file.type || 'application/pdf' }));
+                }
+              } else if (entry.kind === 'directory' && !entry.name.startsWith('.')) {
+                const nextPrefix = prefix ? `${prefix}/${entry.name}` : entry.name;
+                try {
+                  const subHandle = await handle.getDirectoryHandle(entry.name);
+                  const subFiles = await scanDirHandle(subHandle, nextPrefix);
+                  collected.push(...subFiles);
+                } catch {
+                  // Skip unreadable subdirectories
+                }
+              }
+            }
+            return collected;
+          }
+          const files = await scanDirHandle(dirHandle);
+
+          let subject = studySubjects.find((s) => s.name.toLowerCase() === folderName.toLowerCase());
+          let targetSubjectId: string;
+          let targetSubjectName = folderName;
+
+          if (subject) {
+            targetSubjectId = subject.id;
+            targetSubjectName = subject.name;
+          } else {
+            const palette = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#f43f5e', '#a855f7', '#14b8a6', '#f97316'];
+            const assignedColor = palette[studySubjects.length % palette.length];
+            const newSubject: StudySubject = {
+              id: `subj-${Date.now()}`,
+              name: folderName,
+              color: assignedColor,
+              createdAt: new Date().toISOString(),
+            };
+            setStudySubjects((prev) => [...prev, newSubject]);
+            targetSubjectId = newSubject.id;
+          }
+
+          setActiveSubjectId(targetSubjectId);
+
+          if (files.length > 0) {
+            if (processFilesRef.current) {
+              await processFilesRef.current(files, targetSubjectId, targetSubjectName);
+            }
+          } else {
+            alert(`Folder "${folderName}" was imported, but contains no supported documents (.pdf, .epub, .cbz).`);
+          }
+          return;
+        }
+      } catch (pickerErr: any) {
+        if (pickerErr.name === 'AbortError') return;
+        console.warn('showDirectoryPicker error, falling back to input:', pickerErr);
+      }
+    }
+
+    // 3. Fallback: input element
+    if (folderInputRef.current) {
+      folderInputRef.current.value = '';
+      folderInputRef.current.click();
+    }
+  }, [studySubjects]);
+
+  // Process chosen File(s) (supporting PDF, EPUB, CBZ, CBR, CBN in Books & Comics mode, with study subject tagging)
+  const processFiles = useCallback(async (
+    files: FileList | File[],
+    assignedSubjectId?: string,
+    assignedSubjectName?: string,
+    assignedFolderPath?: string
+  ) => {
     const isReaderMode = currentMode === 'reader';
     const validFiles: File[] = [];
 
@@ -221,6 +622,12 @@ export default function WorkspacePage({
       }
       return;
     }
+
+    // Determine target subject for tagging in Study Mode
+    const effectiveSubjectId = assignedSubjectId ?? (currentMode === 'study' && activeSubjectId !== 'all' ? activeSubjectId : undefined);
+    const effectiveSubjectName = assignedSubjectName ?? (
+      effectiveSubjectId ? studySubjects.find((s) => s.id === effectiveSubjectId)?.name : undefined
+    );
 
     const newDocs: LoadedPDF[] = [];
 
@@ -246,6 +653,9 @@ export default function WorkspacePage({
             file: pdfFile,
             loadedAt: new Date(),
             pageCount,
+            subjectId: effectiveSubjectId,
+            subjectName: effectiveSubjectName,
+            folderPath: assignedFolderPath,
           });
         } else if (isEpub) {
           setConversionStatus(`Rendering EPUB book "${file.name}"...`);
@@ -262,6 +672,9 @@ export default function WorkspacePage({
             file: pdfFile,
             loadedAt: new Date(),
             pageCount,
+            subjectId: effectiveSubjectId,
+            subjectName: effectiveSubjectName,
+            folderPath: assignedFolderPath,
           });
         } else {
           newDocs.push({
@@ -272,6 +685,9 @@ export default function WorkspacePage({
             blobUrl: URL.createObjectURL(file),
             file,
             loadedAt: new Date(),
+            subjectId: effectiveSubjectId,
+            subjectName: effectiveSubjectName,
+            folderPath: assignedFolderPath,
           });
         }
       } catch (err: any) {
@@ -290,14 +706,81 @@ export default function WorkspacePage({
       return [...prev, ...(toAdd.length > 0 ? toAdd : newDocs)];
     });
 
-    setRecentDocs((prev) => [
-      ...newDocs,
-      ...prev.filter((d) => !newDocs.some((nd) => nd.name === d.name)),
-    ]);
+    setRecentDocs((prev) => {
+      const merged = [
+        ...newDocs,
+        ...prev.filter((d) => !newDocs.some((nd) => nd.name === d.name)),
+      ];
+      saveDocumentsToStorage(merged).catch((e) => console.warn('Save documents error:', e));
+      return merged;
+    });
 
-    setActiveDocId(newDocs[newDocs.length - 1].id);
-    setActiveTab('viewer');
-  }, [currentMode, setActiveTab]);
+    setActiveDocId(newDocs[0].id);
+    if (currentMode === 'study' && newDocs.length > 1) {
+      setActiveTab('recent');
+    } else {
+      setActiveTab('viewer');
+    }
+  }, [currentMode, activeSubjectId, studySubjects, setActiveTab]);
+
+  useEffect(() => {
+    processFilesRef.current = processFiles;
+  }, [processFiles]);
+
+  // Folder input change handler: automatically organizes documents under the folder's name as a subject
+  const handleFolderChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawFiles = e.target.files;
+    if (!rawFiles || rawFiles.length === 0) return;
+
+    let folderName = 'Study Folder';
+    const firstFile = rawFiles[0];
+    if (firstFile && (firstFile as any).webkitRelativePath) {
+      const parts = (firstFile as any).webkitRelativePath.split('/');
+      if (parts.length > 1 && parts[0]) {
+        folderName = parts[0];
+      }
+    }
+
+    let subject = studySubjects.find((s) => s.name.toLowerCase() === folderName.toLowerCase());
+    let targetSubjectId: string;
+    let targetSubjectName = folderName;
+
+    if (subject) {
+      targetSubjectId = subject.id;
+      targetSubjectName = subject.name;
+    } else {
+      const palette = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#f43f5e', '#a855f7', '#14b8a6', '#f97316'];
+      const assignedColor = palette[studySubjects.length % palette.length];
+      const newSubject: StudySubject = {
+        id: `subj-${Date.now()}`,
+        name: folderName,
+        color: assignedColor,
+        createdAt: new Date().toISOString(),
+      };
+      setStudySubjects((prev) => [...prev, newSubject]);
+      targetSubjectId = newSubject.id;
+    }
+
+    setActiveSubjectId(targetSubjectId);
+
+    // Map files preserving relative subfolder path
+    const files: File[] = [];
+    for (let i = 0; i < rawFiles.length; i++) {
+      const file = rawFiles[i];
+      const relPath = (file as any).webkitRelativePath;
+      if (relPath) {
+        const parts = relPath.split('/');
+        if (parts.length > 2) {
+          const subRelName = parts.slice(1).join('/');
+          files.push(new File([file], subRelName, { type: file.type || 'application/pdf' }));
+          continue;
+        }
+      }
+      files.push(file);
+    }
+
+    await processFiles(files, targetSubjectId, targetSubjectName);
+  }, [studySubjects, processFiles]);
 
   // File input change event
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -306,6 +789,51 @@ export default function WorkspacePage({
       processFiles(files);
     }
   }, [processFiles]);
+
+  // Recursive folder traversal for drag and drop
+  const traverseFileTree = async (item: any, path = ''): Promise<File[]> => {
+    return new Promise((resolve) => {
+      if (item.isFile) {
+        item.file(
+          (file: File) => {
+            const relName = path ? `${path}${file.name}` : file.name;
+            const namedFile = path ? new File([file], relName, { type: file.type || 'application/pdf' }) : file;
+            Object.defineProperty(namedFile, 'webkitRelativePath', {
+              value: path + file.name,
+              writable: true,
+            });
+            resolve([namedFile]);
+          },
+          () => resolve([])
+        );
+      } else if (item.isDirectory) {
+        const dirReader = item.createReader();
+        const readEntriesBatch = async (): Promise<any[]> => {
+          return new Promise((res) => {
+            dirReader.readEntries(
+              (entries: any[]) => res(entries),
+              () => res([])
+            );
+          });
+        };
+        (async () => {
+          const allEntries: any[] = [];
+          let batch = await readEntriesBatch();
+          while (batch.length > 0) {
+            allEntries.push(...batch);
+            batch = await readEntriesBatch();
+          }
+          const filePromises = allEntries.map((entry) =>
+            traverseFileTree(entry, path ? `${path}${item.name}/` : `${item.name}/`)
+          );
+          const nestedFiles = await Promise.all(filePromises);
+          resolve(nestedFiles.flat());
+        })();
+      } else {
+        resolve([]);
+      }
+    });
+  };
 
   // Drag & Drop handlers
   const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
@@ -320,39 +848,130 @@ export default function WorkspacePage({
     setIsDragging(false);
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+  const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
 
+    const items = e.dataTransfer.items;
+    if (items && items.length > 0 && typeof (items[0] as any).webkitGetAsEntry === 'function') {
+      const entryFiles: File[] = [];
+      let detectedFolderName: string | null = null;
+      for (let i = 0; i < items.length; i++) {
+        const entry = (items[i] as any).webkitGetAsEntry?.();
+        if (entry) {
+          if (entry.isDirectory && !detectedFolderName) {
+            detectedFolderName = entry.name;
+          }
+          const files = await traverseFileTree(entry);
+          entryFiles.push(...files);
+        }
+      }
+
+      if (entryFiles.length > 0) {
+        if (currentMode === 'study' && detectedFolderName) {
+          let subject = studySubjects.find((s) => s.name.toLowerCase() === detectedFolderName!.toLowerCase());
+          let targetSubjectId: string;
+          let targetSubjectName: string;
+          if (subject) {
+            targetSubjectId = subject.id;
+            targetSubjectName = subject.name;
+          } else {
+            const palette = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#f43f5e', '#a855f7', '#14b8a6', '#f97316'];
+            const assignedColor = palette[studySubjects.length % palette.length];
+            const newSubject: StudySubject = {
+              id: `subj-${Date.now()}`,
+              name: detectedFolderName,
+              color: assignedColor,
+              createdAt: new Date().toISOString(),
+            };
+            setStudySubjects((prev) => [...prev, newSubject]);
+            targetSubjectId = newSubject.id;
+            targetSubjectName = newSubject.name;
+          }
+          setActiveSubjectId(targetSubjectId);
+
+          // Strip the root folder name from the display name if present so subpaths are relative to the subject
+          const prefixToStrip = `${detectedFolderName}/`;
+          const normalizedFiles = entryFiles.map((f) => {
+            if (f.name.startsWith(prefixToStrip)) {
+              return new File([f], f.name.slice(prefixToStrip.length), { type: f.type || 'application/pdf' });
+            }
+            return f;
+          });
+
+          await processFiles(normalizedFiles, targetSubjectId, targetSubjectName);
+          return;
+        }
+        await processFiles(entryFiles);
+        return;
+      }
+    }
+
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       processFiles(e.dataTransfer.files);
     }
-  }, [processFiles]);
+  }, [processFiles, currentMode, studySubjects]);
 
-  // Keyboard shortcut: ⌘O / Ctrl+O to open file dialog
+  // Keyboard shortcut: ⌘O / Ctrl+O to open file dialog (or folder dialog in Study Mode)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && (e.key === 'o' || e.key === 'O')) {
         e.preventDefault();
-        handleTriggerOpenFile();
+        if (currentMode === 'study') {
+          handleTriggerImportFolder();
+        } else {
+          handleTriggerOpenFile();
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleTriggerOpenFile]);
+  }, [handleTriggerOpenFile, handleTriggerImportFolder, currentMode]);
 
-  // Tab switching
-  const handleSelectTabDoc = useCallback((doc: LoadedPDF) => {
-    setOpenDocs((prev) => {
-      if (!prev.some((d) => d.id === doc.id)) {
-        return [...prev, doc];
+  // Tab switching with on-demand instant file hydration
+  const handleSelectTabDoc = useCallback(async (doc: LoadedPDF) => {
+    let targetDoc = doc;
+    if (!targetDoc.blobUrl || targetDoc.file.size === 0) {
+      const isTauri = typeof window !== 'undefined' && Boolean((window as any).__TAURI_INTERNALS__);
+      if (isTauri && targetDoc.filePath) {
+        try {
+          const bytes = await invoke<number[]>('read_file_bytes', { path: targetDoc.filePath });
+          const u8 = new Uint8Array(bytes);
+          const blob = new Blob([u8], { type: 'application/pdf' });
+          const file = new File([blob], targetDoc.name, { type: 'application/pdf' });
+          targetDoc = {
+            ...targetDoc,
+            blobUrl: URL.createObjectURL(blob),
+            file,
+            rawSize: u8.length,
+          };
+          setRecentDocs((prev) => prev.map((d) => (d.id === targetDoc.id || d.name === targetDoc.name ? targetDoc : d)));
+        } catch (err) {
+          console.warn('Could not read file on demand from disk:', err);
+        }
       }
-      return prev;
+    }
+
+    setOpenDocs((prev) => {
+      const idx = prev.findIndex((d) => d.id === targetDoc.id || d.name === targetDoc.name);
+      if (idx === -1) {
+        return [...prev, targetDoc];
+      }
+      const next = [...prev];
+      next[idx] = targetDoc;
+      return next;
     });
-    setActiveDocId(doc.id);
+    setActiveDocId(targetDoc.id);
     setActiveTab('viewer');
   }, [setActiveTab]);
+
+  // Auto-hydrate active document if it has no blobUrl yet
+  useEffect(() => {
+    if (activeDoc && (!activeDoc.blobUrl || activeDoc.file.size === 0) && activeDoc.filePath) {
+      handleSelectTabDoc(activeDoc);
+    }
+  }, [activeDoc, handleSelectTabDoc]);
 
   // Tab closing with cache destruction
   const handleCloseTabDoc = useCallback((docId: string, e?: React.MouseEvent) => {
@@ -414,6 +1033,7 @@ export default function WorkspacePage({
     });
 
     handleCloseTabDoc(id);
+    removeDocumentFromStorage(id).catch((err) => console.warn('Remove doc error:', err));
   }, [handleCloseTabDoc]);
 
   // Close active document in viewer
@@ -466,6 +1086,16 @@ export default function WorkspacePage({
         className="hidden"
       />
 
+      {/* Hidden Native Folder Input for Directory Selection */}
+      <input
+        ref={folderInputRef}
+        type="file"
+        {...({ webkitdirectory: '', directory: '' } as any)}
+        multiple
+        onChange={handleFolderChange}
+        className="hidden"
+      />
+
       {/* 1. Left Sidebar Navigation (Hidden when viewing an active document in PDF Viewer so PDF Pages sidebar is primary) */}
       {!(activeTab === 'viewer' && activeDoc) && (
         <aside className="w-64 flex-shrink-0 flex flex-col justify-between border-r border-border bg-surface dark:bg-surface p-4">
@@ -488,13 +1118,14 @@ export default function WorkspacePage({
               </div>
             </button>
 
-            {/* Primary Action Button: Open Document */}
+            {/* Primary Action Button: Open Document or Import Folder */}
             <button 
-              onClick={handleTriggerOpenFile}
+              onClick={currentMode === 'study' ? handleTriggerImportFolder : handleTriggerOpenFile}
               className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-zinc-100 dark:text-zinc-900 text-xs font-semibold hover:bg-accent dark:hover:bg-accent dark:hover:text-white transition-all shadow-sm group active:scale-[0.98]"
             >
               <span className="flex items-center gap-2">
-                <Plus className="h-4 w-4" /> Open Document
+                {currentMode === 'study' ? <FolderUp className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                <span>{currentMode === 'study' ? 'Import Folder' : 'Open Document'}</span>
               </span>
               <span className="text-[10px] font-mono opacity-60 bg-black/20 dark:bg-white/20 px-1.5 py-0.5 rounded">
                 ⌘O
@@ -524,12 +1155,8 @@ export default function WorkspacePage({
                     <span className="flex items-center gap-2.5">
                       <Icon className="h-4 w-4" />
                       <span>
-                        {item.id === 'viewer'
-                          ? currentMode === 'reader'
-                            ? 'Reader View'
-                            : currentMode === 'study'
-                            ? 'Study Reader'
-                            : 'PDF Viewer'
+                        {item.id === 'viewer' && currentMode === 'reader'
+                          ? 'Reader View'
                           : item.label}
                       </span>
                     </span>
@@ -543,7 +1170,124 @@ export default function WorkspacePage({
               })}
             </div>
 
-            {/* Offline Tools Nav Group (Only in Studio Editor mode) */}
+            {/* Study Mode: Subjects / Folders Nav Group */}
+            {currentMode === 'study' && (
+              <div className="flex flex-col gap-1.5 pt-3 border-t border-border">
+                <div className="flex items-center justify-between px-2">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 font-semibold flex items-center gap-1.5">
+                    <Folder className="h-3 w-3 text-accent" /> Subjects
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleTriggerImportFolder}
+                    title="Import Folder from Computer"
+                    className="px-2 py-0.5 rounded text-zinc-500 dark:text-zinc-400 hover:text-accent hover:bg-card transition-colors flex items-center gap-1 text-[11px] font-medium"
+                  >
+                    <FolderUp className="h-3.5 w-3.5 text-accent" />
+                    <span>Import</span>
+                  </button>
+                </div>
+
+                {/* All Subjects pill */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveSubjectId('all');
+                    if (activeTab !== 'recent') setActiveTab('recent');
+                  }}
+                  className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    activeSubjectId === 'all'
+                      ? 'bg-card text-zinc-900 dark:text-zinc-100 shadow-2xs border border-border font-semibold'
+                      : 'text-zinc-600 dark:text-zinc-400 hover:bg-card hover:text-zinc-900 dark:hover:text-zinc-100'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-zinc-400" />
+                    <span>All Subjects</span>
+                  </span>
+                  <span className="text-[10px] font-mono text-zinc-400">
+                    {recentDocs.length}
+                  </span>
+                </button>
+
+                {/* Individual Subjects */}
+                <div className="flex flex-col gap-1 max-h-72 overflow-y-auto pr-1">
+                  {studySubjects.map((sub) => {
+                    const isSelected = activeSubjectId === sub.id;
+                    const subDocs = recentDocs.filter(
+                      (d) => d.subjectId === sub.id || d.subjectName === sub.name
+                    );
+                    const docCount = subDocs.length;
+                    return (
+                      <div key={sub.id} className="flex flex-col">
+                        <div
+                          onClick={() => {
+                            setActiveSubjectId(sub.id);
+                            if (activeTab !== 'recent') setActiveTab('recent');
+                          }}
+                          className={`group/sub flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all ${
+                            isSelected
+                              ? 'bg-card text-zinc-900 dark:text-zinc-100 shadow-2xs border border-border font-semibold'
+                              : 'text-zinc-600 dark:text-zinc-400 hover:bg-card hover:text-zinc-900 dark:hover:text-zinc-100'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span
+                              className="w-2 h-2 rounded-full flex-shrink-0"
+                              style={{ backgroundColor: sub.color }}
+                            />
+                            <span className="truncate">{sub.name}</span>
+                          </div>
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            <span className="text-[10px] font-mono text-zinc-400">
+                              {docCount}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => handleDeleteSubject(sub.id, e)}
+                              title={`Delete ${sub.name}`}
+                              className="opacity-0 group-hover/sub:opacity-100 hover:text-rose-500 text-zinc-400 transition-opacity p-0.5 rounded"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Inline VS Code Tree Explorer in Left Sidebar */}
+                        {isSelected && subDocs.length > 0 && (
+                          <div className="mt-1 mb-1 pl-1 border-l-2 border-accent/30 ml-2">
+                            <FolderTreeExplorer
+                              docs={subDocs}
+                              activeDocId={activeDoc?.id}
+                              onSelectDoc={handleOpenRecentDoc}
+                              onRemoveDoc={handleRemoveRecentDoc}
+                              subjectName={sub.name}
+                              subjectColor={sub.color}
+                              isCompact={true}
+                              showControls={false}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {studySubjects.length === 0 && (
+                  <div className="px-2 py-3 text-center text-[11px] text-zinc-400 border border-dashed border-border/80 rounded-lg">
+                    <p className="mb-1.5">No folders imported yet</p>
+                    <button
+                      type="button"
+                      onClick={handleTriggerImportFolder}
+                      className="text-accent hover:underline font-semibold flex items-center justify-center gap-1 mx-auto"
+                    >
+                      <FolderUp className="h-3.5 w-3.5" />
+                      <span>Import Folder</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
             {currentMode === 'editor' && (
               <div className="flex flex-col gap-1">
                 <span className="px-2 text-[10px] font-mono uppercase tracking-wider text-zinc-400 font-semibold mb-1">
@@ -632,11 +1376,11 @@ export default function WorkspacePage({
             </div>
 
             <button
-              onClick={handleTriggerOpenFile}
+              onClick={currentMode === 'study' ? handleTriggerImportFolder : handleTriggerOpenFile}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-zinc-100 dark:text-zinc-900 text-xs font-semibold hover:bg-accent dark:hover:bg-accent dark:hover:text-white transition-colors shadow-sm"
             >
-              <Plus className="h-3.5 w-3.5" />
-              <span>Open PDF</span>
+              {currentMode === 'study' ? <FolderUp className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+              <span>{currentMode === 'study' ? 'Import Folder' : 'Open PDF'}</span>
             </button>
           </header>
         )}
@@ -671,62 +1415,267 @@ export default function WorkspacePage({
                 />
               ) : (
                 <EmptyState
-                  icon={FolderOpen}
-                  title={currentMode === 'reader' ? 'Select a Book or Comic' : 'Select a PDF to view'}
+                  icon={currentMode === 'study' ? FolderUp : FolderOpen}
+                  title={
+                    currentMode === 'study'
+                      ? 'Import a Study Subject Folder'
+                      : currentMode === 'reader'
+                      ? 'Select a Book or Comic'
+                      : 'Select a PDF to view'
+                  }
                   description={
-                    currentMode === 'reader'
+                    currentMode === 'study'
+                      ? 'Select a folder from your computer or drag and drop any folder directly into the workspace to organize it by subject.'
+                      : currentMode === 'reader'
                       ? 'Click to open file manager or drag and drop EPUB books, CBZ/CBR comics, or PDF documents anywhere into the workspace.'
                       : 'Click to open file manager or drag and drop one or more PDF documents anywhere into the workspace.'
                   }
-                  actionLabel={currentMode === 'reader' ? 'Browse Books & Comics' : 'Browse Local Files'}
-                  onAction={handleTriggerOpenFile}
-                  hint={currentMode === 'reader' ? 'supports EPUB, CBZ, CBR, PDF' : 'or drag and drop PDF anywhere'}
+                  actionLabel={
+                    currentMode === 'study'
+                      ? 'Select Folder from Computer'
+                      : currentMode === 'reader'
+                      ? 'Browse Books & Comics'
+                      : 'Browse Local Files'
+                  }
+                  onAction={currentMode === 'study' ? handleTriggerImportFolder : handleTriggerOpenFile}
+                  hint={currentMode === 'study' ? 'or drag and drop folder anywhere' : currentMode === 'reader' ? 'supports EPUB, CBZ, CBR, PDF' : 'or drag and drop PDF anywhere'}
                 />
               )
             ) : activeTab === 'recent' ? (
               /* TAB 3: Recent Documents */
               <div className="flex-1 overflow-y-auto p-6 sm:p-8 max-w-4xl mx-auto w-full">
-                {recentDocs.length === 0 ? (
+                {currentMode === 'study' && studySubjects.length === 0 && recentDocs.length === 0 ? (
+                  <StudySubjectSetupCard
+                    onTriggerImportFolder={handleTriggerImportFolder}
+                  />
+                ) : recentDocs.length === 0 ? (
                   <div className="h-[60vh] flex items-center justify-center">
                     <EmptyState
-                      icon={FileText}
-                      title="No recent documents yet"
+                      icon={currentMode === 'study' ? GraduationCap : FileText}
+                      title={
+                        currentMode === 'study'
+                          ? 'No study documents yet'
+                          : currentMode === 'reader'
+                          ? 'No recent documents yet'
+                          : 'No recent documents yet'
+                      }
                       description={
-                        currentMode === 'reader'
+                        currentMode === 'study'
+                          ? 'Import folders from your computer to organize them subject-wise for your coursework.'
+                          : currentMode === 'reader'
                           ? 'Books and comics opened in this session will appear here for fast access.'
                           : 'Documents opened in this session will appear here for fast access.'
                       }
-                      actionLabel={currentMode === 'reader' ? 'Open a Book or Comic' : 'Open a PDF Document'}
-                      onAction={handleTriggerOpenFile}
+                      actionLabel={
+                        currentMode === 'study'
+                          ? 'Select Folder from Computer'
+                          : currentMode === 'reader'
+                          ? 'Open a Book or Comic'
+                          : 'Open a PDF Document'
+                      }
+                      onAction={currentMode === 'study' ? handleTriggerImportFolder : handleTriggerOpenFile}
                     />
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between border-b border-border pb-3">
-                      <div>
-                        <h2 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
-                          Session Documents
-                        </h2>
-                        <p className="text-xs text-zinc-500 mt-0.5">
-                          Locally loaded PDF documents stored in-memory.
-                        </p>
-                      </div>
-                      <span className="text-xs font-mono text-zinc-400">
-                        {recentDocs.length} {recentDocs.length === 1 ? 'Document' : 'Documents'}
-                      </span>
-                    </div>
+                    {/* Header in Study Mode */}
+                    {currentMode === 'study' ? (
+                      <div className="flex flex-col gap-3 pb-3 border-b border-border">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div
+                              className="h-9 w-9 rounded-xl flex items-center justify-center text-white shadow-2xs flex-shrink-0"
+                              style={{ backgroundColor: activeSubject ? activeSubject.color : '#6366f1' }}
+                            >
+                              <GraduationCap className="h-5 w-5" />
+                            </div>
+                            <div className="min-w-0">
+                              <h2 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                                <span className="truncate">{activeSubject ? activeSubject.name : 'All Study Subjects'}</span>
+                                {activeSubject && (
+                                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-accent/10 text-accent border border-accent/20 flex-shrink-0">
+                                    Subject
+                                  </span>
+                                )}
+                              </h2>
+                              <p className="text-xs text-zinc-500 truncate">
+                                {activeSubject
+                                  ? `Study material, slides, and textbooks for ${activeSubject.name}`
+                                  : 'Organized subject-wise to remember coursework and revisions'}
+                              </p>
+                            </div>
+                          </div>
 
-                    <div className="flex flex-col gap-2.5">
-                      {recentDocs.map((doc) => (
-                        <RecentDocCard
-                          key={doc.id}
-                          doc={doc}
-                          isCurrentlyActive={activeDoc?.id === doc.id}
-                          onOpen={handleOpenRecentDoc}
-                          onRemove={handleRemoveRecentDoc}
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            {/* Tree / Cards View Toggle */}
+                            <div className="flex items-center gap-0.5 bg-surface dark:bg-card border border-border p-0.5 rounded-lg shadow-2xs">
+                              <button
+                                type="button"
+                                onClick={() => setStudyExplorerView('tree')}
+                                title="VS Code Folder Structure View"
+                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+                                  studyExplorerView === 'tree'
+                                    ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-semibold shadow-2xs'
+                                    : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+                                }`}
+                              >
+                                <FolderTree className="h-3.5 w-3.5" />
+                                <span>Tree</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setStudyExplorerView('cards')}
+                                title="Cards List View"
+                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+                                  studyExplorerView === 'cards'
+                                    ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-semibold shadow-2xs'
+                                    : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+                                }`}
+                              >
+                                <LayoutGrid className="h-3.5 w-3.5" />
+                                <span>Cards</span>
+                              </button>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={handleTriggerImportFolder}
+                              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-accent hover:bg-accent-hover text-white text-xs font-semibold shadow-2xs transition-colors"
+                              title="Select an entire folder from your computer to import as a subject"
+                            >
+                              <FolderUp className="h-3.5 w-3.5" />
+                              <span>Import Folder</span>
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Subject Filter Pills */}
+                        {studySubjects.length > 0 && (
+                          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1">
+                            <button
+                              type="button"
+                              onClick={() => setActiveSubjectId('all')}
+                              className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                                activeSubjectId === 'all'
+                                  ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-semibold shadow-2xs'
+                                  : 'bg-surface hover:bg-card text-zinc-600 dark:text-zinc-400 border border-border'
+                              }`}
+                            >
+                              <span>All</span>
+                              <span className="text-[10px] opacity-70 font-mono">({recentDocs.length})</span>
+                            </button>
+
+                            {studySubjects.map((sub) => {
+                              const isSelected = activeSubjectId === sub.id;
+                              const count = recentDocs.filter(
+                                (d) => d.subjectId === sub.id || d.subjectName === sub.name
+                              ).length;
+                              return (
+                                <button
+                                  key={sub.id}
+                                  type="button"
+                                  onClick={() => setActiveSubjectId(sub.id)}
+                                  className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all flex-shrink-0 ${
+                                    isSelected
+                                      ? 'bg-card text-zinc-900 dark:text-zinc-100 border border-border shadow-2xs font-semibold'
+                                      : 'bg-surface hover:bg-card text-zinc-600 dark:text-zinc-400 border border-border'
+                                  }`}
+                                >
+                                  <span
+                                    className="w-2 h-2 rounded-full flex-shrink-0"
+                                    style={{ backgroundColor: sub.color }}
+                                  />
+                                  <span>{sub.name}</span>
+                                  <span className="text-[10px] opacity-70 font-mono">({count})</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      /* Standard Header for Editor / Reader */
+                      <div className="flex items-center justify-between border-b border-border pb-3">
+                        <div>
+                          <h2 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
+                            Session Documents
+                          </h2>
+                          <p className="text-xs text-zinc-500 mt-0.5">
+                            Locally loaded PDF documents stored in-memory.
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-mono text-zinc-400">
+                            {displayedRecentDocs.length} {displayedRecentDocs.length === 1 ? 'Document' : 'Documents'}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Document Cards or Subject Empty State */}
+                    {displayedRecentDocs.length === 0 ? (
+                      <div className="py-16 text-center flex flex-col items-center select-none animate-in fade-in duration-150">
+                        <div 
+                          className="h-12 w-12 rounded-2xl flex items-center justify-center mb-3 shadow-2xs text-white"
+                          style={{ backgroundColor: activeSubject ? activeSubject.color : '#6366f1' }}
+                        >
+                          <Folder className="h-6 w-6" />
+                        </div>
+                        <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
+                          No documents in {activeSubject ? `"${activeSubject.name}"` : 'this category'} yet
+                        </h3>
+                        <p className="text-xs text-zinc-500 mt-1 max-w-sm">
+                          Select a folder from your computer or open documents to organize them under this subject.
+                        </p>
+                        <div className="mt-4 flex items-center gap-2.5">
+                          <button
+                            type="button"
+                            onClick={handleTriggerImportFolder}
+                            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-accent text-white text-xs font-semibold hover:bg-accent-hover transition-colors shadow-2xs"
+                          >
+                            <FolderUp className="h-3.5 w-3.5" />
+                            <span>Import Folder</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleTriggerOpenFile}
+                            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-border bg-surface text-zinc-800 dark:text-zinc-200 text-xs font-semibold hover:bg-card transition-colors shadow-2xs"
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                            <span>Add PDF</span>
+                          </button>
+                        </div>
+                      </div>
+                    ) : (currentMode === 'study' && studyExplorerView === 'tree') ? (
+                      <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
+                        <FolderTreeExplorer
+                          docs={displayedRecentDocs}
+                          activeDocId={activeDoc?.id}
+                          onSelectDoc={handleOpenRecentDoc}
+                          onRemoveDoc={handleRemoveRecentDoc}
+                          subjectName={activeSubject ? activeSubject.name : 'Coursework Documents'}
+                          subjectColor={activeSubject ? activeSubject.color : undefined}
+                          showControls={true}
                         />
-                      ))}
-                    </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-2.5">
+                        {displayedRecentDocs.map((doc) => (
+                          <RecentDocCard
+                            key={doc.id}
+                            doc={doc}
+                            isCurrentlyActive={activeDoc?.id === doc.id}
+                            onOpen={handleOpenRecentDoc}
+                            onRemove={handleRemoveRecentDoc}
+                            subjectColor={
+                              studySubjects.find(
+                                (s) => s.id === doc.subjectId || s.name === doc.subjectName
+                              )?.color
+                            }
+                          />
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

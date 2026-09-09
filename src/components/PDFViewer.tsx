@@ -52,6 +52,22 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
 export const globalDocProxyCache = new Map<string, pdfjsLib.PDFDocumentProxy>();
 export const globalTextIndexCache = new Map<string, PageTextData[]>();
 
+// Let the browser process input and paint while indexing large documents. PDF.js
+// resolves many page operations as microtasks, so an explicit yield is needed to
+// keep opening and scrolling responsive on long PDFs.
+function yieldToBrowser(): Promise<void> {
+  return new Promise((resolve) => {
+    const requestIdle = (globalThis as typeof globalThis & {
+      requestIdleCallback?: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number;
+    }).requestIdleCallback;
+    if (requestIdle) {
+      requestIdle(() => resolve(), { timeout: 50 });
+      return;
+    }
+    window.setTimeout(resolve, 0);
+  });
+}
+
 interface PDFViewerProps {
   doc: LoadedPDF;
   allDocs?: LoadedPDF[];
@@ -217,6 +233,8 @@ export default function PDFViewer({
   const canvasMapRef = useRef<Map<number, HTMLCanvasElement>>(new Map());
   const textLayerMapRef = useRef<Map<number, HTMLDivElement>>(new Map());
   const renderedPagesRef = useRef<Set<string>>(new Set());
+  const pendingRenderKeysRef = useRef<Set<string>>(new Set());
+  const requestedRenderKeysRef = useRef<Map<number, string>>(new Map());
   const activeRenderTasksRef = useRef<Map<number, any>>(new Map());
   const activeTextTasksRef = useRef<Map<number, any>>(new Map());
 
@@ -587,6 +605,12 @@ export default function PDFViewer({
             textList.push({ pageNum: i, text: '' });
           }
         }
+
+        // Process in short batches so a large document cannot make the viewer
+        // feel frozen while text search and page dimensions are prepared.
+        if (i % 4 === 0) {
+          await yieldToBrowser();
+        }
       }
 
       if (!isCancelled) {
@@ -686,7 +710,9 @@ export default function PDFViewer({
     if (!canvas) return;
 
     const renderKey = `${pageNum}-${rot}-${currentScale}`;
-    if (renderedPagesRef.current.has(renderKey)) return;
+    if (renderedPagesRef.current.has(renderKey) || pendingRenderKeysRef.current.has(renderKey)) return;
+    pendingRenderKeysRef.current.add(renderKey);
+    requestedRenderKeysRef.current.set(pageNum, renderKey);
 
     if (activeRenderTasksRef.current.has(pageNum)) {
       try {
@@ -701,6 +727,9 @@ export default function PDFViewer({
       } catch {}
       activeTextTasksRef.current.delete(pageNum);
     }
+
+    let renderTask: any = null;
+    let textLayerTask: any = null;
 
     try {
       const page = await pdfDoc.getPage(pageNum);
@@ -728,11 +757,17 @@ export default function PDFViewer({
         canvas: offscreenCanvas,
       };
 
-      const task = page.render(renderContext);
-      activeRenderTasksRef.current.set(pageNum, task);
-      await task.promise;
+      renderTask = page.render(renderContext);
+      activeRenderTasksRef.current.set(pageNum, renderTask);
+      await renderTask.promise;
       
-      activeRenderTasksRef.current.delete(pageNum);
+      if (activeRenderTasksRef.current.get(pageNum) === renderTask) {
+        activeRenderTasksRef.current.delete(pageNum);
+      }
+
+      // A zoom/rotation change may have started a newer render while this task
+      // was waiting. Never let an obsolete frame replace the current canvas.
+      if (requestedRenderKeysRef.current.get(pageNum) !== renderKey) return;
 
       // Instantly paint the completed high-res frame to visible canvas with zero flicker
       canvas.width = scaledWidth;
@@ -754,27 +789,36 @@ export default function PDFViewer({
         textContainer.style.setProperty('--total-scale-factor', `${currentScale}`);
 
         const textContent = await page.getTextContent();
-        const textLayer = new pdfjsLib.TextLayer({
+        textLayerTask = new pdfjsLib.TextLayer({
           textContentSource: textContent,
           container: textContainer,
           viewport: textViewport,
         });
 
-        activeTextTasksRef.current.set(pageNum, textLayer);
-        await textLayer.render();
-        activeTextTasksRef.current.delete(pageNum);
+        activeTextTasksRef.current.set(pageNum, textLayerTask);
+        await textLayerTask.render();
+        if (activeTextTasksRef.current.get(pageNum) === textLayerTask) {
+          activeTextTasksRef.current.delete(pageNum);
+        }
       }
     } catch (err: any) {
       if (err?.name !== 'RenderingCancelledException') {
         console.error(`Page render error on page ${pageNum}:`, err);
       }
-      activeRenderTasksRef.current.delete(pageNum);
-      activeTextTasksRef.current.delete(pageNum);
+      if (activeRenderTasksRef.current.get(pageNum) === renderTask) {
+        activeRenderTasksRef.current.delete(pageNum);
+      }
+      if (activeTextTasksRef.current.get(pageNum) === textLayerTask) {
+        activeTextTasksRef.current.delete(pageNum);
+      }
+    } finally {
+      pendingRenderKeysRef.current.delete(renderKey);
     }
   }, [pdfDoc]);
 
   // Virtual GPU Canvas Discarding: Reclaims GPU VRAM for offscreen pages
   const unloadCanvasPage = useCallback((pageNum: number) => {
+    requestedRenderKeysRef.current.delete(pageNum);
     if (activeRenderTasksRef.current.has(pageNum)) {
       try { activeRenderTasksRef.current.get(pageNum)?.cancel(); } catch {}
       activeRenderTasksRef.current.delete(pageNum);

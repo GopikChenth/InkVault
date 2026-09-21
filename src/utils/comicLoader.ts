@@ -47,7 +47,7 @@ async function rasterizeToPngBytes(bytes: Uint8Array, mimeType: string): Promise
 /**
  * Loads a Comic Book Archive (.cbz, .cbr, .cbn, .zip) and converts it into a PDF Document buffer.
  */
-export async function loadComicBookArchive(file: File): Promise<{ pdfBytes: Uint8Array; pageCount: number }> {
+export async function loadComicBookArchive(file: File): Promise<{ pdfBytes: Uint8Array; pageCount: number; coverDataUrl?: string }> {
   const arrayBuffer = await file.arrayBuffer();
   let zip: JSZip;
 
@@ -120,9 +120,27 @@ export async function loadComicBookArchive(file: File): Promise<{ pdfBytes: Uint
     });
   }
 
+  // Extract lightweight cover thumbnail from the first page image
+  let coverDataUrl: string | undefined = undefined;
+  try {
+    const firstBytes = await imageEntries[0].async('uint8array');
+    const lower0 = imageEntries[0].name.toLowerCase();
+    const mime = lower0.endsWith('.png') ? 'image/png' : lower0.endsWith('.webp') ? 'image/webp' : 'image/jpeg';
+    const blob = new Blob([firstBytes.buffer as ArrayBuffer], { type: mime });
+    coverDataUrl = await new Promise<string>((res) => {
+      const reader = new FileReader();
+      reader.onloadend = () => res(reader.result as string);
+      reader.onerror = () => res('');
+      reader.readAsDataURL(blob);
+    });
+  } catch (err) {
+    console.warn('Could not extract comic cover thumbnail:', err);
+  }
+
   const pdfBytes = await pdfDoc.save();
   return {
     pdfBytes,
     pageCount: imageEntries.length,
+    coverDataUrl,
   };
 }

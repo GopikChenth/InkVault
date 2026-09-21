@@ -17,7 +17,21 @@ function PageLoadingFallback() {
 
 export default function App() {
   const [currentView, setCurrentView] = useState<PageView>('firstPage');
-  const [appMode, setAppMode] = useState<AppMode>('editor');
+  const [appMode, setAppMode] = useState<AppMode>(() => {
+    try {
+      const saved = localStorage.getItem('inkvault_app_mode');
+      if (saved === 'editor' || saved === 'study' || saved === 'reader') {
+        return saved;
+      }
+    } catch {}
+    return 'editor';
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('inkvault_app_mode', appMode);
+    } catch {}
+  }, [appMode]);
   const [activeTab, setActiveTab] = useState<string>('recent');
   const [activeDocName, setActiveDocName] = useState<string | null>(null);
   const [darkMode, setDarkMode] = useState<boolean>(() => {

@@ -487,8 +487,50 @@ export default function TitleBar({
         </span>
       </div>
 
-      {/* 3. Right: Quick Actions (Theme & Fullscreen) */}
+      {/* 3. Right: Quick Mode Switcher, Theme & Fullscreen */}
       <div className="flex items-center gap-1.5 h-full flex-shrink-0">
+
+        {/* 3-Mode Segmented Control */}
+        {onSelectMode && (
+          <div className="flex items-center gap-0.5 bg-surface dark:bg-card border border-border p-0.5 rounded-lg text-[10px] font-medium mr-1.5 shadow-2xs">
+            <button
+              onClick={() => onSelectMode('editor')}
+              title="Studio Editor (⌘1)"
+              className={`flex items-center gap-1 px-2 py-0.5 rounded-md transition-all ${
+                currentMode === 'editor'
+                  ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-bold shadow-2xs'
+                  : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+              }`}
+            >
+              <Layers className="h-3 w-3" />
+              <span className="hidden sm:inline">Studio</span>
+            </button>
+            <button
+              onClick={() => onSelectMode('study')}
+              title="Study Mode (⌘2)"
+              className={`flex items-center gap-1 px-2 py-0.5 rounded-md transition-all ${
+                currentMode === 'study'
+                  ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-bold shadow-2xs'
+                  : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+              }`}
+            >
+              <GraduationCap className="h-3 w-3" />
+              <span className="hidden sm:inline">Study</span>
+            </button>
+            <button
+              onClick={() => onSelectMode('reader')}
+              title="Books & Comics (⌘3)"
+              className={`flex items-center gap-1 px-2 py-0.5 rounded-md transition-all ${
+                currentMode === 'reader'
+                  ? 'bg-rose-600 text-white font-bold shadow-2xs'
+                  : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+              }`}
+            >
+              <BookOpen className="h-3 w-3" />
+              <span className="hidden sm:inline">Reader</span>
+            </button>
+          </div>
+        )}
         
         {/* Quick Theme Toggle */}
         <button

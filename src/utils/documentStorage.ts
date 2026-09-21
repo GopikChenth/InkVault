@@ -19,6 +19,12 @@ interface SerializedDocRecord {
   subjectName?: string;
   folderPath?: string;
   filePath?: string;
+  rating?: number;
+  coverDataUrl?: string;
+  lastReadAt?: string;
+  readingTimeMinutes?: number;
+  isComic?: boolean;
+  isEpub?: boolean;
   buffer?: ArrayBuffer;
 }
 
@@ -36,6 +42,12 @@ export interface DocMetadataRecord {
   subjectName?: string;
   folderPath?: string;
   filePath?: string;
+  rating?: number;
+  coverDataUrl?: string;
+  lastReadAt?: string;
+  readingTimeMinutes?: number;
+  isComic?: boolean;
+  isEpub?: boolean;
 }
 
 /**
@@ -58,6 +70,12 @@ export function saveMetadataCache(docs: LoadedPDF[]): void {
       subjectName: doc.subjectName,
       folderPath: doc.folderPath,
       filePath: doc.filePath,
+      rating: doc.rating,
+      coverDataUrl: doc.coverDataUrl,
+      lastReadAt: doc.lastReadAt,
+      readingTimeMinutes: doc.readingTimeMinutes,
+      isComic: doc.isComic,
+      isEpub: doc.isEpub,
     }));
     localStorage.setItem(META_CACHE_KEY, JSON.stringify(metaList));
   } catch (err) {
@@ -94,6 +112,12 @@ export function loadMetadataCache(): LoadedPDF[] {
         subjectName: m.subjectName,
         folderPath: m.folderPath,
         filePath: m.filePath,
+        rating: m.rating,
+        coverDataUrl: m.coverDataUrl,
+        lastReadAt: m.lastReadAt,
+        readingTimeMinutes: m.readingTimeMinutes,
+        isComic: m.isComic,
+        isEpub: m.isEpub,
       };
     });
   } catch (err) {
@@ -169,6 +193,12 @@ export async function saveDocumentsToStorage(docs: LoadedPDF[]): Promise<void> {
         subjectName: doc.subjectName,
         folderPath: doc.folderPath,
         filePath: doc.filePath,
+        rating: doc.rating,
+        coverDataUrl: doc.coverDataUrl,
+        lastReadAt: doc.lastReadAt,
+        readingTimeMinutes: doc.readingTimeMinutes,
+        isComic: doc.isComic,
+        isEpub: doc.isEpub,
         buffer,
       };
 
@@ -222,6 +252,12 @@ export async function loadDocumentsFromStorage(): Promise<LoadedPDF[]> {
             subjectName: record.subjectName,
             folderPath: record.folderPath,
             filePath: record.filePath,
+            rating: record.rating,
+            coverDataUrl: record.coverDataUrl,
+            lastReadAt: record.lastReadAt,
+            readingTimeMinutes: record.readingTimeMinutes,
+            isComic: record.isComic,
+            isEpub: record.isEpub,
           };
         });
         resolve(loadedDocs);

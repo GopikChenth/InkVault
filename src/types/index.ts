@@ -31,6 +31,21 @@ export interface LoadedPDF {
   subjectName?: string;
   folderPath?: string;
   filePath?: string;
+  rating?: number; // 1 to 5 stars
+  coverDataUrl?: string; // Precomputed cover thumbnail data URL
+  lastReadAt?: string; // ISO string of when last read
+  readingTimeMinutes?: number;
+  isComic?: boolean;
+  isEpub?: boolean;
+}
+
+export interface ReadingStatistics {
+  dayStreak: number;
+  lastActiveDate: string; // YYYY-MM-DD
+  pagesThisWeek: number;
+  weekStartDate: string; // YYYY-MM-DD
+  timeThisWeekMinutes: number;
+  totalBooksFinished: number;
 }
 
 export interface StudySubject {

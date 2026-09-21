@@ -42,6 +42,7 @@ import MinimalStudyBar from './viewer/MinimalStudyBar';
 import PomodoroTimer from './viewer/PomodoroTimer';
 import TextSelectionToolbar, { SelectionData } from './viewer/TextSelectionToolbar';
 import { exportToXFDF, exportToJSON, downloadFile, bakeAnnotationsToPDF } from '../utils/annotationExporter';
+import { recordReadingActivity } from '../utils/readingStats';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -121,12 +122,35 @@ export default function PDFViewer({
   // Core Document State
   const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
   const [pages, setPages] = useState<PageInfo[]>([]);
-  const [currentPage, setCurrentPage] = useState<number>(() => initialPage || 1);
+  const [currentPage, setCurrentPage] = useState<number>(() => initialPage || doc.currentPage || 1);
   const [scale, setScale] = useState<number>(() => initialScale || 1.0);
   const [rotation, setRotation] = useState<number>(() => initialRotation || 0);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [isBakingAnnotations, setIsBakingAnnotations] = useState<boolean>(false);
+
+  // Track active reading time in minutes and pages read
+  useEffect(() => {
+    const startTime = Date.now();
+    let prevPage = doc.currentPage || 1;
+
+    const interval = setInterval(() => {
+      const currentPageNum = doc.currentPage || 1;
+      const pagesDiff = Math.max(0, currentPageNum - prevPage);
+      prevPage = currentPageNum;
+      recordReadingActivity(pagesDiff, 1);
+    }, 60000);
+
+    return () => {
+      clearInterval(interval);
+      const minutesElapsed = Math.round((Date.now() - startTime) / 60000);
+      const currentPageNum = doc.currentPage || 1;
+      const pagesDiff = Math.max(0, currentPageNum - prevPage);
+      if (minutesElapsed >= 1 || pagesDiff > 0) {
+        recordReadingActivity(pagesDiff, Math.max(1, minutesElapsed));
+      }
+    };
+  }, [doc]);
 
   // 1. Page Layout Controls
   const [layoutMode, setLayoutMode] = useState<PageLayoutMode>(() => 
@@ -223,6 +247,23 @@ export default function PDFViewer({
   const activeStickyModalAnn = useMemo(() => {
     return annotations.find((a) => a.id === activeStickyModalAnnId) || null;
   }, [annotations, activeStickyModalAnnId]);
+
+  // Synchronize session state & reading progress when currentPage or annotations change
+  useEffect(() => {
+    if (currentPage > 0) {
+      doc.currentPage = currentPage;
+      doc.lastReadAt = new Date().toISOString();
+      if (pages.length > 0) {
+        doc.pageCount = pages.length;
+      }
+      onSaveSessionState?.({
+        page: currentPage,
+        scale,
+        rotation,
+        annotations: annotations || [],
+      });
+    }
+  }, [currentPage, scale, rotation, annotations, doc, pages.length, onSaveSessionState]);
 
   // Extracted Page Texts for Search & Reflow
   const [pagesText, setPagesText] = useState<PageTextData[]>([]);
@@ -579,10 +620,11 @@ export default function PDFViewer({
       setPages([...pageList]);
       setLoading(false);
 
-      if (initialPage && initialPage > 1) {
+      const targetStartPage = initialPage || doc.currentPage;
+      if (targetStartPage && targetStartPage > 1) {
         setTimeout(() => {
-          scrollToPage(initialPage);
-        }, 100);
+          scrollToPage(targetStartPage);
+        }, 120);
       }
 
       // Step B: Asynchronous background extraction of full geometry, text index, outline & attachments
@@ -777,6 +819,18 @@ export default function PDFViewer({
         ctx.drawImage(offscreenCanvas, 0, 0);
       }
       renderedPagesRef.current.add(renderKey);
+
+      // Auto-extract cover thumbnail from page 1 if not already stored
+      if (pageNum === 1 && !doc.coverDataUrl && canvas.width > 10) {
+        try {
+          const thumbCanvas = document.createElement('canvas');
+          thumbCanvas.width = 240;
+          thumbCanvas.height = Math.round((240 * canvas.height) / canvas.width);
+          const tctx = thumbCanvas.getContext('2d');
+          tctx?.drawImage(canvas, 0, 0, thumbCanvas.width, thumbCanvas.height);
+          doc.coverDataUrl = thumbCanvas.toDataURL('image/jpeg', 0.85);
+        } catch {}
+      }
 
       // Render Official PDF.js Text Selection Layer
       const textContainer = textLayerMapRef.current.get(pageNum);
@@ -1350,18 +1404,18 @@ export default function PDFViewer({
         } else if (onOpenDocument) {
           onOpenDocument();
         }
-      } else if (isStudyMode && (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ')) {
+      } else if ((isStudyMode || initialAppMode === 'reader') && (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ')) {
         e.preventDefault();
         scrollToPage(Math.min(pages.length, currentPage + 1));
-      } else if (isStudyMode && (e.key === 'ArrowLeft' || e.key === 'PageUp')) {
+      } else if ((isStudyMode || initialAppMode === 'reader') && (e.key === 'ArrowLeft' || e.key === 'PageUp')) {
         e.preventDefault();
         scrollToPage(Math.max(1, currentPage - 1));
-      } else if (isStudyMode && (e.key === 'w' || e.key === 'W')) {
+      } else if ((isStudyMode || initialAppMode === 'reader') && (e.key === 'w' || e.key === 'W')) {
         if (!e.ctrlKey && !e.metaKey) {
           e.preventDefault();
           handleFitWidth();
         }
-      } else if (isStudyMode && (e.key === 'p' || e.key === 'P')) {
+      } else if ((isStudyMode || initialAppMode === 'reader') && (e.key === 'p' || e.key === 'P')) {
         if (!e.ctrlKey && !e.metaKey) {
           e.preventDefault();
           handleFitPage();

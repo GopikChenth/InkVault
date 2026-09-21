@@ -67,7 +67,7 @@ function wrapText(text: string, maxWidth: number, fontSize: number, font: any): 
 /**
  * Loads an EPUB ebook file, parses its spine & chapters, and renders an in-memory PDF.
  */
-export async function loadEpubBook(file: File): Promise<{ pdfBytes: Uint8Array; pageCount: number; title: string }> {
+export async function loadEpubBook(file: File): Promise<{ pdfBytes: Uint8Array; pageCount: number; title: string; coverDataUrl?: string }> {
   const arrayBuffer = await file.arrayBuffer();
   let zip: JSZip;
 
@@ -234,10 +234,38 @@ export async function loadEpubBook(file: File): Promise<{ pdfBytes: Uint8Array; 
     }
   }
 
+  // Extract cover image if declared in EPUB manifest
+  let coverDataUrl: string | undefined = undefined;
+  try {
+    const coverItem = opfDoc.querySelector('manifest > item[properties*="cover-image"], manifest > item[id*="cover"], manifest > item[href*="cover"]');
+    if (coverItem) {
+      const href = coverItem.getAttribute('href');
+      if (href) {
+        const fullCoverPath = basePath + decodeURIComponent(href);
+        const coverEntry = zip.file(fullCoverPath);
+        if (coverEntry) {
+          const coverBytes = await coverEntry.async('uint8array');
+          const lowerH = href.toLowerCase();
+          const mime = lowerH.endsWith('.png') ? 'image/png' : lowerH.endsWith('.webp') ? 'image/webp' : 'image/jpeg';
+          const blob = new Blob([coverBytes.buffer as ArrayBuffer], { type: mime });
+          coverDataUrl = await new Promise<string>((res) => {
+            const reader = new FileReader();
+            reader.onloadend = () => res(reader.result as string);
+            reader.onerror = () => res('');
+            reader.readAsDataURL(blob);
+          });
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Could not extract EPUB cover thumbnail:', err);
+  }
+
   const pdfBytes = await pdfDoc.save();
   return {
     pdfBytes,
     pageCount: pdfDoc.getPageCount(),
     title,
+    coverDataUrl,
   };
 }

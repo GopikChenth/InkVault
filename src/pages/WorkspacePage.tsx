@@ -17,7 +17,10 @@ import {
   Folder,
   GraduationCap,
   FolderTree,
-  LayoutGrid
+  LayoutGrid,
+  BookMarked,
+  BookOpen,
+  Layers
 } from 'lucide-react';
 import { NAV_ITEMS, TOOL_ITEMS } from '../constants/mockData';
 import { LoadedPDF, PDFAnnotation, AppMode, StudySubject } from '../types';
@@ -35,6 +38,7 @@ import {
   loadMetadataCache,
   saveMetadataCache
 } from '../utils/documentStorage';
+import BookComicHub from '../components/reader/BookComicHub';
 
 // Lazy-load heavy offline manipulation tools to prevent upfront bundle weight
 const MergeTool = React.lazy(() => import('../components/tools/MergeTool'));
@@ -641,7 +645,7 @@ interface TauriFolderScanResult {
         if (isComic) {
           setConversionStatus(`Unpacking comic pages for "${file.name}"...`);
           const { loadComicBookArchive } = await import('../utils/comicLoader');
-          const { pdfBytes, pageCount } = await loadComicBookArchive(file);
+          const { pdfBytes, pageCount, coverDataUrl } = await loadComicBookArchive(file);
           const pdfBlob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' });
           const pdfFile = new File([pdfBlob], file.name, { type: 'application/pdf' });
           newDocs.push({
@@ -653,6 +657,10 @@ interface TauriFolderScanResult {
             file: pdfFile,
             loadedAt: new Date(),
             pageCount,
+            currentPage: 1,
+            lastReadAt: new Date().toISOString(),
+            isComic: true,
+            coverDataUrl,
             subjectId: effectiveSubjectId,
             subjectName: effectiveSubjectName,
             folderPath: assignedFolderPath,
@@ -660,7 +668,7 @@ interface TauriFolderScanResult {
         } else if (isEpub) {
           setConversionStatus(`Rendering EPUB book "${file.name}"...`);
           const { loadEpubBook } = await import('../utils/epubLoader');
-          const { pdfBytes, pageCount, title } = await loadEpubBook(file);
+          const { pdfBytes, pageCount, title, coverDataUrl } = await loadEpubBook(file);
           const pdfBlob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' });
           const pdfFile = new File([pdfBlob], file.name, { type: 'application/pdf' });
           newDocs.push({
@@ -672,6 +680,10 @@ interface TauriFolderScanResult {
             file: pdfFile,
             loadedAt: new Date(),
             pageCount,
+            currentPage: 1,
+            lastReadAt: new Date().toISOString(),
+            isEpub: true,
+            coverDataUrl,
             subjectId: effectiveSubjectId,
             subjectName: effectiveSubjectName,
             folderPath: assignedFolderPath,
@@ -685,6 +697,8 @@ interface TauriFolderScanResult {
             blobUrl: URL.createObjectURL(file),
             file,
             loadedAt: new Date(),
+            currentPage: 1,
+            lastReadAt: new Date().toISOString(),
             subjectId: effectiveSubjectId,
             subjectName: effectiveSubjectName,
             folderPath: assignedFolderPath,
@@ -1020,8 +1034,8 @@ interface TauriFolderScanResult {
   }, [handleSelectTabDoc]);
 
   // Remove document from recent list
-  const handleRemoveRecentDoc = useCallback((id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleRemoveRecentDoc = useCallback((id: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
     setRecentDocs((prev) => {
       const target = prev.find((d) => d.id === id);
       if (target) {
@@ -1118,14 +1132,67 @@ interface TauriFolderScanResult {
               </div>
             </button>
 
-            {/* Primary Action Button: Open Document or Import Folder */}
+            {/* Mode Switcher Segmented Control: Studio (⌘1) | Study (⌘2) | Books & Comics (⌘3) */}
+            <div className="grid grid-cols-3 gap-1 bg-surface dark:bg-card p-1 rounded-xl border border-border text-[11px] font-medium shadow-2xs">
+              <button
+                type="button"
+                onClick={() => handleModeChange('editor')}
+                title="Studio Editor (⌘1) - PDF Tools & Annotations"
+                className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-lg transition-all ${
+                  currentMode === 'editor'
+                    ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-bold shadow-2xs'
+                    : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100'
+                }`}
+              >
+                <Layers className="h-3.5 w-3.5 mb-0.5" />
+                <span className="text-[10px] truncate">Studio</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleModeChange('study')}
+                title="Study Mode (⌘2) - Coursework, Pomodoro & Focused Reading"
+                className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-lg transition-all ${
+                  currentMode === 'study'
+                    ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-bold shadow-2xs'
+                    : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100'
+                }`}
+              >
+                <GraduationCap className="h-3.5 w-3.5 mb-0.5" />
+                <span className="text-[10px] truncate">Study</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleModeChange('reader')}
+                title="Books & Comics (⌘3) - CBZ Comics, EPUB Books & Graphic Novels"
+                className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-lg transition-all ${
+                  currentMode === 'reader'
+                    ? 'bg-rose-600 text-white font-bold shadow-2xs'
+                    : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100'
+                }`}
+              >
+                <BookOpen className="h-3.5 w-3.5 mb-0.5" />
+                <span className="text-[10px] truncate">Reader</span>
+              </button>
+            </div>
+
+            {/* Primary Action Button: Open Document, Import Folder or Add Book/Comic */}
             <button 
               onClick={currentMode === 'study' ? handleTriggerImportFolder : handleTriggerOpenFile}
-              className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-zinc-100 dark:text-zinc-900 text-xs font-semibold hover:bg-accent dark:hover:bg-accent dark:hover:text-white transition-all shadow-sm group active:scale-[0.98]"
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-white text-xs font-semibold transition-all shadow-sm group active:scale-[0.98] ${
+                currentMode === 'reader' 
+                  ? 'bg-rose-600 hover:bg-rose-500' 
+                  : 'bg-zinc-900 dark:bg-zinc-100 dark:text-zinc-900 hover:bg-accent dark:hover:bg-accent dark:hover:text-white'
+              }`}
             >
               <span className="flex items-center gap-2">
                 {currentMode === 'study' ? <FolderUp className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-                <span>{currentMode === 'study' ? 'Import Folder' : 'Open Document'}</span>
+                <span>
+                  {currentMode === 'study' 
+                    ? 'Import Folder' 
+                    : currentMode === 'reader'
+                    ? 'Add Book / Comic'
+                    : 'Open Document'}
+                </span>
               </span>
               <span className="text-[10px] font-mono opacity-60 bg-black/20 dark:bg-white/20 px-1.5 py-0.5 rounded">
                 ⌘O
@@ -1135,12 +1202,21 @@ interface TauriFolderScanResult {
             {/* Workspace Nav Group */}
             <div className="flex flex-col gap-1">
               <span className="px-2 text-[10px] font-mono uppercase tracking-wider text-zinc-400 font-semibold mb-1">
-                Workspace
+                {currentMode === 'reader' ? 'Bookshelf' : currentMode === 'study' ? 'Academics' : 'Workspace'}
               </span>
               {NAV_ITEMS.map((item) => {
-                const Icon = item.icon;
+                const Icon = 
+                  item.id === 'recent'
+                    ? currentMode === 'reader' ? BookMarked : currentMode === 'study' ? GraduationCap : Layers
+                    : currentMode === 'reader' ? BookOpen : item.icon;
                 const isActive = activeTab === item.id;
                 const count = item.id === 'recent' ? recentDocs.length : item.id === 'viewer' ? openDocs.length : undefined;
+                const label = 
+                  item.id === 'recent'
+                    ? currentMode === 'reader' ? 'Books & Comics' : currentMode === 'study' ? 'Study Subjects' : 'Recent Documents'
+                    : item.id === 'viewer'
+                    ? currentMode === 'reader' ? 'Comic / Book Reader' : currentMode === 'study' ? 'Study Reader' : 'Studio Viewer'
+                    : item.label;
 
                 return (
                   <button
@@ -1148,17 +1224,15 @@ interface TauriFolderScanResult {
                     onClick={() => setActiveTab(item.id)}
                     className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all ${
                       isActive 
-                        ? 'bg-card text-zinc-900 dark:text-zinc-100 shadow-sm border border-border font-semibold' 
+                        ? currentMode === 'reader'
+                          ? 'bg-rose-500/15 text-rose-400 border border-rose-500/30 font-semibold'
+                          : 'bg-card text-zinc-900 dark:text-zinc-100 shadow-sm border border-border font-semibold' 
                         : 'text-zinc-600 dark:text-zinc-400 hover:bg-card hover:text-zinc-900 dark:hover:text-zinc-100'
                     }`}
                   >
                     <span className="flex items-center gap-2.5">
                       <Icon className="h-4 w-4" />
-                      <span>
-                        {item.id === 'viewer' && currentMode === 'reader'
-                          ? 'Reader View'
-                          : item.label}
-                      </span>
+                      <span>{label}</span>
                     </span>
                     {typeof count === 'number' && count > 0 && (
                       <span className="text-[10px] font-mono bg-zinc-200/80 dark:bg-surface px-1.5 py-0.5 rounded text-zinc-600 dark:text-zinc-300">
@@ -1401,6 +1475,30 @@ interface TauriFolderScanResult {
                   initialAnnotations={tabSessionMapRef.current.get(activeDoc.id)?.annotations}
                   onSaveSessionState={(state) => {
                     tabSessionMapRef.current.set(activeDoc.id, state);
+                    setOpenDocs((prev) =>
+                      prev.map((d) =>
+                        d.id === activeDoc.id
+                          ? {
+                              ...d,
+                              currentPage: state.page,
+                              lastReadAt: new Date().toISOString(),
+                            }
+                          : d
+                      )
+                    );
+                    setRecentDocs((prev) => {
+                      const updated = prev.map((d) =>
+                        d.id === activeDoc.id
+                          ? {
+                              ...d,
+                              currentPage: state.page,
+                              lastReadAt: new Date().toISOString(),
+                            }
+                          : d
+                      );
+                      saveMetadataCache(updated);
+                      return updated;
+                    });
                   }}
                   onClose={handleCloseViewer} 
                   onSelectDoc={handleSelectTabDoc}
@@ -1413,38 +1511,101 @@ interface TauriFolderScanResult {
                   initialAppMode={currentMode}
                   onAppModeChange={handleModeChange}
                 />
+              ) : currentMode === 'reader' ? (
+                <BookComicHub
+                  docs={recentDocs.length > 0 ? recentDocs : openDocs}
+                  onOpenDoc={handleOpenRecentDoc}
+                  onImportBook={handleTriggerOpenFile}
+                  onRemoveDoc={(id) => handleRemoveRecentDoc(id)}
+                  onUpdateDocProgress={(docId, newPage) => {
+                    setRecentDocs((prev) => {
+                      const updated = prev.map((d) =>
+                        d.id === docId
+                          ? {
+                              ...d,
+                              currentPage: newPage,
+                              lastReadAt: new Date().toISOString(),
+                            }
+                          : d
+                      );
+                      saveMetadataCache(updated);
+                      return updated;
+                    });
+                    setOpenDocs((prev) =>
+                      prev.map((d) =>
+                        d.id === docId
+                          ? {
+                              ...d,
+                              currentPage: newPage,
+                              lastReadAt: new Date().toISOString(),
+                            }
+                          : d
+                      )
+                    );
+                  }}
+                  darkMode={darkMode}
+                />
               ) : (
                 <EmptyState
                   icon={currentMode === 'study' ? FolderUp : FolderOpen}
                   title={
                     currentMode === 'study'
                       ? 'Import a Study Subject Folder'
-                      : currentMode === 'reader'
-                      ? 'Select a Book or Comic'
                       : 'Select a PDF to view'
                   }
                   description={
                     currentMode === 'study'
                       ? 'Select a folder from your computer or drag and drop any folder directly into the workspace to organize it by subject.'
-                      : currentMode === 'reader'
-                      ? 'Click to open file manager or drag and drop EPUB books, CBZ/CBR comics, or PDF documents anywhere into the workspace.'
                       : 'Click to open file manager or drag and drop one or more PDF documents anywhere into the workspace.'
                   }
                   actionLabel={
                     currentMode === 'study'
                       ? 'Select Folder from Computer'
-                      : currentMode === 'reader'
-                      ? 'Browse Books & Comics'
                       : 'Browse Local Files'
                   }
                   onAction={currentMode === 'study' ? handleTriggerImportFolder : handleTriggerOpenFile}
-                  hint={currentMode === 'study' ? 'or drag and drop folder anywhere' : currentMode === 'reader' ? 'supports EPUB, CBZ, CBR, PDF' : 'or drag and drop PDF anywhere'}
+                  hint={currentMode === 'study' ? 'or drag and drop folder anywhere' : 'or drag and drop PDF anywhere'}
                 />
               )
             ) : activeTab === 'recent' ? (
-              /* TAB 3: Recent Documents */
-              <div className="flex-1 overflow-y-auto p-6 sm:p-8 max-w-4xl mx-auto w-full">
-                {currentMode === 'study' && studySubjects.length === 0 && recentDocs.length === 0 ? (
+              currentMode === 'reader' ? (
+                <BookComicHub
+                  docs={recentDocs.length > 0 ? recentDocs : openDocs}
+                  onOpenDoc={handleOpenRecentDoc}
+                  onImportBook={handleTriggerOpenFile}
+                  onRemoveDoc={(id) => handleRemoveRecentDoc(id)}
+                  onUpdateDocProgress={(docId, newPage) => {
+                    setRecentDocs((prev) => {
+                      const updated = prev.map((d) =>
+                        d.id === docId
+                          ? {
+                              ...d,
+                              currentPage: newPage,
+                              lastReadAt: new Date().toISOString(),
+                            }
+                          : d
+                      );
+                      saveMetadataCache(updated);
+                      return updated;
+                    });
+                    setOpenDocs((prev) =>
+                      prev.map((d) =>
+                        d.id === docId
+                          ? {
+                              ...d,
+                              currentPage: newPage,
+                              lastReadAt: new Date().toISOString(),
+                            }
+                          : d
+                      )
+                    );
+                  }}
+                  darkMode={darkMode}
+                />
+              ) : (
+                /* TAB 3: Recent Documents */
+                <div className="flex-1 overflow-y-auto p-6 sm:p-8 max-w-4xl mx-auto w-full">
+                  {currentMode === 'study' && studySubjects.length === 0 && recentDocs.length === 0 ? (
                   <StudySubjectSetupCard
                     onTriggerImportFolder={handleTriggerImportFolder}
                   />
@@ -1455,22 +1616,16 @@ interface TauriFolderScanResult {
                       title={
                         currentMode === 'study'
                           ? 'No study documents yet'
-                          : currentMode === 'reader'
-                          ? 'No recent documents yet'
                           : 'No recent documents yet'
                       }
                       description={
                         currentMode === 'study'
                           ? 'Import folders from your computer to organize them subject-wise for your coursework.'
-                          : currentMode === 'reader'
-                          ? 'Books and comics opened in this session will appear here for fast access.'
                           : 'Documents opened in this session will appear here for fast access.'
                       }
                       actionLabel={
                         currentMode === 'study'
                           ? 'Select Folder from Computer'
-                          : currentMode === 'reader'
-                          ? 'Open a Book or Comic'
                           : 'Open a PDF Document'
                       }
                       onAction={currentMode === 'study' ? handleTriggerImportFolder : handleTriggerOpenFile}
@@ -1679,7 +1834,7 @@ interface TauriFolderScanResult {
                   </div>
                 )}
               </div>
-            ) : activeTab === 'merge' ? (
+            )) : activeTab === 'merge' ? (
               /* TAB 4: Merge Tool */
               <MergeTool initialDoc={activeDoc} onOpenMergedDoc={handleRegisterAndOpenDoc} />
             ) : activeTab === 'split' ? (

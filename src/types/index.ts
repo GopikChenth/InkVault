@@ -37,6 +37,7 @@ export interface LoadedPDF {
   readingTimeMinutes?: number;
   isComic?: boolean;
   isEpub?: boolean;
+  mode?: AppMode;
 }
 
 export interface ReadingStatistics {

@@ -76,8 +76,8 @@ export default function BookComicHub({
       // Filter match
       if (activeFilter === 'in-progress') return doc.progressPercent > 0 && doc.progressPercent < 100;
       if (activeFilter === 'completed') return doc.progressPercent >= 100;
-      if (activeFilter === 'comics') return doc.isComic;
-      if (activeFilter === 'books') return doc.isEpub || (!doc.isComic && !doc.name.toLowerCase().endsWith('.pdf'));
+      if (activeFilter === 'comics') return Boolean(doc.isComic);
+      if (activeFilter === 'books') return Boolean(doc.isEpub) || !doc.isComic;
       return true;
     });
 

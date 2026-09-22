@@ -1,4 +1,4 @@
-import { LoadedPDF } from '../types';
+import { LoadedPDF, AppMode } from '../types';
 
 const DB_NAME = 'inkvault_storage';
 const DB_VERSION = 1;
@@ -25,6 +25,7 @@ interface SerializedDocRecord {
   readingTimeMinutes?: number;
   isComic?: boolean;
   isEpub?: boolean;
+  mode?: AppMode;
   buffer?: ArrayBuffer;
 }
 
@@ -48,6 +49,34 @@ export interface DocMetadataRecord {
   readingTimeMinutes?: number;
   isComic?: boolean;
   isEpub?: boolean;
+  mode?: AppMode;
+}
+
+/**
+ * Filter helpers to segregate documents cleanly per mode
+ */
+export function isReaderDoc(doc: LoadedPDF): boolean {
+  if (doc.mode === 'reader') return true;
+  if (doc.isComic || doc.isEpub) return true;
+  const lower = doc.name.toLowerCase();
+  return lower.endsWith('.cbz') || lower.endsWith('.cbr') || lower.endsWith('.cbn') || lower.endsWith('.epub');
+}
+
+export function isStudyDoc(doc: LoadedPDF): boolean {
+  if (isReaderDoc(doc)) return false;
+  if (doc.mode === 'study') return true;
+  return Boolean(doc.subjectId) || Boolean(doc.folderPath);
+}
+
+export function isStudioDoc(doc: LoadedPDF): boolean {
+  if (isReaderDoc(doc) || isStudyDoc(doc)) return false;
+  return true;
+}
+
+export function getDocsForMode(docs: LoadedPDF[], mode: AppMode): LoadedPDF[] {
+  if (mode === 'reader') return docs.filter(isReaderDoc);
+  if (mode === 'study') return docs.filter(isStudyDoc);
+  return docs.filter(isStudioDoc);
 }
 
 /**
@@ -76,6 +105,7 @@ export function saveMetadataCache(docs: LoadedPDF[]): void {
       readingTimeMinutes: doc.readingTimeMinutes,
       isComic: doc.isComic,
       isEpub: doc.isEpub,
+      mode: doc.mode,
     }));
     localStorage.setItem(META_CACHE_KEY, JSON.stringify(metaList));
   } catch (err) {
@@ -96,6 +126,17 @@ export function loadMetadataCache(): LoadedPDF[] {
     return metaList.map((m) => {
       const dummyBlob = new Blob([], { type: 'application/pdf' });
       const dummyFile = new File([dummyBlob], m.name, { type: 'application/pdf' });
+      const lower = m.name.toLowerCase();
+      const isComic = Boolean(m.isComic || lower.endsWith('.cbz') || lower.endsWith('.cbr') || lower.endsWith('.cbn'));
+      const isEpub = Boolean(m.isEpub || lower.endsWith('.epub'));
+      const inferredMode: AppMode = m.mode
+        ? m.mode
+        : (isComic || isEpub)
+          ? 'reader'
+          : (m.subjectId || m.folderPath)
+            ? 'study'
+            : 'editor';
+
       return {
         id: m.id,
         name: m.name,
@@ -116,8 +157,9 @@ export function loadMetadataCache(): LoadedPDF[] {
         coverDataUrl: m.coverDataUrl,
         lastReadAt: m.lastReadAt,
         readingTimeMinutes: m.readingTimeMinutes,
-        isComic: m.isComic,
-        isEpub: m.isEpub,
+        isComic,
+        isEpub,
+        mode: inferredMode,
       };
     });
   } catch (err) {
@@ -199,6 +241,7 @@ export async function saveDocumentsToStorage(docs: LoadedPDF[]): Promise<void> {
         readingTimeMinutes: doc.readingTimeMinutes,
         isComic: doc.isComic,
         isEpub: doc.isEpub,
+        mode: doc.mode,
         buffer,
       };
 
@@ -236,6 +279,17 @@ export async function loadDocumentsFromStorage(): Promise<LoadedPDF[]> {
             file = new File([dummyBlob], record.name, { type: 'application/pdf' });
           }
 
+          const lower = record.name.toLowerCase();
+          const isComic = Boolean(record.isComic || lower.endsWith('.cbz') || lower.endsWith('.cbr') || lower.endsWith('.cbn'));
+          const isEpub = Boolean(record.isEpub || lower.endsWith('.epub'));
+          const inferredMode: AppMode = record.mode
+            ? record.mode
+            : (isComic || isEpub)
+              ? 'reader'
+              : (record.subjectId || record.folderPath)
+                ? 'study'
+                : 'editor';
+
           return {
             id: record.id,
             name: record.name,
@@ -256,8 +310,9 @@ export async function loadDocumentsFromStorage(): Promise<LoadedPDF[]> {
             coverDataUrl: record.coverDataUrl,
             lastReadAt: record.lastReadAt,
             readingTimeMinutes: record.readingTimeMinutes,
-            isComic: record.isComic,
-            isEpub: record.isEpub,
+            isComic,
+            isEpub,
+            mode: inferredMode,
           };
         });
         resolve(loadedDocs);

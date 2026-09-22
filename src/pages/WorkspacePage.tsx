@@ -19,7 +19,8 @@ import {
   loadDocumentsFromStorage, 
   removeDocumentFromStorage, 
   loadMetadataCache, 
-  saveMetadataCache 
+  saveMetadataCache,
+  getDocsForMode
 } from '../utils/documentStorage';
 import { useDocumentLoader } from '../hooks/useDocumentLoader';
 
@@ -91,37 +92,77 @@ export default function WorkspacePage({
     if (onActiveTabChange) onActiveTabChange(tab);
   }, [onActiveTabChange]);
 
-  const handleModeChange = useCallback((mode: AppMode) => {
-    setCurrentMode(mode);
-    if (mode === 'reader') {
-      setActiveTab('recent');
-    }
-    if (onModeChange) onModeChange(mode);
-  }, [onModeChange, setActiveTab]);
-
   // 2. Documents & Session Management
   const [openDocs, setOpenDocs] = useState<LoadedPDF[]>([]);
   const [recentDocs, setRecentDocs] = useState<LoadedPDF[]>(() => loadMetadataCache());
 
-  const [activeDocId, setActiveDocId] = useState<string | null>(() => {
+  const handleModeChange = useCallback((mode: AppMode) => {
+    setCurrentMode(mode);
+    setOpenDocs((current) => {
+      const modeDocs = getDocsForMode(current, mode);
+      if (modeDocs.length === 0) {
+        setActiveTab('recent');
+      }
+      return current;
+    });
+    if (onModeChange) onModeChange(mode);
+  }, [onModeChange, setActiveTab]);
+
+  const [activeDocIdByMode, setActiveDocIdByMode] = useState<Record<AppMode, string | null>>(() => {
     try {
-      return localStorage.getItem('inkvault_active_doc_id') || null;
+      return {
+        editor: localStorage.getItem('inkvault_active_doc_id_editor') || null,
+        study: localStorage.getItem('inkvault_active_doc_id_study') || null,
+        reader: localStorage.getItem('inkvault_active_doc_id_reader') || null,
+      };
     } catch {
-      return null;
+      return { editor: null, study: null, reader: null };
     }
   });
 
+  const activeDocId = activeDocIdByMode[currentMode];
+
+  const setActiveDocId = useCallback((id: string | null) => {
+    setActiveDocIdByMode((prev) => {
+      const next = { ...prev, [currentMode]: id };
+      try {
+        if (id) {
+          localStorage.setItem(`inkvault_active_doc_id_${currentMode}`, id);
+          localStorage.setItem('inkvault_active_doc_id', id);
+        } else {
+          localStorage.removeItem(`inkvault_active_doc_id_${currentMode}`);
+        }
+      } catch {}
+      return next;
+    });
+  }, [currentMode]);
+
+  // Segregated documents per mode
+  const readerRecentDocs = React.useMemo(() => getDocsForMode(recentDocs, 'reader'), [recentDocs]);
+  const studyRecentDocs = React.useMemo(() => getDocsForMode(recentDocs, 'study'), [recentDocs]);
+  const studioRecentDocs = React.useMemo(() => getDocsForMode(recentDocs, 'editor'), [recentDocs]);
+
+  const readerOpenDocs = React.useMemo(() => getDocsForMode(openDocs, 'reader'), [openDocs]);
+  const studyOpenDocs = React.useMemo(() => getDocsForMode(openDocs, 'study'), [openDocs]);
+  const studioOpenDocs = React.useMemo(() => getDocsForMode(openDocs, 'editor'), [openDocs]);
+
+  const currentOpenDocs = React.useMemo(() => {
+    if (currentMode === 'reader') return readerOpenDocs;
+    if (currentMode === 'study') return studyOpenDocs;
+    return studioOpenDocs;
+  }, [currentMode, readerOpenDocs, studyOpenDocs, studioOpenDocs]);
+
   const activeDoc = React.useMemo(() => {
-    if (!activeDocId && openDocs.length > 0) return openDocs[0];
-    return openDocs.find((d) => d.id === activeDocId) || null;
-  }, [openDocs, activeDocId]);
+    if (activeDocId) {
+      const found = currentOpenDocs.find((d) => d.id === activeDocId);
+      if (found) return found;
+    }
+    return currentOpenDocs.length > 0 ? currentOpenDocs[0] : null;
+  }, [currentOpenDocs, activeDocId]);
 
   useEffect(() => {
     if (onActiveDocChange) onActiveDocChange(activeDoc ? activeDoc.name : null);
-    if (activeDocId) {
-      try { localStorage.setItem('inkvault_active_doc_id', activeDocId); } catch {}
-    }
-  }, [activeDoc, activeDocId, onActiveDocChange]);
+  }, [activeDoc, onActiveDocChange]);
 
   // 3. Study Subjects State
   const [studySubjects, setStudySubjects] = useState<StudySubject[]>(() => {
@@ -175,6 +216,9 @@ export default function WorkspacePage({
   // 4. Tab selection and instant on-demand file hydration
   const handleSelectTabDoc = useCallback(async (doc: LoadedPDF) => {
     let targetDoc = doc;
+    if (!targetDoc.mode) {
+      targetDoc = { ...targetDoc, mode: currentMode };
+    }
     if (!targetDoc.blobUrl || targetDoc.file.size === 0) {
       const isTauri = typeof window !== 'undefined' && Boolean((window as any).__TAURI_INTERNALS__);
       if (isTauri && targetDoc.filePath) {
@@ -205,32 +249,37 @@ export default function WorkspacePage({
     });
     setActiveDocId(targetDoc.id);
     setActiveTab('viewer');
-  }, [setActiveTab]);
+  }, [currentMode, setActiveDocId, setActiveTab]);
 
   // 5. Document Loader Hook (Delegates I/O, parsing, unzipping, Tauri folder picking)
   const handleDocumentsLoaded = useCallback((newDocs: LoadedPDF[]) => {
+    const docsWithMode = newDocs.map((d) => ({
+      ...d,
+      mode: d.mode || currentMode,
+    }));
+
     setOpenDocs((prev) => {
       const existingNames = new Set(prev.map((d) => d.name));
-      const toAdd = newDocs.filter((d) => !existingNames.has(d.name));
-      return [...prev, ...(toAdd.length > 0 ? toAdd : newDocs)];
+      const toAdd = docsWithMode.filter((d) => !existingNames.has(d.name));
+      return [...prev, ...(toAdd.length > 0 ? toAdd : docsWithMode)];
     });
 
     setRecentDocs((prev) => {
       const merged = [
-        ...newDocs,
-        ...prev.filter((d) => !newDocs.some((nd) => nd.name === d.name)),
+        ...docsWithMode,
+        ...prev.filter((d) => !docsWithMode.some((nd) => nd.name === d.name)),
       ];
       saveDocumentsToStorage(merged).catch((e) => console.warn('Save documents error:', e));
       return merged;
     });
 
-    setActiveDocId(newDocs[0].id);
-    if (currentMode === 'study' && newDocs.length > 1) {
+    setActiveDocId(docsWithMode[0].id);
+    if (currentMode === 'study' && docsWithMode.length > 1) {
       setActiveTab('recent');
     } else {
       setActiveTab('viewer');
     }
-  }, [currentMode, setActiveTab]);
+  }, [currentMode, setActiveDocId, setActiveTab]);
 
   const {
     fileInputRef,
@@ -284,8 +333,6 @@ export default function WorkspacePage({
     if (e) e.stopPropagation();
     setOpenDocs((prev) => {
       const targetDoc = prev.find((d) => d.id === docId);
-      const targetIndex = prev.findIndex((d) => d.id === docId);
-      if (targetIndex === -1) return prev;
       const remaining = prev.filter((d) => d.id !== docId);
 
       if (targetDoc) {
@@ -299,9 +346,9 @@ export default function WorkspacePage({
       }
 
       if (activeDocId === docId) {
-        if (remaining.length > 0) {
-          const nextIndex = Math.min(targetIndex, remaining.length - 1);
-          setActiveDocId(remaining[nextIndex].id);
+        const modeRemaining = getDocsForMode(remaining, currentMode);
+        if (modeRemaining.length > 0) {
+          setActiveDocId(modeRemaining[0].id);
         } else {
           setActiveDocId(null);
           setActiveTab('recent');
@@ -309,7 +356,7 @@ export default function WorkspacePage({
       }
       return remaining;
     });
-  }, [activeDocId, setActiveTab]);
+  }, [activeDocId, currentMode, setActiveDocId, setActiveTab]);
 
   const handleOpenRecentDoc = useCallback((doc: LoadedPDF) => {
     handleSelectTabDoc(doc);
@@ -329,26 +376,30 @@ export default function WorkspacePage({
   }, [handleCloseTabDoc]);
 
   const handleRegisterAndOpenDoc = useCallback((generatedDoc: LoadedPDF) => {
-    setOpenDocs((prev) => [...prev.filter((d) => d.id !== generatedDoc.id), generatedDoc]);
-    setRecentDocs((prev) => [generatedDoc, ...prev.filter((d) => d.id !== generatedDoc.id)]);
-    setActiveDocId(generatedDoc.id);
+    const docWithMode: LoadedPDF = {
+      ...generatedDoc,
+      mode: generatedDoc.mode || currentMode,
+    };
+    setOpenDocs((prev) => [...prev.filter((d) => d.id !== docWithMode.id), docWithMode]);
+    setRecentDocs((prev) => [docWithMode, ...prev.filter((d) => d.id !== docWithMode.id)]);
+    setActiveDocId(docWithMode.id);
     setActiveTab('viewer');
-  }, [setActiveTab]);
+  }, [currentMode, setActiveDocId, setActiveTab]);
 
   const handleUpdateDocProgress = useCallback((docId: string, newPage: number) => {
     setRecentDocs((prev) => {
       const updated = prev.map((d) =>
-        d.id === docId ? { ...d, currentPage: newPage, lastReadAt: new Date().toISOString() } : d
+        d.id === docId ? { ...d, currentPage: newPage, lastReadAt: new Date().toISOString(), mode: d.mode || currentMode } : d
       );
       saveMetadataCache(updated);
       return updated;
     });
     setOpenDocs((prev) =>
       prev.map((d) =>
-        d.id === docId ? { ...d, currentPage: newPage, lastReadAt: new Date().toISOString() } : d
+        d.id === docId ? { ...d, currentPage: newPage, lastReadAt: new Date().toISOString(), mode: d.mode || currentMode } : d
       )
     );
-  }, []);
+  }, [currentMode]);
 
   const handleDeleteSubject = useCallback(async (subjectId: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
@@ -419,8 +470,8 @@ export default function WorkspacePage({
                   activeTab={activeTab}
                   onSelectTab={setActiveTab}
                   onOpenDocument={handleTriggerOpenFile}
-                  openDocsCount={openDocs.length}
-                  recentDocsCount={recentDocs.length}
+                  openDocsCount={studioOpenDocs.length}
+                  recentDocsCount={studioRecentDocs.length}
                 />
               )}
 
@@ -429,8 +480,8 @@ export default function WorkspacePage({
                   activeTab={activeTab}
                   onSelectTab={setActiveTab}
                   onTriggerImportFolder={handleTriggerImportFolder}
-                  openDocsCount={openDocs.length}
-                  recentDocsCount={recentDocs.length}
+                  openDocsCount={studyOpenDocs.length}
+                  recentDocsCount={studyRecentDocs.length}
                   studySubjects={studySubjects}
                   activeSubjectId={activeSubjectId}
                   onSelectSubject={(id) => {
@@ -438,7 +489,7 @@ export default function WorkspacePage({
                     if (activeTab !== 'recent') setActiveTab('recent');
                   }}
                   onDeleteSubject={handleDeleteSubject}
-                  recentDocs={recentDocs}
+                  recentDocs={studyRecentDocs}
                   activeDocId={activeDoc?.id}
                   onSelectDoc={handleOpenRecentDoc}
                   onRemoveDoc={handleRemoveRecentDoc}
@@ -450,8 +501,8 @@ export default function WorkspacePage({
                   activeTab={activeTab}
                   onSelectTab={setActiveTab}
                   onTriggerOpenFile={handleTriggerOpenFile}
-                  openDocsCount={openDocs.length}
-                  recentDocsCount={recentDocs.length}
+                  openDocsCount={readerOpenDocs.length}
+                  recentDocsCount={readerRecentDocs.length}
                 />
               )}
 
@@ -538,7 +589,7 @@ export default function WorkspacePage({
                   <PDFViewer 
                     key={activeDoc.id} 
                     doc={activeDoc} 
-                    allDocs={openDocs}
+                    allDocs={currentOpenDocs}
                     initialPage={tabSessionMapRef.current.get(activeDoc.id)?.page}
                     initialScale={tabSessionMapRef.current.get(activeDoc.id)?.scale}
                     initialRotation={tabSessionMapRef.current.get(activeDoc.id)?.rotation}
@@ -552,6 +603,7 @@ export default function WorkspacePage({
                                 ...d,
                                 currentPage: state.page,
                                 lastReadAt: new Date().toISOString(),
+                                mode: d.mode || currentMode,
                               }
                             : d
                         )
@@ -563,6 +615,7 @@ export default function WorkspacePage({
                                 ...d,
                                 currentPage: state.page,
                                 lastReadAt: new Date().toISOString(),
+                                mode: d.mode || currentMode,
                               }
                             : d
                         );
@@ -611,7 +664,7 @@ export default function WorkspacePage({
               ) : activeTab === 'recent' ? (
                 currentMode === 'reader' ? (
                   <BookComicHub
-                    docs={recentDocs.length > 0 ? recentDocs : openDocs}
+                    docs={readerRecentDocs.length > 0 ? readerRecentDocs : readerOpenDocs}
                     onOpenDoc={handleOpenRecentDoc}
                     onImportBook={handleTriggerOpenFile}
                     onRemoveDoc={(id) => handleRemoveRecentDoc(id)}
@@ -621,7 +674,7 @@ export default function WorkspacePage({
                 ) : currentMode === 'study' ? (
                   <StudyDashboard
                     studySubjects={studySubjects}
-                    recentDocs={recentDocs}
+                    recentDocs={studyRecentDocs}
                     activeSubjectId={activeSubjectId}
                     onSelectSubject={setActiveSubjectId}
                     activeDocId={activeDoc?.id || null}
@@ -632,7 +685,7 @@ export default function WorkspacePage({
                   />
                 ) : (
                   <StudioRecentView
-                    docs={recentDocs}
+                    docs={studioRecentDocs}
                     activeDocId={activeDoc?.id || null}
                     onOpenDoc={handleOpenRecentDoc}
                     onRemoveDoc={handleRemoveRecentDoc}

@@ -103,6 +103,7 @@ export function useDocumentLoader({
             lastReadAt: new Date().toISOString(),
             coverDataUrl: comicResult.coverDataUrl,
             isComic: true,
+            mode: 'reader',
             subjectId: effectiveSubjectId,
             subjectName: effectiveSubjectName,
             folderPath: assignedFolderPath,
@@ -126,6 +127,7 @@ export function useDocumentLoader({
             lastReadAt: new Date().toISOString(),
             coverDataUrl: epubResult.coverDataUrl,
             isEpub: true,
+            mode: 'reader',
             subjectId: effectiveSubjectId,
             subjectName: effectiveSubjectName,
             folderPath: assignedFolderPath,
@@ -141,6 +143,7 @@ export function useDocumentLoader({
             loadedAt: new Date(),
             currentPage: 1,
             lastReadAt: new Date().toISOString(),
+            mode: currentMode,
             subjectId: effectiveSubjectId,
             subjectName: effectiveSubjectName,
             folderPath: assignedFolderPath,
@@ -223,6 +226,7 @@ export function useDocumentLoader({
                 subjectId: targetSubjectId,
                 subjectName: targetSubjectName,
                 folderPath: result.folder_path,
+                mode: 'study',
               };
             });
 

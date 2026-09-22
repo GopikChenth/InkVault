@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { 
   ArrowRight, 
-  Sun, 
-  Moon, 
   FolderOpen,
   Layers,
   GraduationCap,
@@ -13,8 +11,8 @@ import { AppMode } from '../types';
 
 interface FirstPageProps {
   onEnterWorkspace: (mode?: AppMode) => void;
-  darkMode: boolean;
-  onToggleDarkMode: () => void;
+  darkMode?: boolean;
+  onToggleDarkMode?: () => void;
   currentMode?: AppMode;
   onSelectMode?: (mode: AppMode) => void;
 }
@@ -57,8 +55,6 @@ const WORKFLOW_MODES: ModeConfig[] = [
 
 export default function FirstPage({ 
   onEnterWorkspace, 
-  darkMode, 
-  onToggleDarkMode,
   currentMode = 'editor',
   onSelectMode,
 }: FirstPageProps) {
@@ -106,16 +102,6 @@ export default function FirstPage({
 
         {/* Header Right Utilities */}
         <div className="flex items-center gap-3">
-
-          {/* Theme Toggle */}
-          <button
-            onClick={onToggleDarkMode}
-            aria-label="Toggle Theme"
-            className="flex items-center justify-center h-9 w-9 rounded-full bg-surface border border-border hover:bg-card dark:hover:bg-card transition-colors shadow-sm text-zinc-600 dark:text-zinc-300"
-          >
-            {darkMode ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4 text-zinc-600" />}
-          </button>
-
           {/* Direct CTA */}
           <button
             onClick={() => onEnterWorkspace(activeMode)}

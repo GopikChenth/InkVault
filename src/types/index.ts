@@ -38,6 +38,7 @@ export interface LoadedPDF {
   isComic?: boolean;
   isEpub?: boolean;
   mode?: AppMode;
+  isFinished?: boolean;
 }
 
 export interface ReadingStatistics {

@@ -26,6 +26,7 @@ interface SerializedDocRecord {
   isComic?: boolean;
   isEpub?: boolean;
   mode?: AppMode;
+  isFinished?: boolean;
   buffer?: ArrayBuffer;
 }
 
@@ -50,6 +51,7 @@ export interface DocMetadataRecord {
   isComic?: boolean;
   isEpub?: boolean;
   mode?: AppMode;
+  isFinished?: boolean;
 }
 
 /**
@@ -106,6 +108,7 @@ export function saveMetadataCache(docs: LoadedPDF[]): void {
       isComic: doc.isComic,
       isEpub: doc.isEpub,
       mode: doc.mode,
+      isFinished: doc.isFinished,
     }));
     localStorage.setItem(META_CACHE_KEY, JSON.stringify(metaList));
   } catch (err) {
@@ -160,6 +163,7 @@ export function loadMetadataCache(): LoadedPDF[] {
         isComic,
         isEpub,
         mode: inferredMode,
+        isFinished: m.isFinished,
       };
     });
   } catch (err) {
@@ -242,6 +246,7 @@ export async function saveDocumentsToStorage(docs: LoadedPDF[]): Promise<void> {
         isComic: doc.isComic,
         isEpub: doc.isEpub,
         mode: doc.mode,
+        isFinished: doc.isFinished,
         buffer,
       };
 
@@ -313,6 +318,7 @@ export async function loadDocumentsFromStorage(): Promise<LoadedPDF[]> {
             isComic,
             isEpub,
             mode: inferredMode,
+            isFinished: record.isFinished,
           };
         });
         resolve(loadedDocs);

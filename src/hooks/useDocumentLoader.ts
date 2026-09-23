@@ -133,6 +133,14 @@ export function useDocumentLoader({
             folderPath: assignedFolderPath,
           });
         } else {
+          let detectedPageCount: number | undefined = undefined;
+          try {
+            const { PDFDocument } = await import('pdf-lib');
+            const ab = await file.arrayBuffer();
+            const loaded = await PDFDocument.load(ab, { ignoreEncryption: true });
+            detectedPageCount = loaded.getPageCount();
+          } catch {}
+
           newDocs.push({
             id: `${Date.now()}-${idx}-${file.name}`,
             name: file.name,
@@ -142,6 +150,7 @@ export function useDocumentLoader({
             file,
             loadedAt: new Date(),
             currentPage: 1,
+            pageCount: detectedPageCount,
             lastReadAt: new Date().toISOString(),
             mode: currentMode,
             subjectId: effectiveSubjectId,

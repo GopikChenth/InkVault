@@ -192,7 +192,7 @@ export default function WorkspacePage({
     }
   }, [currentMode, activeTab, openDocs.length, setActiveTab]);
 
-  const tabSessionMapRef = useRef<Map<string, { page: number; scale: number; rotation: number; annotations: PDFAnnotation[] }>>(new Map());
+  const tabSessionMapRef = useRef<Map<string, { page: number; scale: number; rotation: number; annotations: PDFAnnotation[]; pageCount?: number; isFinished?: boolean }>>(new Map());
 
   // Restore persistent storage on initial mount
   useEffect(() => {
@@ -386,18 +386,42 @@ export default function WorkspacePage({
     setActiveTab('viewer');
   }, [currentMode, setActiveDocId, setActiveTab]);
 
-  const handleUpdateDocProgress = useCallback((docId: string, newPage: number) => {
+  const handleUpdateDocProgress = useCallback((docId: string, newPage: number, isFinished?: boolean) => {
     setRecentDocs((prev) => {
-      const updated = prev.map((d) =>
-        d.id === docId ? { ...d, currentPage: newPage, lastReadAt: new Date().toISOString(), mode: d.mode || currentMode } : d
-      );
+      const updated = prev.map((d) => {
+        if (d.id === docId) {
+          const finished = isFinished !== undefined 
+            ? isFinished 
+            : Boolean(d.isFinished || (d.pageCount && d.pageCount > 1 && newPage >= d.pageCount));
+          return {
+            ...d,
+            currentPage: newPage,
+            isFinished: finished,
+            lastReadAt: new Date().toISOString(),
+            mode: d.mode || currentMode,
+          };
+        }
+        return d;
+      });
       saveMetadataCache(updated);
       return updated;
     });
     setOpenDocs((prev) =>
-      prev.map((d) =>
-        d.id === docId ? { ...d, currentPage: newPage, lastReadAt: new Date().toISOString(), mode: d.mode || currentMode } : d
-      )
+      prev.map((d) => {
+        if (d.id === docId) {
+          const finished = isFinished !== undefined 
+            ? isFinished 
+            : Boolean(d.isFinished || (d.pageCount && d.pageCount > 1 && newPage >= d.pageCount));
+          return {
+            ...d,
+            currentPage: newPage,
+            isFinished: finished,
+            lastReadAt: new Date().toISOString(),
+            mode: d.mode || currentMode,
+          };
+        }
+        return d;
+      })
     );
   }, [currentMode]);
 
@@ -503,6 +527,10 @@ export default function WorkspacePage({
                   onTriggerOpenFile={handleTriggerOpenFile}
                   openDocsCount={readerOpenDocs.length}
                   recentDocsCount={readerRecentDocs.length}
+                  docs={readerRecentDocs}
+                  activeDocId={activeDoc?.id}
+                  onSelectDoc={handleOpenRecentDoc}
+                  onRemoveDoc={handleRemoveRecentDoc}
                 />
               )}
 
@@ -602,6 +630,8 @@ export default function WorkspacePage({
                             ? {
                                 ...d,
                                 currentPage: state.page,
+                                pageCount: state.pageCount ?? activeDoc.pageCount ?? d.pageCount,
+                                isFinished: state.isFinished ?? activeDoc.isFinished ?? d.isFinished,
                                 lastReadAt: new Date().toISOString(),
                                 mode: d.mode || currentMode,
                               }
@@ -614,6 +644,8 @@ export default function WorkspacePage({
                             ? {
                                 ...d,
                                 currentPage: state.page,
+                                pageCount: state.pageCount ?? activeDoc.pageCount ?? d.pageCount,
+                                isFinished: state.isFinished ?? activeDoc.isFinished ?? d.isFinished,
                                 lastReadAt: new Date().toISOString(),
                                 mode: d.mode || currentMode,
                               }

@@ -20,7 +20,7 @@ interface BookComicHubProps {
   onOpenDoc: (doc: LoadedPDF) => void;
   onImportBook: () => void;
   onRemoveDoc: (docId: string) => void;
-  onUpdateDocProgress?: (docId: string, currentPage: number) => void;
+  onUpdateDocProgress?: (docId: string, currentPage: number, isFinished?: boolean) => void;
   darkMode?: boolean;
 }
 
@@ -46,8 +46,26 @@ export default function BookComicHub({
       const isComic = doc.isComic ?? (lower.endsWith('.cbz') || lower.endsWith('.cbr') || lower.endsWith('.cbn'));
       const isEpub = doc.isEpub ?? lower.endsWith('.epub');
       const currentPage = doc.currentPage || 1;
-      const pageCount = doc.pageCount || 1;
-      const progressPercent = Math.min(100, Math.round((currentPage / pageCount) * 100));
+      const rawPageCount = doc.pageCount;
+      const hasPageCount = typeof rawPageCount === 'number' && rawPageCount > 0;
+      const pageCount = hasPageCount ? rawPageCount : 1;
+
+      // Determine isFinished:
+      // A book is finished ONLY if explicitly marked finished, OR if pageCount is known (> 1) and currentPage >= pageCount.
+      // If pageCount is unknown or 1, opening on page 1 is NEVER automatically finished!
+      const isFinished = Boolean(
+        doc.isFinished || (hasPageCount && pageCount > 1 && currentPage >= pageCount)
+      );
+
+      let progressPercent = 0;
+      if (isFinished) {
+        progressPercent = 100;
+      } else if (hasPageCount && pageCount > 1) {
+        progressPercent = Math.min(99, Math.round((currentPage / pageCount) * 100));
+      } else {
+        progressPercent = 0;
+      }
+
       const rating = doc.rating ?? getBookRating(doc.id);
 
       return {
@@ -55,8 +73,9 @@ export default function BookComicHub({
         isComic,
         isEpub,
         currentPage,
-        pageCount,
+        pageCount: hasPageCount ? pageCount : (doc.pageCount || undefined),
         progressPercent,
+        isFinished,
         rating,
       };
     });
@@ -74,8 +93,8 @@ export default function BookComicHub({
       }
 
       // Filter match
-      if (activeFilter === 'in-progress') return doc.progressPercent > 0 && doc.progressPercent < 100;
-      if (activeFilter === 'completed') return doc.progressPercent >= 100;
+      if (activeFilter === 'in-progress') return !doc.isFinished && doc.progressPercent > 0;
+      if (activeFilter === 'completed') return doc.isFinished;
       if (activeFilter === 'comics') return Boolean(doc.isComic);
       if (activeFilter === 'books') return Boolean(doc.isEpub) || !doc.isComic;
       return true;
@@ -109,20 +128,20 @@ export default function BookComicHub({
     const target = docs.find((d) => d.id === docId);
     if (target) {
       target.rating = star;
-      onUpdateDocProgress?.(docId, target.currentPage || 1);
+      onUpdateDocProgress?.(docId, target.currentPage || 1, target.isFinished);
     }
   };
 
   const handleMarkFinished = (doc: typeof enrichedDocs[0], e: React.MouseEvent) => {
     e.stopPropagation();
     setOpenMenuDocId(null);
-    onUpdateDocProgress?.(doc.id, doc.pageCount);
+    onUpdateDocProgress?.(doc.id, doc.pageCount || doc.currentPage || 1, true);
   };
 
   const handleResetProgress = (doc: typeof enrichedDocs[0], e: React.MouseEvent) => {
     e.stopPropagation();
     setOpenMenuDocId(null);
-    onUpdateDocProgress?.(doc.id, 1);
+    onUpdateDocProgress?.(doc.id, 1, false);
   };
 
   return (
@@ -295,14 +314,14 @@ export default function BookComicHub({
                     </div>
 
                     {/* Progress Badge (Top-Left) */}
-                    {doc.progressPercent > 0 && (
+                    {(doc.isFinished || doc.progressPercent > 0) && (
                       <div className="absolute top-2 left-2">
                         <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-bold tracking-wider backdrop-blur-md shadow-xs ${
-                          doc.progressPercent >= 100
+                          doc.isFinished
                             ? 'bg-emerald-500/80 text-white'
                             : 'bg-rose-600/80 text-white'
                         }`}>
-                          {doc.progressPercent >= 100 ? 'Finished' : `${doc.progressPercent}%`}
+                          {doc.isFinished ? 'Finished' : `${doc.progressPercent}%`}
                         </span>
                       </div>
                     )}
@@ -373,7 +392,9 @@ export default function BookComicHub({
 
                       {/* Bottom info on hover */}
                       <div className="text-[11px] font-mono text-zinc-300 bg-black/60 backdrop-blur-md rounded-md px-2 py-0.5 text-center">
-                        {doc.currentPage} / {doc.pageCount} pages
+                        {doc.pageCount && doc.pageCount > 1
+                          ? `${doc.currentPage} / ${doc.pageCount} pages`
+                          : `Page ${doc.currentPage}`}
                       </div>
                     </div>
 
@@ -381,9 +402,9 @@ export default function BookComicHub({
                     <div className="absolute bottom-0 inset-x-0 h-1.5 bg-zinc-800/80">
                       <div
                         className={`h-full ${
-                          doc.progressPercent >= 100 ? 'bg-emerald-500' : 'bg-rose-500'
+                          doc.isFinished ? 'bg-emerald-500' : 'bg-rose-500'
                         }`}
-                        style={{ width: `${Math.max(3, doc.progressPercent)}%` }}
+                        style={{ width: `${doc.isFinished ? 100 : Math.max(3, doc.progressPercent)}%` }}
                       />
                     </div>
 

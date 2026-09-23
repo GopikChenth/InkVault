@@ -84,7 +84,7 @@ interface PDFViewerProps {
   initialScale?: number;
   initialRotation?: number;
   initialAnnotations?: PDFAnnotation[];
-  onSaveSessionState?: (state: { page: number; scale: number; rotation: number; annotations: PDFAnnotation[] }) => void;
+  onSaveSessionState?: (state: { page: number; scale: number; rotation: number; annotations: PDFAnnotation[]; pageCount?: number; isFinished?: boolean }) => void;
   initialAppMode?: AppMode;
   onAppModeChange?: (mode: AppMode) => void;
 }
@@ -253,14 +253,23 @@ export default function PDFViewer({
     if (currentPage > 0) {
       doc.currentPage = currentPage;
       doc.lastReadAt = new Date().toISOString();
-      if (pages.length > 0) {
-        doc.pageCount = pages.length;
+      const actualPageCount = pages.length > 0 ? pages.length : doc.pageCount;
+      if (actualPageCount) {
+        doc.pageCount = actualPageCount;
+      }
+      const isDocFinished = Boolean(
+        doc.isFinished || (actualPageCount && actualPageCount > 1 && currentPage >= actualPageCount)
+      );
+      if (isDocFinished) {
+        doc.isFinished = true;
       }
       onSaveSessionState?.({
         page: currentPage,
         scale,
         rotation,
         annotations: annotations || [],
+        pageCount: actualPageCount,
+        isFinished: isDocFinished,
       });
     }
   }, [currentPage, scale, rotation, annotations, doc, pages.length, onSaveSessionState]);
@@ -311,10 +320,24 @@ export default function PDFViewer({
   }, [doc.name, initialAnnotations]);
 
   // Session state sync ref to preserve current tab state when switching
-  const sessionSyncRef = useRef({ page: currentPage, scale, rotation, annotations });
+  const sessionSyncRef = useRef({ 
+    page: currentPage, 
+    scale, 
+    rotation, 
+    annotations,
+    pageCount: pages.length > 0 ? pages.length : doc.pageCount,
+    isFinished: doc.isFinished,
+  });
   useEffect(() => {
-    sessionSyncRef.current = { page: currentPage, scale, rotation, annotations };
-  }, [currentPage, scale, rotation, annotations]);
+    sessionSyncRef.current = { 
+      page: currentPage, 
+      scale, 
+      rotation, 
+      annotations,
+      pageCount: pages.length > 0 ? pages.length : doc.pageCount,
+      isFinished: doc.isFinished,
+    };
+  }, [currentPage, scale, rotation, annotations, pages.length, doc.pageCount, doc.isFinished]);
 
   useEffect(() => {
     return () => {
@@ -617,6 +640,7 @@ export default function PDFViewer({
       }
 
       if (isCancelled) return;
+      doc.pageCount = loadedPdf.numPages;
       setPages([...pageList]);
       setLoading(false);
 

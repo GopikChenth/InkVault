@@ -1,0 +1,169 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 1200 400" role="img" aria-labelledby="title desc">
+  <title id="title">Ink Vault - Local-First Document Workspace</title>
+  <desc id="desc">Next-generation offline document suite featuring Studio Editor, Academic Study Mode, and Books and Comics Reader.</desc>
+
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0A0D14" />
+      <stop offset="50%" stop-color="#0F1420" />
+      <stop offset="100%" stop-color="#080A0F" />
+    </linearGradient>
+
+    <!-- Card Background Gradient -->
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#161B26" stop-opacity="0.8" />
+      <stop offset="100%" stop-color="#0E121B" stop-opacity="0.9" />
+    </linearGradient>
+
+    <!-- Accent Highlights -->
+    <linearGradient id="accentTitleGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="50%" stop-color="#E2E8F0" />
+      <stop offset="100%" stop-color="#94A3B8" />
+    </linearGradient>
+
+    <linearGradient id="glowIndigo" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366F1" stop-opacity="0.25" />
+      <stop offset="100%" stop-color="#6366F1" stop-opacity="0" />
+    </linearGradient>
+
+    <linearGradient id="glowEmerald" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10B981" stop-opacity="0.25" />
+      <stop offset="100%" stop-color="#10B981" stop-opacity="0" />
+    </linearGradient>
+
+    <linearGradient id="glowRose" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F43F5E" stop-opacity="0.25" />
+      <stop offset="100%" stop-color="#F43F5E" stop-opacity="0" />
+    </linearGradient>
+
+    <!-- Dot Pattern -->
+    <pattern id="dotGrid" width="24" height="24" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1" fill="#FFFFFF" fill-opacity="0.05" />
+    </pattern>
+
+    <filter id="cardShadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.5" />
+    </filter>
+  </defs>
+
+  <!-- Container Box -->
+  <rect width="1200" height="400" rx="24" fill="url(#bgGrad)" stroke="#1E293B" stroke-width="1.5" />
+  <rect width="1200" height="400" rx="24" fill="url(#dotGrid)" />
+
+  <!-- Ambient Glow Behind Right Cards -->
+  <circle cx="950" cy="180" r="180" fill="#6366F1" fill-opacity="0.08" filter="blur(60px)" />
+  <circle cx="800" cy="300" r="150" fill="#F43F5E" fill-opacity="0.06" filter="blur(60px)" />
+
+  <!-- LEFT: Hero Branding & Value Proposition -->
+  <g id="brand-block" transform="translate(64, 52)">
+    <!-- Category & Privacy Tag -->
+    <g transform="translate(0, 0)">
+      <rect width="255" height="26" rx="13" fill="#1E293B" fill-opacity="0.6" stroke="#334155" stroke-width="1" />
+      <circle cx="14" cy="13" r="4" fill="#10B981" />
+      <text x="26" y="17" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="11" font-weight="600" fill="#94A3B8" letter-spacing="0.5">LOCAL-FIRST • ZERO TELEMETRY</text>
+    </g>
+
+    <!-- Main Title -->
+    <text x="0" y="80" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="52" font-weight="800" fill="url(#accentTitleGrad)" letter-spacing="-1">
+      Ink Vault
+    </text>
+
+    <!-- Tagline -->
+    <text x="0" y="122" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="22" font-weight="600" fill="#38BDF8" letter-spacing="-0.3">
+      Pure precision for every document.
+    </text>
+
+    <!-- Description Lines -->
+    <text x="0" y="160" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#94A3B8">
+      A high-performance desktop suite with three specialized domains:
+    </text>
+    <text x="0" y="184" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#94A3B8">
+      Studio PDF manipulation, Academic coursework study, and Zen comics reading.
+    </text>
+
+    <!-- Architecture & Capability Pills -->
+    <g transform="translate(0, 230)">
+      <!-- Pill 1: Tauri v2 -->
+      <g transform="translate(0, 0)">
+        <rect width="112" height="30" rx="8" fill="#1E293B" stroke="#334155" stroke-width="1" />
+        <text x="56" y="19" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="12" font-weight="600" fill="#CBD5E1" text-anchor="middle">⚡ Tauri v2</text>
+      </g>
+
+      <!-- Pill 2: 100% Offline -->
+      <g transform="translate(122, 0)">
+        <rect width="128" height="30" rx="8" fill="#1E293B" stroke="#334155" stroke-width="1" />
+        <text x="64" y="19" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="12" font-weight="600" fill="#CBD5E1" text-anchor="middle">🔒 100% Offline</text>
+      </g>
+
+      <!-- Pill 3: Formats -->
+      <g transform="translate(260, 0)">
+        <rect width="176" height="30" rx="8" fill="#1E293B" stroke="#334155" stroke-width="1" />
+        <text x="88" y="19" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="12" font-weight="600" fill="#CBD5E1" text-anchor="middle">📄 PDF • EPUB • CBZ</text>
+      </g>
+    </g>
+
+    <!-- Version & Desktop App indicator -->
+    <text x="0" y="302" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="11" font-weight="500" fill="#64748B">
+      CROSS-PLATFORM DESKTOP • WINDOWS • MACOS • LINUX
+    </text>
+  </g>
+
+  <!-- RIGHT: 3 Domain Feature Cards Showcase -->
+  <g id="domain-cards" transform="translate(680, 40)">
+    <!-- Card 1: Studio Editor Domain (Indigo) -->
+    <g transform="translate(0, 0)" filter="url(#cardShadow)">
+      <rect width="456" height="88" rx="14" fill="url(#cardGrad)" stroke="#6366F1" stroke-width="1.2" stroke-opacity="0.4" />
+      <rect width="456" height="88" rx="14" fill="url(#glowIndigo)" />
+      
+      <!-- Icon Badge -->
+      <rect x="18" y="18" width="52" height="52" rx="12" fill="#6366F1" fill-opacity="0.15" stroke="#6366F1" stroke-width="1" stroke-opacity="0.3" />
+      <text x="44" y="50" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="22" text-anchor="middle">🎨</text>
+
+      <!-- Text Details -->
+      <text x="86" y="38" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="16" font-weight="700" fill="#FFFFFF">Studio Editor Suite</text>
+      <text x="86" y="58" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="400" fill="#94A3B8">Merge • Split • Compress • Protect • Watermark • Organizer</text>
+
+      <!-- Mode Tag -->
+      <rect x="368" y="16" width="70" height="22" rx="6" fill="#6366F1" fill-opacity="0.2" />
+      <text x="403" y="31" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="10" font-weight="700" fill="#818CF8" text-anchor="middle">⌘1 SUITE</text>
+    </g>
+
+    <!-- Card 2: Study Mode Domain (Emerald / Cyan) -->
+    <g transform="translate(0, 104)" filter="url(#cardShadow)">
+      <rect width="456" height="88" rx="14" fill="url(#cardGrad)" stroke="#10B981" stroke-width="1.2" stroke-opacity="0.4" />
+      <rect width="456" height="88" rx="14" fill="url(#glowEmerald)" />
+      
+      <!-- Icon Badge -->
+      <rect x="18" y="18" width="52" height="52" rx="12" fill="#10B981" fill-opacity="0.15" stroke="#10B981" stroke-width="1" stroke-opacity="0.3" />
+      <text x="44" y="50" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="22" text-anchor="middle">🎓</text>
+
+      <!-- Text Details -->
+      <text x="86" y="38" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="16" font-weight="700" fill="#FFFFFF">Deep Focus Study Mode</text>
+      <text x="86" y="58" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="400" fill="#94A3B8">Coursework Subject Tree • Pomodoro Timer • Comparison</text>
+
+      <!-- Mode Tag -->
+      <rect x="368" y="16" width="70" height="22" rx="6" fill="#10B981" fill-opacity="0.2" />
+      <text x="403" y="31" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="10" font-weight="700" fill="#34D399" text-anchor="middle">⌘2 STUDY</text>
+    </g>
+
+    <!-- Card 3: Reader Mode Domain (Rose / Amber) -->
+    <g transform="translate(0, 208)" filter="url(#cardShadow)">
+      <rect width="456" height="88" rx="14" fill="url(#cardGrad)" stroke="#F43F5E" stroke-width="1.2" stroke-opacity="0.4" />
+      <rect width="456" height="88" rx="14" fill="url(#glowRose)" />
+      
+      <!-- Icon Badge -->
+      <rect x="18" y="18" width="52" height="52" rx="12" fill="#F43F5E" fill-opacity="0.15" stroke="#F43F5E" stroke-width="1" stroke-opacity="0.3" />
+      <text x="44" y="50" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="22" text-anchor="middle">📚</text>
+
+      <!-- Text Details -->
+      <text x="86" y="38" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="16" font-weight="700" fill="#FFFFFF">Zen Books &amp; Comics Reader</text>
+      <text x="86" y="58" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="400" fill="#94A3B8">EPUB &amp; CBZ/CBR Engine • Reading Streaks • Eye-Care Tints</text>
+
+      <!-- Mode Tag -->
+      <rect x="368" y="16" width="70" height="22" rx="6" fill="#F43F5E" fill-opacity="0.2" />
+      <text x="403" y="31" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="10" font-weight="700" fill="#FB7185" text-anchor="middle">⌘3 READER</text>
+    </g>
+  </g>
+</svg>

@@ -47,6 +47,32 @@ interface ThumbnailCardProps {
   onSelect: (pageNum: number) => void;
 }
 
+// Shared IntersectionObserver registry for all thumbnail cards (1 observer for all thumbnails)
+type ObserverCallback = (isIntersecting: boolean) => void;
+const sharedObserverCallbacks = new Map<Element, ObserverCallback>();
+
+let sharedThumbnailObserver: IntersectionObserver | null = null;
+function getSharedThumbnailObserver(): IntersectionObserver {
+  if (!sharedThumbnailObserver) {
+    sharedThumbnailObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const cb = sharedObserverCallbacks.get(entry.target);
+          if (cb) {
+            cb(entry.isIntersecting);
+          }
+        });
+      },
+      {
+        root: null,
+        rootMargin: '250px 0px 250px 0px',
+        threshold: 0.01,
+      }
+    );
+  }
+  return sharedThumbnailObserver;
+}
+
 const ThumbnailCard: React.FC<ThumbnailCardProps> = React.memo(({
   pageNum,
   isCurrent,
@@ -59,12 +85,30 @@ const ThumbnailCard: React.FC<ThumbnailCardProps> = React.memo(({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLButtonElement | null>(null);
   const [rendered, setRendered] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
   const [dimensions, setDimensions] = useState<{ width: number; height: number }>({ width: 150, height: 200 });
 
   // Reset rendered flag on layout, rotation, or sidebar width change
   useEffect(() => {
     setRendered(false);
   }, [columns, rotation, sidebarWidth]);
+
+  // Connect to shared IntersectionObserver
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const observer = getSharedThumbnailObserver();
+    sharedObserverCallbacks.set(el, (intersecting) => {
+      setIsVisible(intersecting);
+    });
+    observer.observe(el);
+
+    return () => {
+      observer.unobserve(el);
+      sharedObserverCallbacks.delete(el);
+    };
+  }, []);
 
   // Auto-scroll the active thumbnail into view when current page changes (only if not already in view)
   useEffect(() => {
@@ -74,8 +118,8 @@ const ThumbnailCard: React.FC<ThumbnailCardProps> = React.memo(({
       if (parent) {
         const parentRect = parent.getBoundingClientRect();
         const elRect = el.getBoundingClientRect();
-        const isVisible = elRect.top >= parentRect.top && elRect.bottom <= parentRect.bottom;
-        if (!isVisible) {
+        const isVisibleNow = elRect.top >= parentRect.top && elRect.bottom <= parentRect.bottom;
+        if (!isVisibleNow) {
           el.scrollIntoView({
             behavior: 'smooth',
             block: 'nearest',
@@ -87,92 +131,78 @@ const ThumbnailCard: React.FC<ThumbnailCardProps> = React.memo(({
 
   // Lazy render thumbnail canvas with native integer-pixel scale targets
   useEffect(() => {
-    if (!pdfDoc || !canvasRef.current || !containerRef.current) return;
+    if (!pdfDoc || !canvasRef.current || !isVisible || rendered) return;
 
     let isCancelled = false;
     let renderTask: any = null;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach(async (entry) => {
-          if (entry.isIntersecting && !rendered && !isCancelled) {
-            try {
-              const page = await pdfDoc.getPage(pageNum);
-              if (isCancelled || !canvasRef.current) return;
+    (async () => {
+      try {
+        const page = await pdfDoc.getPage(pageNum);
+        if (isCancelled || !canvasRef.current) return;
 
-              const pageRotate = page.rotate || 0;
-              const totalRotation = (pageRotate + rotation) % 360;
-              const unscaledVp = page.getViewport({ scale: 1.0, rotation: totalRotation });
-              const currentAspect = unscaledVp.width / unscaledVp.height;
+        const pageRotate = page.rotate || 0;
+        const totalRotation = (pageRotate + rotation) % 360;
+        const unscaledVp = page.getViewport({ scale: 1.0, rotation: totalRotation });
+        const currentAspect = unscaledVp.width / unscaledVp.height;
 
-              // 1. Native Integer-Pixel Target Width & Height (Dynamically adapts to sidebar expansion)
-              const availableWidth = sidebarWidth - 44;
-              const cssWidth = columns === '2' 
-                ? Math.max(85, Math.floor((availableWidth - 14) / 2)) 
-                : Math.min(Math.max(140, availableWidth - 16), 340);
-              const cssHeight = Math.round(cssWidth / currentAspect);
-              setDimensions({ width: cssWidth, height: cssHeight });
+        // 1. Native Integer-Pixel Target Width & Height (Dynamically adapts to sidebar expansion)
+        const availableWidth = sidebarWidth - 44;
+        const cssWidth = columns === '2' 
+          ? Math.max(85, Math.floor((availableWidth - 14) / 2)) 
+          : Math.min(Math.max(140, availableWidth - 16), 340);
+        const cssHeight = Math.round(cssWidth / currentAspect);
+        setDimensions({ width: cssWidth, height: cssHeight });
 
-              const scale = cssWidth / unscaledVp.width;
-              const viewport = page.getViewport({ scale, rotation: totalRotation });
+        const scale = cssWidth / unscaledVp.width;
+        const viewport = page.getViewport({ scale, rotation: totalRotation });
 
-              const outputScale = window.devicePixelRatio || 1;
-              const canvas = canvasRef.current;
-              
-              // 2. Exact Integer Canvas Buffer (Physical Device Pixels)
-              canvas.width = Math.round(viewport.width * outputScale);
-              canvas.height = Math.round(viewport.height * outputScale);
+        const outputScale = window.devicePixelRatio || 1;
+        const canvas = canvasRef.current;
+        
+        // 2. Exact Integer Canvas Buffer (Physical Device Pixels)
+        canvas.width = Math.round(viewport.width * outputScale);
+        canvas.height = Math.round(viewport.height * outputScale);
 
-              // 3. Exact Integer CSS Layout Size (1:1 with Screen Grid)
-              canvas.style.width = `${Math.round(viewport.width)}px`;
-              canvas.style.height = `${Math.round(viewport.height)}px`;
+        // 3. Exact Integer CSS Layout Size (1:1 with Screen Grid)
+        canvas.style.width = `${Math.round(viewport.width)}px`;
+        canvas.style.height = `${Math.round(viewport.height)}px`;
 
-              const ctx = canvas.getContext('2d', { alpha: false });
-              if (!ctx) return;
+        const ctx = canvas.getContext('2d', { alpha: false });
+        if (!ctx) return;
 
-              // 4. Solid Opaque Paper Backing
-              ctx.fillStyle = '#ffffff';
-              ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // 4. Solid Opaque Paper Backing
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-              // 5. Native OutputScale Matrix Transform (Autohinted Vector Rasterization)
-              const transform = outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : undefined;
+        // 5. Native OutputScale Matrix Transform (Autohinted Vector Rasterization)
+        const transform = outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : undefined;
 
-              renderTask = page.render({
-                canvasContext: ctx,
-                transform,
-                viewport,
-                canvas,
-              });
-
-              await renderTask.promise;
-              if (!isCancelled) {
-                setRendered(true);
-              }
-            } catch (err: any) {
-              if (err?.name !== 'RenderingCancelledException') {
-                console.error(`Thumbnail render error for page ${pageNum}:`, err);
-              }
-            }
-          }
+        renderTask = page.render({
+          canvasContext: ctx,
+          transform,
+          viewport,
+          canvas,
         });
-      },
-      {
-        root: null,
-        rootMargin: '250px 0px 250px 0px',
-        threshold: 0.01,
-      }
-    );
 
-    observer.observe(containerRef.current);
+        await renderTask.promise;
+        if (!isCancelled) {
+          setRendered(true);
+        }
+      } catch (err: any) {
+        if (err?.name !== 'RenderingCancelledException') {
+          console.error(`Thumbnail render error for page ${pageNum}:`, err);
+        }
+      }
+    })();
 
     return () => {
       isCancelled = true;
-      observer.disconnect();
       if (renderTask) {
         try { renderTask.cancel(); } catch {}
       }
     };
-  }, [pdfDoc, pageNum, rotation, rendered, columns, sidebarWidth]);
+  }, [pdfDoc, pageNum, rotation, rendered, columns, sidebarWidth, isVisible]);
 
   return (
     <button
@@ -410,7 +440,19 @@ export default function ViewerNavSidebar({
     const saved = localStorage.getItem('inkvault_sidebar_width') ?? localStorage.getItem('pdflow_sidebar_width');
     return saved ? Math.max(200, Math.min(650, parseInt(saved, 10))) : 280;
   });
+  const [debouncedSidebarWidth, setDebouncedSidebarWidth] = useState(sidebarWidth);
   const [isResizing, setIsResizing] = useState(false);
+
+  useEffect(() => {
+    if (isResizing) {
+      const timer = setTimeout(() => {
+        setDebouncedSidebarWidth(sidebarWidth);
+      }, 150);
+      return () => clearTimeout(timer);
+    } else {
+      setDebouncedSidebarWidth(sidebarWidth);
+    }
+  }, [sidebarWidth, isResizing]);
 
   const startResizing = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -590,7 +632,7 @@ export default function ViewerNavSidebar({
                 pdfDoc={pdfDoc}
                 rotation={rotation}
                 columns={thumbnailColumns}
-                sidebarWidth={sidebarWidth}
+                sidebarWidth={debouncedSidebarWidth}
                 onSelect={onPageSelect}
               />
             ))}

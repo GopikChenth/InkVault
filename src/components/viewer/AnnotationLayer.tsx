@@ -21,7 +21,7 @@ interface AnnotationLayerProps {
   onToolUsed?: () => void;
 }
 
-export default function AnnotationLayer({
+function AnnotationLayer({
   pageNum,
   width,
   height,
@@ -791,3 +791,6 @@ export default function AnnotationLayer({
     </div>
   );
 }
+
+export default React.memo(AnnotationLayer);
+

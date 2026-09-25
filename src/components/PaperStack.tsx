@@ -195,7 +195,22 @@ export default function PaperStack() {
       });
     }
 
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        if (shuffleTimerRef.current) {
+          clearInterval(shuffleTimerRef.current);
+          shuffleTimerRef.current = null;
+        }
+        if (floatAnim) floatAnim.pause();
+      } else {
+        startAutonomousShuffle();
+        if (floatAnim) floatAnim.play();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (floatAnim) floatAnim.pause();
       if (shuffleTimerRef.current) clearInterval(shuffleTimerRef.current);
     };

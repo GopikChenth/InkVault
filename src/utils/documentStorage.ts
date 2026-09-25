@@ -102,7 +102,9 @@ export function saveMetadataCache(docs: LoadedPDF[]): void {
       folderPath: doc.folderPath,
       filePath: doc.filePath,
       rating: doc.rating,
-      coverDataUrl: doc.coverDataUrl,
+      // Omit heavy base64 coverDataUrl from localStorage to prevent QuotaExceededError;
+      // covers are preserved in IndexedDB
+      coverDataUrl: undefined,
       lastReadAt: doc.lastReadAt,
       readingTimeMinutes: doc.readingTimeMinutes,
       isComic: doc.isComic,

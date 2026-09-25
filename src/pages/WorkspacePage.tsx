@@ -28,13 +28,15 @@ import { useDocumentLoader } from '../hooks/useDocumentLoader';
 import { 
   StudioSidebar, 
   StudioRecentView, 
-  MergeTool, 
-  SplitTool, 
-  CompressTool, 
-  WatermarkTool, 
-  ProtectTool,
   STUDIO_TOOL_ITEMS
 } from '../modes/studio';
+
+// Lazy-load heavy PDF manipulation studio tools
+const MergeTool = React.lazy(() => import('../modes/studio/components/tools/MergeTool'));
+const SplitTool = React.lazy(() => import('../modes/studio/components/tools/SplitTool'));
+const CompressTool = React.lazy(() => import('../modes/studio/components/tools/CompressTool'));
+const WatermarkTool = React.lazy(() => import('../modes/studio/components/tools/WatermarkTool'));
+const ProtectTool = React.lazy(() => import('../modes/studio/components/tools/ProtectTool'));
 
 import { 
   StudySidebar, 
@@ -340,6 +342,9 @@ export default function WorkspacePage({
         if (cached) {
           try { cached.destroy(); } catch {}
           globalDocProxyCache.delete(targetDoc.blobUrl);
+        }
+        if (targetDoc.blobUrl && targetDoc.blobUrl.startsWith('blob:')) {
+          try { URL.revokeObjectURL(targetDoc.blobUrl); } catch {}
         }
         globalTextIndexCache.delete(docId);
         tabSessionMapRef.current.delete(docId);

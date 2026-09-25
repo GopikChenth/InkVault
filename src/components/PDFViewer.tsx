@@ -287,6 +287,23 @@ export default function PDFViewer({
   const requestedRenderKeysRef = useRef<Map<number, string>>(new Map());
   const activeRenderTasksRef = useRef<Map<number, any>>(new Map());
   const activeTextTasksRef = useRef<Map<number, any>>(new Map());
+  const sharedOffscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const isExtractingTextRef = useRef(false);
+
+  // Memoize annotations by page to isolate updates and avoid re-rendering untouched pages
+  const annotationsByPage = useMemo(() => {
+    const map = new Map<number, PDFAnnotation[]>();
+    for (const ann of annotations) {
+      const list = map.get(ann.pageNum);
+      if (list) {
+        list.push(ann);
+      } else {
+        map.set(ann.pageNum, [ann]);
+      }
+    }
+    return map;
+  }, [annotations]);
+
 
   // Load Annotations & Bookmarks
   useEffect(() => {
@@ -651,8 +668,7 @@ export default function PDFViewer({
         }, 120);
       }
 
-      // Step B: Asynchronous background extraction of full geometry, text index, outline & attachments
-      const textList: PageTextData[] = [];
+      // Step B: Asynchronous background extraction of exact geometry, outline & attachments
       for (let i = 1; i <= loadedPdf.numPages; i++) {
         if (isCancelled) return;
         try {
@@ -660,30 +676,20 @@ export default function PDFViewer({
           const pageRot = page.rotate || 0;
           const vp = page.getViewport({ scale: 1.0, rotation: pageRot });
           pageList[i - 1] = { pageNum: i, width: vp.width, height: vp.height };
-
-          if (!globalTextIndexCache.has(doc.id)) {
-            const textContent = await page.getTextContent();
-            const pageString = textContent.items.map((item: any) => item.str).join(' ');
-            textList.push({ pageNum: i, text: pageString });
-          }
         } catch {
-          if (!globalTextIndexCache.has(doc.id)) {
-            textList.push({ pageNum: i, text: '' });
-          }
+          // Keep initial fallback dimensions
         }
 
-        // Process in short batches so a large document cannot make the viewer
-        // feel frozen while text search and page dimensions are prepared.
-        if (i % 4 === 0) {
+        // Process in short batches to yield UI thread
+        if (i % 8 === 0) {
           await yieldToBrowser();
         }
       }
 
       if (!isCancelled) {
         setPages([...pageList]);
-        if (!globalTextIndexCache.has(doc.id)) {
-          globalTextIndexCache.set(doc.id, textList);
-          setPagesText(textList);
+        if (globalTextIndexCache.has(doc.id)) {
+          setPagesText(globalTextIndexCache.get(doc.id)!);
         }
       }
 
@@ -808,7 +814,11 @@ export default function PDFViewer({
       const scaledHeight = Math.floor(viewport.height * outputScale);
 
       // Double-buffered rendering via offscreen canvas: avoids blanking the existing screen
-      const offscreenCanvas = document.createElement('canvas');
+      let offscreenCanvas = sharedOffscreenCanvasRef.current;
+      if (!offscreenCanvas) {
+        offscreenCanvas = document.createElement('canvas');
+        sharedOffscreenCanvasRef.current = offscreenCanvas;
+      }
       offscreenCanvas.width = scaledWidth;
       offscreenCanvas.height = scaledHeight;
       const offscreenCtx = offscreenCanvas.getContext('2d', { alpha: false });
@@ -1051,10 +1061,49 @@ export default function PDFViewer({
     }
   }, []);
 
-  // 5b. Active Page Detection during Viewport Scroll
+  // 5b. Pre-calculate page center Y positions for instantaneous O(log N) scroll positioning
+  const pageOffsets = useMemo(() => {
+    if (pages.length === 0) return [];
+    const isRotated90or270 = rotation === 90 || rotation === 270;
+    const centers: { pageNum: number; centerY: number }[] = [];
+    let currentY = 32; // py-8 top padding = 32px
+
+    if (layoutMode === 'two-page' || layoutMode === 'facing-pages') {
+      let i = 0;
+      if (layoutMode === 'facing-pages' && facingCoverPage && pages.length > 0) {
+        const p = pages[0];
+        const baseH = isRotated90or270 ? p.width : p.height;
+        const h = Math.round(baseH * scale);
+        centers.push({ pageNum: p.pageNum, centerY: currentY + h / 2 });
+        currentY += h + 32;
+        i = 1;
+      }
+      for (; i < pages.length; i += 2) {
+        const p1 = pages[i];
+        const p2 = pages[i + 1];
+        const h1 = Math.round((isRotated90or270 ? p1.width : p1.height) * scale);
+        const h2 = p2 ? Math.round((isRotated90or270 ? p2.width : p2.height) * scale) : 0;
+        const maxH = Math.max(h1, h2);
+        centers.push({ pageNum: p1.pageNum, centerY: currentY + maxH / 2 });
+        if (p2) centers.push({ pageNum: p2.pageNum, centerY: currentY + maxH / 2 });
+        currentY += maxH + 32;
+      }
+    } else {
+      for (let i = 0; i < pages.length; i++) {
+        const p = pages[i];
+        const baseH = isRotated90or270 ? p.width : p.height;
+        const h = Math.round(baseH * scale);
+        centers.push({ pageNum: p.pageNum, centerY: currentY + h / 2 });
+        currentY += h + 32;
+      }
+    }
+    return centers;
+  }, [pages, rotation, scale, layoutMode, facingCoverPage]);
+
+  // Active Page Detection during Viewport Scroll (O(log N) mathematical lookup, ZERO DOM reflows)
   useEffect(() => {
     const container = scrollContainerRef.current;
-    if (!container || pages.length === 0) return;
+    if (!container || pageOffsets.length === 0) return;
 
     let timeoutId: any = null;
     const handleScroll = () => {
@@ -1063,24 +1112,31 @@ export default function PDFViewer({
       timeoutId = setTimeout(() => {
         timeoutId = null;
         if (isProgrammaticScrollRef.current) return;
-        const containerRect = container.getBoundingClientRect();
-        const containerCenter = containerRect.top + containerRect.height / 2;
+        if (pageOffsets.length === 0) return;
 
-        let closestPage = 1;
-        let minDistance = Infinity;
+        const containerCenter = container.scrollTop + container.clientHeight / 2;
 
-        pages.forEach((p) => {
-          const el = container.querySelector(`[data-page="${p.pageNum}"]`);
-          if (el) {
-            const rect = el.getBoundingClientRect();
-            const pageCenter = rect.top + rect.height / 2;
-            const distance = Math.abs(pageCenter - containerCenter);
-            if (distance < minDistance) {
-              minDistance = distance;
-              closestPage = p.pageNum;
-            }
+        let low = 0;
+        let high = pageOffsets.length - 1;
+        let closestPage = pageOffsets[0].pageNum;
+        let minDiff = Infinity;
+
+        while (low <= high) {
+          const mid = (low + high) >> 1;
+          const diff = pageOffsets[mid].centerY - containerCenter;
+          const absDiff = Math.abs(diff);
+
+          if (absDiff < minDiff) {
+            minDiff = absDiff;
+            closestPage = pageOffsets[mid].pageNum;
           }
-        });
+
+          if (diff < 0) {
+            low = mid + 1;
+          } else {
+            high = mid - 1;
+          }
+        }
 
         setCurrentPage((prev) => (prev !== closestPage ? closestPage : prev));
       }, 50);
@@ -1091,7 +1147,7 @@ export default function PDFViewer({
       container.removeEventListener('scroll', handleScroll);
       if (timeoutId) clearTimeout(timeoutId);
     };
-  }, [pages]);
+  }, [pageOffsets]);
 
   // TOC Outline destination resolver
   const handleNavigateToDest = useCallback(async (dest: any, pageNumber?: number) => {
@@ -1130,6 +1186,42 @@ export default function PDFViewer({
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }, []);
+
+  // On-demand text extraction for search and text reflow
+  const ensureTextExtracted = useCallback(async () => {
+    if (!pdfDoc || isExtractingTextRef.current) return;
+    if (globalTextIndexCache.has(doc.id)) {
+      setPagesText(globalTextIndexCache.get(doc.id)!);
+      return;
+    }
+    isExtractingTextRef.current = true;
+    try {
+      const textList: PageTextData[] = [];
+      for (let i = 1; i <= pdfDoc.numPages; i++) {
+        try {
+          const page = await pdfDoc.getPage(i);
+          const textContent = await page.getTextContent();
+          const pageString = textContent.items.map((item: any) => item.str).join(' ');
+          textList.push({ pageNum: i, text: pageString });
+        } catch {
+          textList.push({ pageNum: i, text: '' });
+        }
+        if (i % 6 === 0) {
+          await yieldToBrowser();
+        }
+      }
+      globalTextIndexCache.set(doc.id, textList);
+      setPagesText(textList);
+    } finally {
+      isExtractingTextRef.current = false;
+    }
+  }, [pdfDoc, doc.id]);
+
+  useEffect(() => {
+    if (isSearchOpen || isReflowOpen) {
+      ensureTextExtracted();
+    }
+  }, [isSearchOpen, isReflowOpen, ensureTextExtracted]);
 
   // 6. Search Engine (In-Document & Multi-Document with Regex / Case / Word matching)
   useEffect(() => {
@@ -1984,6 +2076,10 @@ export default function PDFViewer({
                   const displayWidth = Math.round(baseW * scale);
                   const displayHeight = Math.round(baseH * scale);
 
+                  // Virtualized Windowing: Only mount heavy canvas and annotation components
+                  // for pages within viewport buffer window, keeping exact container dimensions for offscreen pages.
+                  const isWithinWindow = pages.length <= 15 || Math.abs(p.pageNum - currentPage) <= 3;
+
                   return (
                     <div
                       key={p.pageNum}
@@ -1994,47 +2090,61 @@ export default function PDFViewer({
                       }}
                       className="relative bg-white rounded-md shadow-[0_8px_30px_rgba(0,0,0,0.1)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.5)] border border-black/10 dark:border-white/15 overflow-hidden flex-shrink-0"
                     >
-                      {/* 1. High-DPI Razor-Sharp Canvas Layer */}
-                      <canvas
-                        ref={(el) => {
-                          if (el) canvasMapRef.current.set(p.pageNum, el);
-                          else canvasMapRef.current.delete(p.pageNum);
-                        }}
-                        className="block absolute inset-0 pointer-events-none w-full h-full"
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                        }}
-                      />
+                      {isWithinWindow ? (
+                        <>
+                          {/* 1. High-DPI Razor-Sharp Canvas Layer */}
+                          <canvas
+                            ref={(el) => {
+                              if (el) {
+                                canvasMapRef.current.set(p.pageNum, el);
+                                renderCanvasPage(p.pageNum, rotation, scale);
+                              } else {
+                                canvasMapRef.current.delete(p.pageNum);
+                              }
+                            }}
+                            className="block absolute inset-0 pointer-events-none w-full h-full"
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                            }}
+                          />
 
-                      {/* 2. Official PDF.js Text Selection Layer */}
-                      <div
-                        ref={(el) => {
-                          if (el) textLayerMapRef.current.set(p.pageNum, el);
-                          else textLayerMapRef.current.delete(p.pageNum);
-                        }}
-                        className="textLayer"
-                        style={{
-                          width: `${displayWidth}px`,
-                          height: `${displayHeight}px`,
-                        }}
-                      />
+                          {/* 2. Official PDF.js Text Selection Layer */}
+                          <div
+                            ref={(el) => {
+                              if (el) textLayerMapRef.current.set(p.pageNum, el);
+                              else textLayerMapRef.current.delete(p.pageNum);
+                            }}
+                            className="textLayer"
+                            style={{
+                              width: `${displayWidth}px`,
+                              height: `${displayHeight}px`,
+                            }}
+                          />
 
-                      {/* 3. Interactive Markup & Annotation Overlay Layer */}
-                      <AnnotationLayer
-                        pageNum={p.pageNum}
-                        width={displayWidth}
-                        height={displayHeight}
-                        activeTool={activeAnnotationTool}
-                        activeColor={activeColor}
-                        strokeWidth={strokeWidth}
-                        annotations={annotations}
-                        onAddAnnotation={handleAddAnnotation}
-                        onUpdateAnnotation={handleUpdateAnnotation}
-                        onDeleteAnnotation={handleDeleteAnnotation}
-                        onOpenStickyNote={(ann) => setActiveStickyModalAnnId(ann.id)}
-                        onToolUsed={() => setActiveAnnotationTool('select')}
-                      />
+                          {/* 3. Interactive Markup & Annotation Overlay Layer */}
+                          <AnnotationLayer
+                            pageNum={p.pageNum}
+                            width={displayWidth}
+                            height={displayHeight}
+                            activeTool={activeAnnotationTool}
+                            activeColor={activeColor}
+                            strokeWidth={strokeWidth}
+                            annotations={annotationsByPage.get(p.pageNum) || []}
+                            onAddAnnotation={handleAddAnnotation}
+                            onUpdateAnnotation={handleUpdateAnnotation}
+                            onDeleteAnnotation={handleDeleteAnnotation}
+                            onOpenStickyNote={(ann) => setActiveStickyModalAnnId(ann.id)}
+                            onToolUsed={() => setActiveAnnotationTool('select')}
+                          />
+                        </>
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-100/50 dark:bg-zinc-800/50 select-none">
+                          <span className="text-xs font-mono text-zinc-400 dark:text-zinc-500">
+                            Page {p.pageNum}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   );
                 })}

@@ -62,18 +62,18 @@ export default function TextReflowView({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-background animate-in fade-in duration-200 text-zinc-900 dark:text-zinc-100">
+    <div className="fixed inset-0 z-50 flex flex-col bg-background animate-in fade-in duration-200 text-on-surface">
       
       {/* 1. Header with Reader Controls */}
-      <header className="h-14 border-b border-border px-6 flex items-center justify-between gap-4 bg-surface dark:bg-surface flex-shrink-0">
+      <header className="h-14 border-b border-outline/20 px-6 flex items-center justify-between gap-4 bg-surface/85 backdrop-blur-xl flex-shrink-0">
         
         {/* Title */}
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="h-8 w-8 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 flex items-center justify-center shadow-xs flex-shrink-0">
-            <BookOpen className="h-4 w-4 text-accent" />
+          <div className="h-8 w-8 rounded-xl bg-accent/15 border border-accent/30 text-accent flex items-center justify-center shadow-xs flex-shrink-0">
+            <BookOpen className="h-4 w-4" />
           </div>
           <div className="min-w-0">
-            <h3 className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">{docTitle}</h3>
+            <h3 className="text-xs font-bold text-on-surface truncate">{docTitle}</h3>
             <p className="text-[10px] font-mono text-zinc-400">Text-Reflow Responsive Reader Mode (Page {currentPage})</p>
           </div>
         </div>
@@ -82,66 +82,66 @@ export default function TextReflowView({
         <div className="flex items-center gap-3">
           
           {/* Font Size */}
-          <div className="flex items-center gap-1 bg-surface dark:bg-card border border-border rounded-lg p-0.5 text-xs">
+          <div className="flex items-center gap-1 bg-surface-container border border-outline/20 rounded-full p-1 text-xs">
             <button
               onClick={() => setSettings((s) => ({ ...s, fontSize: Math.max(12, s.fontSize - 2) }))}
               title="Decrease Font Size"
-              className="h-7 w-7 rounded flex items-center justify-center hover:bg-surface dark:hover:bg-surface transition-colors"
+              className="h-6 w-6 rounded-full flex items-center justify-center hover:bg-surface-high transition-colors text-on-surface"
             >
               <Minus className="h-3.5 w-3.5" />
             </button>
-            <span className="px-2 font-mono text-[11px] font-semibold">{settings.fontSize}px</span>
+            <span className="px-2 font-mono text-[11px] font-semibold text-on-surface">{settings.fontSize}px</span>
             <button
               onClick={() => setSettings((s) => ({ ...s, fontSize: Math.min(28, s.fontSize + 2) }))}
               title="Increase Font Size"
-              className="h-7 w-7 rounded flex items-center justify-center hover:bg-surface dark:hover:bg-surface transition-colors"
+              className="h-6 w-6 rounded-full flex items-center justify-center hover:bg-surface-high transition-colors text-on-surface"
             >
               <Plus className="h-3.5 w-3.5" />
             </button>
           </div>
 
           {/* Font Family Switcher */}
-          <div className="hidden sm:flex items-center gap-1 bg-surface dark:bg-card border border-border rounded-lg p-0.5 text-xs">
+          <div className="hidden sm:flex items-center gap-1 bg-surface-container border border-outline/20 rounded-full p-1 text-xs">
             <button
               onClick={() => setSettings((s) => ({ ...s, fontFamily: 'serif' }))}
-              className={`px-2 py-1 rounded text-xs transition-colors ${settings.fontFamily === 'serif' ? 'bg-card font-bold shadow-xs' : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'}`}
+              className={`px-3 py-1 rounded-full text-xs transition-all duration-200 ease-caelestia-decel ${settings.fontFamily === 'serif' ? 'bg-accent text-[#00363d] font-bold shadow-xs' : 'text-zinc-400 hover:text-on-surface'}`}
             >
               Serif
             </button>
             <button
               onClick={() => setSettings((s) => ({ ...s, fontFamily: 'sans' }))}
-              className={`px-2 py-1 rounded text-xs transition-colors ${settings.fontFamily === 'sans' ? 'bg-card font-bold shadow-xs' : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'}`}
+              className={`px-3 py-1 rounded-full text-xs transition-all duration-200 ease-caelestia-decel ${settings.fontFamily === 'sans' ? 'bg-accent text-[#00363d] font-bold shadow-xs' : 'text-zinc-400 hover:text-on-surface'}`}
             >
               Sans
             </button>
             <button
               onClick={() => setSettings((s) => ({ ...s, fontFamily: 'mono' }))}
-              className={`px-2 py-1 rounded text-xs transition-colors ${settings.fontFamily === 'mono' ? 'bg-card font-bold shadow-xs' : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'}`}
+              className={`px-3 py-1 rounded-full text-xs transition-all duration-200 ease-caelestia-decel ${settings.fontFamily === 'mono' ? 'bg-accent text-[#00363d] font-bold shadow-xs' : 'text-zinc-400 hover:text-on-surface'}`}
             >
               Mono
             </button>
           </div>
 
           {/* Column Width */}
-          <div className="hidden md:flex items-center gap-1 bg-surface dark:bg-card border border-border rounded-lg p-0.5 text-xs">
+          <div className="hidden md:flex items-center gap-1 bg-surface-container border border-outline/20 rounded-full p-1 text-xs">
             <button
               onClick={() => setSettings((s) => ({ ...s, maxWidth: 640 }))}
               title="Narrow Column"
-              className={`px-2 py-1 rounded text-xs transition-colors ${settings.maxWidth === 640 ? 'bg-card font-bold shadow-xs' : 'text-zinc-500'}`}
+              className={`px-3 py-1 rounded-full text-xs transition-all duration-200 ease-caelestia-decel ${settings.maxWidth === 640 ? 'bg-accent text-[#00363d] font-bold shadow-xs' : 'text-zinc-400 hover:text-on-surface'}`}
             >
               Narrow
             </button>
             <button
               onClick={() => setSettings((s) => ({ ...s, maxWidth: 760 }))}
               title="Standard Column"
-              className={`px-2 py-1 rounded text-xs transition-colors ${settings.maxWidth === 760 ? 'bg-card font-bold shadow-xs' : 'text-zinc-500'}`}
+              className={`px-3 py-1 rounded-full text-xs transition-all duration-200 ease-caelestia-decel ${settings.maxWidth === 760 ? 'bg-accent text-[#00363d] font-bold shadow-xs' : 'text-zinc-400 hover:text-on-surface'}`}
             >
               Standard
             </button>
             <button
               onClick={() => setSettings((s) => ({ ...s, maxWidth: 960 }))}
               title="Wide Column"
-              className={`px-2 py-1 rounded text-xs transition-colors ${settings.maxWidth === 960 ? 'bg-card font-bold shadow-xs' : 'text-zinc-500'}`}
+              className={`px-3 py-1 rounded-full text-xs transition-all duration-200 ease-caelestia-decel ${settings.maxWidth === 960 ? 'bg-accent text-[#00363d] font-bold shadow-xs' : 'text-zinc-400 hover:text-on-surface'}`}
             >
               Wide
             </button>
@@ -151,7 +151,7 @@ export default function TextReflowView({
           <button
             onClick={onClose}
             title="Exit Reflow Mode (Esc)"
-            className="h-8 px-3 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 flex items-center gap-1.5 text-xs font-semibold hover:bg-accent dark:hover:bg-accent dark:hover:text-white transition-all shadow-xs"
+            className="h-8 px-4 rounded-full bg-surface-container hover:bg-rose-500/20 hover:border-rose-500/40 hover:text-rose-300 text-on-surface border border-outline/20 flex items-center gap-1.5 text-xs font-semibold transition-all duration-200 ease-caelestia-decel shadow-xs"
           >
             <X className="h-3.5 w-3.5" />
             <span>Close Reader</span>

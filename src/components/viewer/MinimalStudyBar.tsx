@@ -79,7 +79,7 @@ export default function MinimalStudyBar({
   };
 
   return (
-    <div className="h-10 bg-surface dark:bg-zinc-950 border-b border-border dark:border-zinc-800/80 px-2 sm:px-4 flex items-center justify-between text-zinc-700 dark:text-zinc-300 select-none shadow-md z-50 flex-shrink-0">
+    <div className="h-10 bg-surface/90 dark:bg-[#101415]/90 backdrop-blur-xl border-b border-border px-2 sm:px-4 flex items-center justify-between text-zinc-700 dark:text-zinc-300 select-none shadow-md z-50 flex-shrink-0">
       
       {/* Left: Sidebar toggle & Page Navigation */}
       <div className="flex items-center gap-1.5 sm:gap-2">
@@ -87,7 +87,7 @@ export default function MinimalStudyBar({
           type="button"
           onClick={onToggleSidebar}
           title={isSidebarOpen ? "Hide Thumbnails Sidebar [B]" : "Show Thumbnails Sidebar [B]"}
-          className="h-7 w-7 rounded-md flex items-center justify-center hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+          className="h-7 w-7 rounded-full flex items-center justify-center hover:bg-surface-container text-zinc-500 hover:text-accent transition-colors"
         >
           {isSidebarOpen ? (
             <PanelLeftClose className="h-4 w-4" />
@@ -96,7 +96,7 @@ export default function MinimalStudyBar({
           )}
         </button>
 
-        <div className="h-4 w-[1px] bg-zinc-300 dark:bg-zinc-800 mx-0.5" />
+        <div className="h-4 w-[1px] bg-border mx-0.5" />
 
         {/* Prev Page */}
         <button
@@ -104,7 +104,7 @@ export default function MinimalStudyBar({
           onClick={() => onPageChange(Math.max(1, currentPage - 1))}
           disabled={currentPage <= 1}
           title="Previous Page [← / PageUp]"
-          className="h-7 w-7 rounded-md flex items-center justify-center hover:bg-zinc-200 dark:hover:bg-zinc-800 disabled:opacity-30 text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white transition-colors"
+          className="h-7 w-7 rounded-full flex items-center justify-center hover:bg-surface-container disabled:opacity-30 text-zinc-500 hover:text-accent transition-colors"
         >
           <ChevronLeft className="h-4 w-4" />
         </button>
@@ -117,7 +117,7 @@ export default function MinimalStudyBar({
             onChange={(e) => setInputVal(e.target.value)}
             onKeyDown={handleInputSubmit}
             onBlur={handleInputSubmit}
-            className="w-10 h-6 bg-card dark:bg-zinc-900 border border-border dark:border-zinc-700/80 rounded text-center text-xs font-semibold text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 tabular-nums"
+            className="w-10 h-6 bg-surface-container dark:bg-[#181c1d] border border-border rounded-full text-center text-xs font-semibold text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent tabular-nums"
             title="Jump to page"
           />
           <span className="text-zinc-500 dark:text-zinc-400 text-xs">of {totalPages || 1}</span>
@@ -129,7 +129,7 @@ export default function MinimalStudyBar({
           onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
           disabled={currentPage >= totalPages}
           title="Next Page [→ / PageDown]"
-          className="h-7 w-7 rounded-md flex items-center justify-center hover:bg-zinc-200 dark:hover:bg-zinc-800 disabled:opacity-30 text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white transition-colors"
+          className="h-7 w-7 rounded-full flex items-center justify-center hover:bg-surface-container disabled:opacity-30 text-zinc-500 hover:text-accent transition-colors"
         >
           <ChevronRight className="h-4 w-4" />
         </button>
@@ -142,7 +142,7 @@ export default function MinimalStudyBar({
           onClick={onZoomOut}
           disabled={scale <= 0.4}
           title="Zoom Out [-]"
-          className="h-7 w-7 rounded-md flex items-center justify-center hover:bg-zinc-200 dark:hover:bg-zinc-800 disabled:opacity-30 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+          className="h-7 w-7 rounded-full flex items-center justify-center hover:bg-surface-container disabled:opacity-30 text-zinc-500 hover:text-accent transition-colors"
         >
           <Minus className="h-3.5 w-3.5" />
         </button>
@@ -151,7 +151,7 @@ export default function MinimalStudyBar({
           type="button"
           onClick={onZoomReset}
           title="Reset Zoom to 100%"
-          className="h-6 px-2 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-800 text-[11px] font-mono font-semibold text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white transition-colors tabular-nums"
+          className="h-6 px-2.5 rounded-full hover:bg-surface-container bg-surface-container/50 border border-border text-[11px] font-mono font-semibold text-accent transition-colors tabular-nums"
         >
           {Math.round(scale * 100)}%
         </button>
@@ -161,19 +161,19 @@ export default function MinimalStudyBar({
           onClick={onZoomIn}
           disabled={scale >= 2.5}
           title="Zoom In [+]"
-          className="h-7 w-7 rounded-md flex items-center justify-center hover:bg-zinc-200 dark:hover:bg-zinc-800 disabled:opacity-30 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+          className="h-7 w-7 rounded-full flex items-center justify-center hover:bg-surface-container disabled:opacity-30 text-zinc-500 hover:text-accent transition-colors"
         >
           <Plus className="h-3.5 w-3.5" />
         </button>
 
-        <div className="h-4 w-[1px] bg-zinc-300 dark:bg-zinc-800 mx-1 hidden sm:block" />
+        <div className="h-4 w-[1px] bg-border mx-1 hidden sm:block" />
 
         {/* Fit Width */}
         <button
           type="button"
           onClick={onFitWidth}
           title="Fit to Width [W]"
-          className="h-6 px-2 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-800 text-[11px] font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors hidden sm:inline-flex items-center"
+          className="h-6 px-2.5 rounded-full hover:bg-surface-container border border-border text-[11px] font-medium text-zinc-500 hover:text-accent transition-colors hidden sm:inline-flex items-center"
         >
           Fit W
         </button>
@@ -183,7 +183,7 @@ export default function MinimalStudyBar({
           type="button"
           onClick={onFitPage}
           title="Fit Page [P]"
-          className="h-6 px-2 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-800 text-[11px] font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors hidden sm:inline-flex items-center"
+          className="h-6 px-2.5 rounded-full hover:bg-surface-container border border-border text-[11px] font-medium text-zinc-500 hover:text-accent transition-colors hidden sm:inline-flex items-center"
         >
           Fit H
         </button>
@@ -193,7 +193,7 @@ export default function MinimalStudyBar({
           type="button"
           onClick={onToggleLayoutMode}
           title={layoutMode === 'continuous' ? "Switch to Single Page Presentation" : "Switch to Continuous Scroll"}
-          className="h-7 px-2 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-800 text-[11px] font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors hidden md:inline-flex items-center gap-1"
+          className="h-6 px-2.5 rounded-full hover:bg-surface-container border border-border text-[11px] font-medium text-zinc-500 hover:text-accent transition-colors hidden md:inline-flex items-center gap-1"
         >
           {layoutMode === 'continuous' ? (
             <>
@@ -215,17 +215,17 @@ export default function MinimalStudyBar({
         {/* Pomodoro Study Timer with Custom Intervals */}
         <PomodoroTimer />
 
-        <div className="h-4 w-[1px] bg-zinc-300 dark:bg-zinc-800 mx-0.5 hidden sm:block" />
+        <div className="h-4 w-[1px] bg-border mx-0.5 hidden sm:block" />
 
         {/* Search */}
         <button
           type="button"
           onClick={onToggleSearch}
           title="Search Document [⌘F]"
-          className={`h-7 w-7 rounded-md flex items-center justify-center transition-colors ${
+          className={`h-7 w-7 rounded-full flex items-center justify-center transition-colors ${
             isSearchOpen
-              ? 'bg-blue-600 text-white'
-              : 'hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
+              ? 'bg-accent text-[#00363d] font-bold shadow-xs'
+              : 'hover:bg-surface-container text-zinc-500 hover:text-accent'
           }`}
         >
           <Search className="h-3.5 w-3.5" />
@@ -237,7 +237,7 @@ export default function MinimalStudyBar({
             type="button"
             onClick={onToggleFullscreen}
             title={isFullscreen ? "Exit Fullscreen (F11)" : "Fullscreen (F11)"}
-            className="h-7 w-7 rounded-md flex items-center justify-center transition-colors hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
+            className="h-7 w-7 rounded-full flex items-center justify-center transition-colors hover:bg-surface-container text-zinc-500 hover:text-accent"
           >
             {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
           </button>
@@ -248,26 +248,26 @@ export default function MinimalStudyBar({
           type="button"
           onClick={onTogglePin}
           title={isPinned ? "Toolbar Pinned (Click to auto-hide while reading)" : "Toolbar Auto-Hiding (Click to pin)"}
-          className={`h-7 w-7 rounded-md flex items-center justify-center transition-colors hidden sm:flex ${
+          className={`h-7 w-7 rounded-full flex items-center justify-center transition-colors hidden sm:flex ${
             isPinned 
-              ? 'text-blue-500 dark:text-blue-400 hover:bg-zinc-200 dark:hover:bg-zinc-800' 
-              : 'text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-800 hover:text-zinc-800 dark:hover:text-zinc-300'
+              ? 'text-accent hover:bg-surface-container' 
+              : 'text-zinc-500 hover:bg-surface-container hover:text-accent'
           }`}
         >
           {isPinned ? <Pin className="h-3.5 w-3.5" /> : <PinOff className="h-3.5 w-3.5" />}
         </button>
 
-        <div className="h-4 w-[1px] bg-zinc-300 dark:bg-zinc-800 mx-0.5" />
+        <div className="h-4 w-[1px] bg-border mx-0.5" />
 
         {/* Exit Study Mode */}
         <button
           type="button"
           onClick={onExitStudyMode}
           title="Exit Minimal Study Mode [Esc]"
-          className="h-7 px-2.5 rounded-md bg-card dark:bg-zinc-900 hover:bg-rose-500/10 dark:hover:bg-rose-500/20 hover:text-rose-600 dark:hover:text-rose-400 border border-border dark:border-zinc-800 hover:border-rose-500/40 text-xs font-medium text-zinc-700 dark:text-zinc-300 transition-all flex items-center gap-1.5 shadow-xs"
+          className="h-7 px-3 rounded-full bg-surface-container dark:bg-[#181c1d] hover:bg-rose-500/15 hover:text-rose-400 border border-border hover:border-rose-500/40 text-xs font-medium text-zinc-700 dark:text-zinc-300 transition-all flex items-center gap-1.5 shadow-xs"
         >
           <Minimize2 className="h-3.5 w-3.5" />
-          <span>Exit <kbd className="hidden md:inline text-[9px] font-mono opacity-70 bg-zinc-200 dark:bg-zinc-800 px-1 rounded">Esc</kbd></span>
+          <span>Exit <kbd className="hidden md:inline text-[9px] font-mono opacity-70 bg-surface-lowest px-1 rounded-full">Esc</kbd></span>
         </button>
       </div>
 

@@ -2,18 +2,10 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { animate, createTimeline, set, Timeline } from 'animejs';
 import { FileText, ShieldCheck } from 'lucide-react';
 import { DOCUMENTS } from '../constants/mockData';
+import { calculateStackLayerTransform, STACK_CONSTRAINTS } from '../utils/layoutConstraints';
 
 // Helper to calculate 3D transformation matrices per stack layer depth (0 = top, 4 = bottom)
-const getLayerTransform = (depth: number) => ({
-  translateY: depth * 14,
-  translateX: depth * 6,
-  translateZ: -depth * 36,
-  rotateZ: depth === 0 ? 0 : (depth % 2 === 1 ? -1.8 * depth : 1.5 * depth),
-  rotateX: 12 + depth * 1.2,
-  rotateY: -16 - depth * 1.5,
-  scale: 1 - depth * 0.035,
-  opacity: Math.max(0.4, 1 - depth * 0.14),
-});
+const getLayerTransform = calculateStackLayerTransform;
 
 export default function PaperStack() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -46,7 +38,7 @@ export default function PaperStack() {
       const nextOrder = [...prevOrder.slice(1), prevOrder[0]];
       const tl = createTimeline({
         defaults: {
-          ease: 'inOutCubic',
+          ease: 'cubicBezier(0.05, 0.7, 0.1, 1)',
         },
         onComplete: () => {
           isShufflingRef.current = false;
@@ -65,7 +57,7 @@ export default function PaperStack() {
         rotateZ: 12,
         scale: 1.05,
         duration: 750,
-        ease: 'outCubic',
+        ease: 'cubicBezier(0.05, 0.7, 0.1, 1)',
       });
 
       // Step 2: Concurrently promote remaining cards forward in the stack
@@ -83,7 +75,7 @@ export default function PaperStack() {
             scale: t.scale,
             opacity: t.opacity,
             duration: 650,
-            ease: 'inOutQuad',
+            ease: 'cubicBezier(0.2, 0, 0, 1)',
           }, pos === 0 ? '-=500' : '<');
         }
       });
@@ -100,7 +92,7 @@ export default function PaperStack() {
         scale: bottomTransform.scale,
         opacity: bottomTransform.opacity,
         duration: 700,
-        ease: 'inOutCubic',
+        ease: 'cubicBezier(0.05, 0.7, 0.1, 1)',
       }, '-=300');
 
       // Sync the ground shadow swell
@@ -109,7 +101,7 @@ export default function PaperStack() {
           scale: [1, 1.15, 1],
           opacity: [0.65, 0.45, 0.65],
           duration: 1200,
-          ease: 'inOutQuad',
+          ease: 'cubicBezier(0.2, 0, 0, 1)',
         });
       }
 
@@ -164,8 +156,8 @@ export default function PaperStack() {
         scale: transform.scale,
         opacity: transform.opacity,
         delay: idx * 120 + 200,
-        duration: 1400,
-        ease: 'outQuint',
+        duration: 1200,
+        ease: 'cubicBezier(0.05, 0.7, 0.1, 1)',
         onComplete: idx === cards.length - 1 ? () => {
           startAutonomousShuffle();
         } : () => {},
@@ -176,9 +168,9 @@ export default function PaperStack() {
       animate(shadowRef.current, {
         opacity: 0.65,
         scale: 1,
-        duration: 1600,
+        duration: 1400,
         delay: 300,
-        ease: 'outQuad',
+        ease: 'cubicBezier(0.05, 0.7, 0.1, 1)',
       });
     }
 
@@ -227,7 +219,7 @@ export default function PaperStack() {
       rotateY: x * 14,
       rotateX: -y * 12,
       duration: 600,
-      ease: 'outQuad',
+      ease: 'cubicBezier(0.05, 0.7, 0.1, 1)',
     });
   }, []);
 
@@ -237,7 +229,7 @@ export default function PaperStack() {
       rotateY: 0,
       rotateX: 0,
       duration: 1000,
-      ease: 'outElastic(1, .7)',
+      ease: 'cubicBezier(0.175, 0.885, 0.32, 1.275)',
     });
   }, []);
 
@@ -246,18 +238,20 @@ export default function PaperStack() {
       className="relative w-full max-w-[540px] h-[500px] flex items-center justify-center select-none"
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      style={{ perspective: '1400px' }}
+      style={{ perspective: `${STACK_CONSTRAINTS.PERSPECTIVE_PX}px` }}
     >
       {/* Dynamic Ground Shadow */}
       <div
         ref={shadowRef}
-        className="absolute bottom-6 w-[360px] h-[65px] rounded-full bg-black/35 dark:bg-black/70 blur-2xl pointer-events-none transform -rotate-6 preserve-3d"
+        style={{ width: `${STACK_CONSTRAINTS.SHADOW_WIDTH_PX}px`, height: `${STACK_CONSTRAINTS.SHADOW_HEIGHT_PX}px` }}
+        className="absolute bottom-6 rounded-full bg-black/35 dark:bg-black/70 blur-2xl pointer-events-none transform -rotate-6 preserve-3d"
       />
 
       {/* 3D Stack Container */}
       <div
         ref={containerRef}
-        className="relative w-[320px] sm:w-[360px] h-[430px] preserve-3d"
+        style={{ maxWidth: `${STACK_CONSTRAINTS.CARD_MAX_WIDTH_PX}px`, height: `${STACK_CONSTRAINTS.CARD_HEIGHT_PX}px` }}
+        className="relative w-[min(90vw,360px)] preserve-3d"
       >
         <div 
           ref={stackWrapperRef} 
@@ -271,18 +265,22 @@ export default function PaperStack() {
               <div
                 key={doc.id}
                 ref={(el) => { cardRefs.current[index] = el; }}
-                className="absolute inset-0 rounded-2xl bg-card dark:bg-card text-zinc-900 dark:text-zinc-100 border border-border shadow-[0_20px_50px_rgba(0,0,0,0.15)] dark:shadow-[0_25px_60px_rgba(0,0,0,0.6)] flex flex-col justify-between p-6 overflow-hidden backface-visible preserve-3d cursor-default"
+                className={`absolute inset-0 rounded-3xl bg-card dark:bg-[#181c1d] text-zinc-900 dark:text-zinc-100 border flex flex-col justify-between p-6 overflow-hidden backface-visible preserve-3d cursor-default transition-all duration-300 ${
+                  currentPositionInStack === 0
+                    ? 'border-accent/50 ring-1 ring-accent/30 shadow-[0_20px_50px_rgba(0,0,0,0.2),0_0_35px_rgba(129,211,224,0.18)] dark:shadow-[0_25px_60px_rgba(0,0,0,0.8),0_0_35px_rgba(129,211,224,0.18)]'
+                    : 'border-border shadow-[0_20px_50px_rgba(0,0,0,0.15)] dark:shadow-[0_25px_60px_rgba(0,0,0,0.6)]'
+                }`}
                 style={{
                   zIndex,
                   willChange: 'transform, opacity',
-                  backgroundImage: 'radial-gradient(rgba(0, 0, 0, 0.02) 1px, transparent 0)',
+                  backgroundImage: 'radial-gradient(rgba(129, 211, 224, 0.05) 1px, transparent 0)',
                   backgroundSize: '16px 16px',
                 }}
               >
                 {/* Paper Top Bar / Header */}
                 <div className="flex items-start justify-between border-b border-border pb-3.5">
                   <div className="flex items-center gap-2.5">
-                    <div className="h-7 w-7 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-950 flex items-center justify-center font-bold text-xs shadow-sm">
+                    <div className="h-7 w-7 rounded-xl bg-accent text-[#00363d] flex items-center justify-center font-bold text-xs shadow-sm">
                       <FileText className="h-3.5 w-3.5" />
                     </div>
                     <div>
@@ -295,7 +293,7 @@ export default function PaperStack() {
                     </div>
                   </div>
 
-                  <span className={`text-[9px] font-mono font-semibold px-2 py-0.5 rounded-full border ${doc.badgeColor} flex items-center gap-1`}>
+                  <span className={`text-[9px] font-mono font-semibold px-2.5 py-0.5 rounded-full border ${doc.badgeColor} flex items-center gap-1`}>
                     <ShieldCheck className="h-2.5 w-2.5" />
                     {doc.badge}
                   </span>
@@ -315,19 +313,19 @@ export default function PaperStack() {
 
                   {/* Document Custom Graphic Body depending on index */}
                   {index === 0 && (
-                    <div className="my-2 p-2.5 rounded-lg bg-surface dark:bg-surface border border-border flex flex-col gap-2 font-mono">
+                    <div className="my-2 p-2.5 rounded-xl bg-surface dark:bg-surface-container border border-border flex flex-col gap-2 font-mono">
                       <div className="flex items-center justify-between text-[9px] text-zinc-500">
                         <span>PIPELINE RENDER STATUS</span>
-                        <span className="text-emerald-600 dark:text-emerald-400 font-semibold">100% COMPILED</span>
+                        <span className="text-emerald-500 font-semibold">100% COMPILED</span>
                       </div>
-                      <div className="h-1.5 w-full bg-surface rounded-full overflow-hidden border border-border/50">
+                      <div className="h-1.5 w-full bg-surface-lowest dark:bg-surface-lowest rounded-full overflow-hidden border border-border/50">
                         <div className="h-full bg-emerald-500 rounded-full w-[88%]" />
                       </div>
                       <div className="grid grid-cols-2 gap-1.5 pt-1 text-[8.5px] text-zinc-600 dark:text-zinc-300">
-                        <div className="p-1 rounded bg-card dark:bg-card border border-border">
+                        <div className="p-1 rounded-lg bg-card dark:bg-[#181c1d] border border-border">
                           MEMORY: <strong className="text-zinc-900 dark:text-zinc-100">42.8 MB</strong>
                         </div>
-                        <div className="p-1 rounded bg-card dark:bg-card border border-border">
+                        <div className="p-1 rounded-lg bg-card dark:bg-[#181c1d] border border-border">
                           LAYERS: <strong className="text-zinc-900 dark:text-zinc-100">8 VECTORS</strong>
                         </div>
                       </div>
@@ -335,23 +333,23 @@ export default function PaperStack() {
                   )}
 
                   {index === 1 && (
-                    <div className="my-2 p-2.5 rounded-lg bg-surface dark:bg-surface border border-border flex flex-col gap-2 font-mono">
+                    <div className="my-2 p-2.5 rounded-xl bg-surface dark:bg-surface-container border border-border flex flex-col gap-2 font-mono">
                       <div className="flex items-center justify-between text-[9px] text-zinc-500">
                         <span>AUDIT METRICS</span>
-                        <span className="text-blue-600 dark:text-blue-400 font-semibold">BALANCED</span>
+                        <span className="text-accent font-semibold">BALANCED</span>
                       </div>
                       <div className="flex items-end gap-1.5 h-10 pt-2 px-1">
-                        <div className="flex-1 bg-blue-500/20 rounded-t h-[40%]" />
-                        <div className="flex-1 bg-blue-500/40 rounded-t h-[65%]" />
-                        <div className="flex-1 bg-blue-500/60 rounded-t h-[50%]" />
-                        <div className="flex-1 bg-blue-500/80 rounded-t h-[85%]" />
-                        <div className="flex-1 bg-blue-500 rounded-t h-[100%]" />
+                        <div className="flex-1 bg-accent/20 rounded-t h-[40%]" />
+                        <div className="flex-1 bg-accent/40 rounded-t h-[65%]" />
+                        <div className="flex-1 bg-accent/60 rounded-t h-[50%]" />
+                        <div className="flex-1 bg-accent/80 rounded-t h-[85%]" />
+                        <div className="flex-1 bg-accent rounded-t h-[100%]" />
                       </div>
                     </div>
                   )}
 
                   {index === 2 && (
-                    <div className="my-2 p-2.5 rounded-lg bg-surface dark:bg-surface border border-border flex flex-col gap-1.5 font-mono text-[9px]">
+                    <div className="my-2 p-2.5 rounded-xl bg-surface dark:bg-surface-container border border-border flex flex-col gap-1.5 font-mono text-[9px]">
                       <div className="flex items-center justify-between text-zinc-500">
                         <span>LEGAL JURISDICTION</span>
                         <span className="font-semibold text-rose-500">STRICT PRIVACY</span>
@@ -362,7 +360,7 @@ export default function PaperStack() {
                         </p>
                       </div>
                       <div className="flex items-center gap-2 pt-1">
-                        <div className="h-4 w-12 bg-rose-500/20 rounded border border-rose-500/30 flex items-center justify-center text-[7px] text-rose-600 dark:text-rose-400 font-bold">
+                        <div className="h-4 w-12 bg-rose-500/20 rounded border border-rose-500/30 flex items-center justify-center text-[7px] text-rose-400 font-bold">
                           SEALED
                         </div>
                         <span className="text-[8px] text-zinc-400">SIGNATURE ID: 0x9F41E</span>
@@ -371,31 +369,32 @@ export default function PaperStack() {
                   )}
 
                   {index === 3 && (
-                    <div className="my-2 p-2.5 rounded-lg bg-surface dark:bg-surface border border-border flex flex-col gap-1 font-mono text-[9px]">
+                    <div className="my-2 p-2.5 rounded-xl bg-surface dark:bg-surface-container border border-border flex flex-col gap-1 font-mono text-[9px]">
                       <div className="flex items-center justify-between text-zinc-500">
                         <span>CAD VECTOR GRID</span>
-                        <span className="font-semibold text-amber-500">X: 1920 / Y: 1080</span>
+                        <span className="font-semibold text-accent">X: 1920 / Y: 1080</span>
                       </div>
-                      <div className="h-9 w-full rounded border border-dashed border-amber-500/40 relative flex items-center justify-center overflow-hidden">
-                        <div className="absolute inset-0 bg-amber-500/5" />
-                        <div className="h-6 w-6 rounded-full border border-amber-500/60 flex items-center justify-center">
-                          <div className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                      <div className="h-9 w-full rounded-lg border border-dashed border-accent/40 relative flex items-center justify-center overflow-hidden">
+                        <div className="absolute inset-0 bg-accent/5" />
+                        <div className="h-6 w-6 rounded-full border border-accent/60 flex items-center justify-center">
+                          <div className="h-1.5 w-1.5 rounded-full bg-accent animate-ping" />
+                          <div className="h-1.5 w-1.5 rounded-full bg-accent absolute" />
                         </div>
                       </div>
                     </div>
                   )}
 
                   {index === 4 && (
-                    <div className="my-2 p-2.5 rounded-lg bg-surface dark:bg-surface border border-border flex flex-col gap-1.5 font-mono text-[9px]">
+                    <div className="my-2 p-2.5 rounded-xl bg-surface dark:bg-surface-container border border-border flex flex-col gap-1.5 font-mono text-[9px]">
                       <div className="flex items-center justify-between text-zinc-500">
                         <span>TYPOGRAPHY SYSTEM</span>
-                        <span className="text-purple-600 dark:text-purple-400 font-semibold">GEIST / PLUS JAKARTA</span>
+                        <span className="text-tertiary font-semibold">GEIST / PLUS JAKARTA</span>
                       </div>
                       <div className="flex gap-2">
-                        <div className="h-5 flex-1 rounded bg-purple-500/20 flex items-center justify-center text-[8px] font-bold text-purple-600 dark:text-purple-300">
+                        <div className="h-5 flex-1 rounded-lg bg-tertiary/20 border border-tertiary/30 flex items-center justify-center text-[8px] font-bold text-tertiary">
                           H1 (24PX)
                         </div>
-                        <div className="h-5 flex-1 rounded bg-purple-500/10 flex items-center justify-center text-[8px] text-purple-600 dark:text-purple-300">
+                        <div className="h-5 flex-1 rounded-lg bg-tertiary/10 border border-tertiary/20 flex items-center justify-center text-[8px] text-tertiary">
                           BODY (13PX)
                         </div>
                       </div>
@@ -404,9 +403,9 @@ export default function PaperStack() {
 
                   {/* Document Simulated Lines */}
                   <div className="space-y-1.5">
-                    <div className="h-1.5 bg-surface dark:bg-surface rounded w-full" />
-                    <div className="h-1.5 bg-surface dark:bg-surface rounded w-[85%]" />
-                    <div className="h-1.5 bg-surface dark:bg-surface rounded w-[60%]" />
+                    <div className="h-1.5 bg-surface-high dark:bg-[#272b2b] rounded-full w-full" />
+                    <div className="h-1.5 bg-surface-high dark:bg-[#272b2b] rounded-full w-[85%]" />
+                    <div className="h-1.5 bg-surface-high dark:bg-[#272b2b] rounded-full w-[60%]" />
                   </div>
                 </div>
 
@@ -426,7 +425,7 @@ export default function PaperStack() {
                   </div>
 
                   <div className="flex items-center gap-1.5">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
                     <span className="text-[8.5px] font-semibold text-zinc-600 dark:text-zinc-300">LOCAL VAULT</span>
                   </div>
                 </div>

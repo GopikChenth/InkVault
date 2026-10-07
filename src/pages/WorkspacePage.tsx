@@ -459,9 +459,11 @@ export default function WorkspacePage({
       <PomodoroPromptToast />
 
       {conversionStatus && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-zinc-900/95 dark:bg-zinc-100/95 text-white dark:text-zinc-900 px-4 py-2.5 rounded-xl shadow-2xl backdrop-blur-md flex items-center gap-2.5 text-xs font-medium border border-zinc-700/50 dark:border-zinc-300/50 animate-in fade-in slide-in-from-top-2">
-          <div className="h-3.5 w-3.5 border-2 border-accent border-t-transparent rounded-full animate-spin flex-shrink-0" />
-          <span>{conversionStatus}</span>
+        <div className="fixed inset-x-0 top-6 pointer-events-none z-50 flex justify-center px-4">
+          <div className="pointer-events-auto bg-zinc-900/95 dark:bg-zinc-100/95 text-white dark:text-zinc-900 px-4 py-2.5 rounded-full shadow-2xl backdrop-blur-md flex items-center gap-2.5 text-xs font-medium border border-zinc-700/50 dark:border-zinc-300/50 animate-in fade-in slide-in-from-top-2">
+            <div className="h-3.5 w-3.5 border-2 border-accent border-t-transparent rounded-full animate-spin flex-shrink-0" />
+            <span>{conversionStatus}</span>
+          </div>
         </div>
       )}
 

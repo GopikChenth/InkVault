@@ -81,19 +81,19 @@ export default function FirstPage({
       />
 
       {/* Ambient background glow accents */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-accent/5 dark:bg-accent/10 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(90vw,40rem)] h-[min(90vw,40rem)] bg-accent/10 dark:bg-accent/15 rounded-full blur-[160px] pointer-events-none" />
 
       {/* 1. Header Navigation */}
       <header className="relative z-20 w-full max-w-7xl mx-auto px-6 py-6 flex items-center justify-between">
         {/* Brand */}
         <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-xl bg-accent text-white flex items-center justify-center font-extrabold text-sm tracking-tight shadow-md">
+          <div className="h-9 w-9 rounded-2xl bg-accent text-[#00363d] flex items-center justify-center font-extrabold text-sm tracking-tight shadow-md">
             IV
           </div>
           <div>
             <div className="flex items-center gap-2">
               <span className="text-base font-bold tracking-tight text-zinc-900 dark:text-zinc-100">Ink Vault</span>
-              <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-surface border border-border text-zinc-600 dark:text-zinc-400">
+              <span className="text-[10px] font-mono font-semibold px-2.5 py-0.5 rounded-full bg-surface-container border border-border text-on-surface-variant">
                 v2.0
               </span>
             </div>
@@ -105,7 +105,7 @@ export default function FirstPage({
           {/* Direct CTA */}
           <button
             onClick={() => onEnterWorkspace(activeMode)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-accent hover:bg-accent-hover text-white text-xs font-semibold transition-all shadow-md active:scale-95 group"
+            className="flex items-center gap-2 px-4 py-2 rounded-full bg-accent hover:bg-accent-hover text-[#00363d] text-xs font-bold transition-all shadow-md active:scale-95 group"
           >
             <span>{activeModeConfig.headerLabel}</span>
             <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
@@ -123,7 +123,7 @@ export default function FirstPage({
           <div className="space-y-2">
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-zinc-950 dark:text-zinc-50 leading-[1.08]">
               Pure precision for <br className="hidden sm:inline" />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-900 via-accent to-zinc-700 dark:from-zinc-100 dark:via-accent dark:to-zinc-400">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-900 via-accent to-secondary dark:from-zinc-100 dark:via-accent dark:to-secondary">
                 every document.
               </span>
             </h1>
@@ -156,16 +156,16 @@ export default function FirstPage({
                     type="button"
                     onClick={() => handleSelectMode(mode.id)}
                     onDoubleClick={() => onEnterWorkspace(mode.id)}
-                    className={`group relative flex flex-col p-3 rounded-2xl border text-left transition-all duration-200 cursor-pointer ${
+                    className={`group relative flex flex-col p-3.5 rounded-2xl border text-left transition-all duration-200 cursor-pointer ${
                       isSelected
-                        ? 'border-accent bg-accent/[0.08] dark:bg-accent/[0.14] shadow-sm ring-1 ring-accent'
+                        ? 'border-accent/60 bg-accent/[0.08] dark:bg-accent/[0.14] shadow-sm ring-1 ring-accent/40'
                         : 'border-border bg-card/60 hover:bg-card hover:border-zinc-300 dark:hover:border-zinc-700'
                     }`}
                   >
                     <div className="flex items-center justify-between w-full mb-2">
                       <div className={`h-8 w-8 rounded-xl flex items-center justify-center transition-colors ${
                         isSelected 
-                          ? 'bg-accent text-white shadow-sm' 
+                          ? 'bg-accent text-[#00363d] shadow-sm font-bold' 
                           : 'bg-surface text-zinc-600 dark:text-zinc-400 group-hover:text-accent'
                       }`}>
                         <Icon className="h-4 w-4" />
@@ -191,11 +191,11 @@ export default function FirstPage({
           <div className="flex flex-wrap items-center gap-3 pt-1">
             <button
               onClick={() => onEnterWorkspace(activeMode)}
-              className="flex items-center gap-2.5 px-6 py-3.5 rounded-xl bg-accent hover:bg-accent-hover text-white text-sm font-semibold transition-all shadow-lg hover:shadow-accent/20 active:scale-[0.98] group"
+              className="flex items-center gap-2.5 px-6 py-3.5 rounded-full bg-accent hover:bg-accent-hover text-[#00363d] text-sm font-bold transition-all shadow-lg hover:shadow-accent/25 active:scale-[0.98] group"
             >
               <FolderOpen className="h-4 w-4" />
               <span>{activeModeConfig.actionLabel}</span>
-              <span className="text-[11px] font-mono opacity-80 bg-white/20 px-2 py-0.5 rounded">
+              <span className="text-[11px] font-mono opacity-85 bg-black/10 dark:bg-black/20 px-2 py-0.5 rounded-full">
                 ⌘↵
               </span>
             </button>

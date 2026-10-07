@@ -41,6 +41,7 @@ import DocumentTabBar from './viewer/DocumentTabBar';
 import MinimalStudyBar from './viewer/MinimalStudyBar';
 import PomodoroTimer from './viewer/PomodoroTimer';
 import TextSelectionToolbar, { SelectionData } from './viewer/TextSelectionToolbar';
+import FloatingAnchor from './common/FloatingAnchor';
 import { exportToXFDF, exportToJSON, downloadFile, bakeAnnotationsToPDF } from '../utils/annotationExporter';
 import { recordReadingActivity } from '../utils/readingStats';
 
@@ -158,6 +159,7 @@ export default function PDFViewer({
   );
   const [facingCoverPage, setFacingCoverPage] = useState<boolean>(true);
   const [showLayoutMenu, setShowLayoutMenu] = useState<boolean>(false);
+  const layoutBtnRef = useRef<HTMLButtonElement>(null);
 
   // 2. Display & Readability Modes
   const [focusMode, setFocusMode] = useState<boolean>(() => initialAppMode === 'reader'); // Zen / background dimming mode
@@ -1734,7 +1736,7 @@ export default function PDFViewer({
           </div>
         </>
       ) : (
-        <header className={`h-12 border-b border-border bg-surface dark:bg-surface px-3 sm:px-4 flex items-center justify-between gap-3 flex-shrink-0 z-20 transition-opacity duration-300 select-none ${
+        <header className={`h-12 border-b border-outline/20 bg-surface/85 backdrop-blur-xl px-3 sm:px-4 flex items-center justify-between gap-3 flex-shrink-0 z-20 transition-all duration-300 ease-caelestia-decel select-none ${
           focusMode ? 'opacity-20 hover:opacity-100' : 'opacity-100'
         }`}>
         
@@ -1744,46 +1746,46 @@ export default function PDFViewer({
 
           {/* Document Title */}
           <div className="flex items-center gap-1.5 min-w-0">
-            <div className="h-7 w-7 rounded-lg bg-accent/10 border border-accent/20 text-accent flex items-center justify-center flex-shrink-0 shadow-xs">
+            <div className="h-7 w-7 rounded-xl bg-accent/15 border border-accent/30 text-accent flex items-center justify-center flex-shrink-0 shadow-xs">
               <FileText className="h-3.5 w-3.5" />
             </div>
-            <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate max-w-[140px] sm:max-w-xs md:max-w-sm">
+            <span className="text-xs font-bold text-on-surface truncate max-w-[140px] sm:max-w-xs md:max-w-sm">
               {doc.name}
             </span>
             {isStudyMode && doc.subjectName && (
-              <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-md bg-accent/10 text-accent border border-accent/20 flex-shrink-0">
+              <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-accent/15 text-accent border border-accent/25 flex-shrink-0">
                 <Folder className="h-3 w-3" />
                 <span>{doc.subjectName}</span>
               </span>
             )}
           </div>
 
-          <div className="h-4 w-[1px] bg-border hidden md:block" />
+          <div className="h-4 w-[1px] bg-outline/20 hidden md:block" />
 
           {/* Page Navigator */}
-          <div className="flex items-center gap-1 bg-surface dark:bg-card border border-border rounded-lg px-1 py-0.5 text-xs font-mono tabular-nums">
+          <div className="flex items-center gap-1 bg-surface-container border border-outline/20 rounded-full px-1.5 py-0.5 text-xs font-mono tabular-nums">
             <button
               type="button"
               onClick={() => scrollToPage(Math.max(currentPage - 1, 1))}
               disabled={currentPage <= 1}
-              className="h-6 w-6 rounded flex items-center justify-center hover:bg-surface dark:hover:bg-surface disabled:opacity-30 transition-colors focus-visible:outline-none focus-visible:ring-1.5 focus-visible:ring-blue-500"
+              className="h-6 w-6 rounded-full flex items-center justify-center hover:bg-surface-high disabled:opacity-30 transition-all duration-200 ease-caelestia-decel focus-visible:outline-none focus-visible:ring-1.5 focus-visible:ring-accent"
               title="Previous Page"
               aria-label="Previous Page"
             >
-              <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
+              <ChevronLeft className="h-3.5 w-3.5 text-on-surface" aria-hidden="true" />
             </button>
-            <span className="px-1 text-[11px] font-medium tabular-nums">
+            <span className="px-1 text-[11px] font-medium tabular-nums text-on-surface">
               {currentPage} / {pages.length || 1}
             </span>
             <button
               type="button"
               onClick={() => scrollToPage(Math.min(currentPage + 1, pages.length))}
               disabled={currentPage >= pages.length}
-              className="h-6 w-6 rounded flex items-center justify-center hover:bg-surface dark:hover:bg-surface disabled:opacity-30 transition-colors focus-visible:outline-none focus-visible:ring-1.5 focus-visible:ring-blue-500"
+              className="h-6 w-6 rounded-full flex items-center justify-center hover:bg-surface-high disabled:opacity-30 transition-all duration-200 ease-caelestia-decel focus-visible:outline-none focus-visible:ring-1.5 focus-visible:ring-accent"
               title="Next Page"
               aria-label="Next Page"
             >
-              <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+              <ChevronRight className="h-3.5 w-3.5 text-on-surface" aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -1794,10 +1796,11 @@ export default function PDFViewer({
           {/* 1. Page Layout Mode Dropdown */}
           <div className="relative">
             <button
+              ref={layoutBtnRef}
               onClick={() => setShowLayoutMenu((prev) => !prev)}
               title="Page Layout Modes"
-              className={`h-8 px-2.5 rounded-lg border flex items-center gap-1 text-xs font-medium transition-colors shadow-xs ${
-                layoutMode !== 'continuous' ? 'bg-accent/10 border-accent text-accent font-semibold' : 'border-border hover:bg-surface'
+              className={`h-8 px-3 rounded-full border flex items-center gap-1.5 text-xs font-medium transition-all duration-200 ease-caelestia-decel shadow-xs ${
+                layoutMode !== 'continuous' ? 'bg-accent/15 border-accent/40 text-accent font-semibold' : 'border-outline/20 hover:bg-surface-container text-on-surface'
               }`}
             >
               <Columns className="h-3.5 w-3.5" />
@@ -1805,57 +1808,58 @@ export default function PDFViewer({
               <ChevronDown className="h-3 w-3 opacity-60" />
             </button>
 
-            {showLayoutMenu && (
-              <div 
-                onClick={() => setShowLayoutMenu(false)}
-                className="absolute top-10 right-0 z-50 w-52 p-1.5 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl flex flex-col gap-1 text-xs animate-in fade-in ring-1 ring-black/5 dark:ring-white/10"
+            <FloatingAnchor
+              isOpen={showLayoutMenu}
+              onClose={() => setShowLayoutMenu(false)}
+              anchorRef={layoutBtnRef}
+              placement="bottom-end"
+              className="w-52 p-2 rounded-2xl caelestia-glass border border-outline/20 shadow-2xl flex flex-col gap-1 text-xs ring-1 ring-white/10"
+            >
+              <div className="px-2.5 py-1 text-[10px] font-mono text-zinc-400 uppercase font-semibold tracking-wider">Page Layout</div>
+              <button
+                onClick={() => { setLayoutMode('continuous'); setShowLayoutMenu(false); }}
+                className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-left transition-all duration-200 ease-caelestia-decel ${layoutMode === 'continuous' ? 'bg-accent text-[#00363d] font-bold shadow-xs' : 'hover:bg-surface-high text-on-surface'}`}
               >
-                <div className="px-2 py-1 text-[10px] font-mono text-zinc-400 uppercase font-semibold">Page Layout</div>
-                <button
-                  onClick={() => setLayoutMode('continuous')}
-                  className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors ${layoutMode === 'continuous' ? 'bg-accent text-white font-bold' : 'hover:bg-surface'}`}
-                >
-                  <span>Continuous Scroll</span>
-                </button>
-                <button
-                  onClick={() => setLayoutMode('single')}
-                  className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors ${layoutMode === 'single' ? 'bg-accent text-white font-bold' : 'hover:bg-surface'}`}
-                >
-                  <span>Single Page View</span>
-                </button>
-                <button
-                  onClick={() => setLayoutMode('two-page')}
-                  className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors ${layoutMode === 'two-page' ? 'bg-accent text-white font-bold' : 'hover:bg-surface'}`}
-                >
-                  <span>Two-Page Book View</span>
-                </button>
-                <button
-                  onClick={() => setLayoutMode('facing-pages')}
-                  className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors ${layoutMode === 'facing-pages' ? 'bg-accent text-white font-bold' : 'hover:bg-surface'}`}
-                >
-                  <span>Facing Pages</span>
-                </button>
+                <span>Continuous Scroll</span>
+              </button>
+              <button
+                onClick={() => { setLayoutMode('single'); setShowLayoutMenu(false); }}
+                className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-left transition-all duration-200 ease-caelestia-decel ${layoutMode === 'single' ? 'bg-accent text-[#00363d] font-bold shadow-xs' : 'hover:bg-surface-high text-on-surface'}`}
+              >
+                <span>Single Page View</span>
+              </button>
+              <button
+                onClick={() => { setLayoutMode('two-page'); setShowLayoutMenu(false); }}
+                className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-left transition-all duration-200 ease-caelestia-decel ${layoutMode === 'two-page' ? 'bg-accent text-[#00363d] font-bold shadow-xs' : 'hover:bg-surface-high text-on-surface'}`}
+              >
+                <span>Two-Page Book View</span>
+              </button>
+              <button
+                onClick={() => { setLayoutMode('facing-pages'); setShowLayoutMenu(false); }}
+                className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-left transition-all duration-200 ease-caelestia-decel ${layoutMode === 'facing-pages' ? 'bg-accent text-[#00363d] font-bold shadow-xs' : 'hover:bg-surface-high text-on-surface'}`}
+              >
+                <span>Facing Pages</span>
+              </button>
 
-                {layoutMode === 'facing-pages' && (
-                  <div className="pt-1 mt-1 border-t border-border px-2 flex items-center justify-between text-[11px]">
-                    <span className="text-zinc-500">Separate Cover</span>
-                    <input 
-                      type="checkbox" 
-                      checked={facingCoverPage} 
-                      onChange={(e) => setFacingCoverPage(e.target.checked)}
-                      className="accent-accent cursor-pointer"
-                    />
-                  </div>
-                )}
-              </div>
-            )}
+              {layoutMode === 'facing-pages' && (
+                <div className="pt-1.5 mt-1 border-t border-outline/20 px-2.5 flex items-center justify-between text-[11px]">
+                  <span className="text-zinc-400">Separate Cover</span>
+                  <input 
+                    type="checkbox" 
+                    checked={facingCoverPage} 
+                    onChange={(e) => setFacingCoverPage(e.target.checked)}
+                    className="accent-accent cursor-pointer rounded"
+                  />
+                </div>
+              )}
+            </FloatingAnchor>
           </div>
 
           {/* 2. Text Reflow Reader Mode Toggle */}
           <button
             onClick={() => setIsReflowOpen(true)}
             title="Text-Reflow Responsive Reader Mode"
-            className="h-8 px-2.5 rounded-lg border border-border hover:bg-surface flex items-center gap-1 text-xs font-semibold text-zinc-700 dark:text-zinc-300 transition-colors shadow-xs"
+            className="h-8 px-3 rounded-full border border-outline/20 hover:bg-surface-container flex items-center gap-1.5 text-xs font-semibold text-on-surface transition-all duration-200 ease-caelestia-decel shadow-xs"
           >
             <BookOpen className="h-3.5 w-3.5 text-accent" />
             <span className="hidden md:inline">Reflow</span>
@@ -1865,8 +1869,8 @@ export default function PDFViewer({
           <button
             onClick={() => setIsSearchOpen((prev) => !prev)}
             title="Find & Search (⌘F / Ctrl+F)"
-            className={`h-8 w-8 rounded-lg border flex items-center justify-center transition-colors shadow-xs ${
-              isSearchOpen ? 'bg-accent text-white border-accent' : 'border-border hover:bg-surface text-zinc-700 dark:text-zinc-300'
+            className={`h-8 w-8 rounded-full border flex items-center justify-center transition-all duration-200 ease-caelestia-decel shadow-xs ${
+              isSearchOpen ? 'bg-accent text-[#00363d] border-accent font-bold shadow-sm ring-2 ring-accent/30' : 'border-outline/20 hover:bg-surface-container text-on-surface'
             }`}
           >
             <Search className="h-3.5 w-3.5" />
@@ -1876,8 +1880,8 @@ export default function PDFViewer({
           <button
             onClick={() => setFocusMode((prev) => !prev)}
             title={focusMode ? 'Exit Zen Focus Mode [Z]' : 'Enter Zen Focus Mode (Dims UI) [Z]'}
-            className={`h-8 w-8 rounded-lg border flex items-center justify-center transition-colors shadow-xs ${
-              focusMode ? 'bg-indigo-600 text-white border-indigo-600' : 'border-border hover:bg-surface text-zinc-700 dark:text-zinc-300'
+            className={`h-8 w-8 rounded-full border flex items-center justify-center transition-all duration-200 ease-caelestia-decel shadow-xs ${
+              focusMode ? 'bg-tertiary text-[#381e72] border-tertiary font-bold shadow-sm ring-2 ring-tertiary/30' : 'border-outline/20 hover:bg-surface-container text-on-surface'
             }`}
           >
             <Eye className="h-3.5 w-3.5" />
@@ -1887,7 +1891,7 @@ export default function PDFViewer({
           <button
             onClick={handleRotateCW}
             title="Rotate 90° Clockwise [R]"
-            className="h-8 w-8 rounded-lg border border-border hover:bg-surface flex items-center justify-center text-zinc-600 dark:text-zinc-300 transition-colors shadow-xs"
+            className="h-8 w-8 rounded-full border border-outline/20 hover:bg-surface-container flex items-center justify-center text-on-surface transition-all duration-200 ease-caelestia-decel shadow-xs"
           >
             <RotateCw className="h-3.5 w-3.5" />
           </button>
@@ -1896,7 +1900,7 @@ export default function PDFViewer({
           <button
             onClick={handlePrint}
             title="Print Document"
-            className="h-8 w-8 rounded-lg border border-border hover:bg-surface flex items-center justify-center text-zinc-600 dark:text-zinc-300 transition-colors shadow-xs hidden sm:flex"
+            className="h-8 w-8 rounded-full border border-outline/20 hover:bg-surface-container flex items-center justify-center text-on-surface transition-all duration-200 ease-caelestia-decel shadow-xs hidden sm:flex"
           >
             <Printer className="h-3.5 w-3.5" />
           </button>
@@ -1905,7 +1909,7 @@ export default function PDFViewer({
             onClick={handleDownload}
             disabled={isBakingAnnotations}
             title={isBakingAnnotations ? "Baking annotations into PDF..." : (annotations.length > 0 ? "Download PDF with Markups" : "Download PDF File")}
-            className="h-8 px-2 rounded-lg border border-border hover:bg-surface flex items-center gap-1 text-zinc-600 dark:text-zinc-300 transition-colors shadow-xs hidden sm:flex disabled:opacity-50"
+            className="h-8 px-2.5 rounded-full border border-outline/20 hover:bg-surface-container flex items-center gap-1.5 text-on-surface transition-all duration-200 ease-caelestia-decel shadow-xs hidden sm:flex disabled:opacity-50"
           >
             {isBakingAnnotations ? (
               <div className="h-3.5 w-3.5 rounded-full border-2 border-accent border-t-transparent animate-spin" />
@@ -1920,14 +1924,14 @@ export default function PDFViewer({
           {/* Continuous Pomodoro Study Timer (Shared across normal editor and study mode) */}
           <PomodoroTimer />
 
-          <div className="h-4 w-[1px] bg-border mx-0.5 hidden sm:block" />
+          <div className="h-4 w-[1px] bg-outline/20 mx-0.5 hidden sm:block" />
 
           {/* Fullscreen Button */}
           <button
             type="button"
             onClick={handleToggleFullscreen}
             title={isFullscreen ? 'Exit Fullscreen [F]' : 'Fullscreen [F]'}
-            className="h-8 px-2.5 rounded-lg border border-border hover:bg-surface flex items-center gap-1.5 text-xs font-semibold text-zinc-700 dark:text-zinc-200 transition-colors shadow-xs"
+            className="h-8 px-3 rounded-full border border-outline/20 hover:bg-surface-container flex items-center gap-1.5 text-xs font-semibold text-on-surface transition-all duration-200 ease-caelestia-decel shadow-xs"
           >
             {isFullscreen ? (
               <>
@@ -1946,7 +1950,7 @@ export default function PDFViewer({
             <button
               onClick={onClose}
               title="Close Document"
-              className="h-8 px-2.5 rounded-lg bg-surface dark:bg-card hover:bg-rose-500 hover:text-white dark:hover:bg-rose-600 flex items-center gap-1 text-xs font-semibold transition-all border border-border"
+              className="h-8 px-3 rounded-full bg-surface-container hover:bg-rose-500/20 hover:border-rose-500/40 hover:text-rose-300 flex items-center gap-1 text-xs font-semibold transition-all duration-200 ease-caelestia-decel border border-outline/20 text-on-surface"
             >
               <X className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Close</span>

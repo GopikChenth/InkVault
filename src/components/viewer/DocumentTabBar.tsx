@@ -38,15 +38,15 @@ const DocumentTabItem = React.memo(function DocumentTabItem({
         }
       }}
       title={`${doc.name} (${doc.size}) • Middle-click or click × to close`}
-      className={`group relative flex items-center gap-2 px-3 py-1.5 rounded-t-xl text-xs cursor-pointer transition-all border-t border-x flex-shrink-0 max-w-[220px] min-w-[120px] ${
+      className={`group relative flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs cursor-pointer transition-all border flex-shrink-0 max-w-[220px] min-w-[120px] ${
         isActive
-          ? 'bg-card text-zinc-900 dark:text-zinc-100 font-semibold border-border border-b-0 shadow-xs z-10'
-          : 'bg-transparent text-zinc-600 dark:text-zinc-400 hover:bg-surface hover:text-zinc-900 dark:hover:text-zinc-200 border-transparent'
+          ? 'bg-surface-container dark:bg-[#1c2021] text-zinc-900 dark:text-zinc-100 font-semibold border-accent/40 shadow-xs z-10'
+          : 'bg-transparent text-zinc-500 dark:text-zinc-400 hover:bg-surface-container/50 hover:text-zinc-900 dark:hover:text-zinc-200 border-transparent'
       }`}
     >
-      {/* Active Indicator Accent Line */}
+      {/* Active Indicator Accent Dot */}
       {isActive ? (
-        <div className="absolute top-0 left-3 right-3 h-[2px] bg-accent rounded-full" />
+        <div className="h-1.5 w-1.5 rounded-full bg-accent flex-shrink-0 shadow-[0_0_8px_rgba(129,211,224,0.6)]" />
       ) : null}
 
       {/* Document Icon */}
@@ -126,13 +126,13 @@ export default function DocumentTabBar({
   if (docs.length === 0) return null;
 
   return (
-    <div className="h-10 bg-surface dark:bg-surface border-b border-border flex items-end px-2 gap-1 select-none flex-shrink-0 z-30 relative overflow-hidden">
+    <div className="h-10 bg-surface/90 dark:bg-[#101415]/90 backdrop-blur-xl border-b border-border flex items-center px-2 gap-1.5 select-none flex-shrink-0 z-30 relative overflow-hidden">
       
       {/* Scrollable Tabs List */}
       <div 
         ref={scrollContainerRef}
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-        className="flex-1 flex items-end gap-1 overflow-x-auto no-scrollbar scroll-smooth h-full pt-1.5"
+        className="flex-1 flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth h-full py-1"
       >
         {docs.map((doc) => {
           const isActive = doc.id === activeDocId;
@@ -154,7 +154,7 @@ export default function DocumentTabBar({
           onClick={onNewTab}
           title="Open Document in New Tab (⌘T / Ctrl+T)"
           aria-label="New Tab"
-          className="h-7 w-7 mb-1 rounded-lg flex items-center justify-center text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-card border border-transparent hover:border-border transition-all flex-shrink-0 active:scale-95 cursor-pointer"
+          className="h-7 w-7 rounded-full flex items-center justify-center text-zinc-500 hover:text-accent hover:bg-surface-container border border-transparent hover:border-border transition-all flex-shrink-0 active:scale-95 cursor-pointer"
         >
           <Plus className="h-3.5 w-3.5" />
         </button>

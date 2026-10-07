@@ -269,19 +269,19 @@ export default function StickyNoteModal({
     >
       <div 
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-lg bg-card border border-border shadow-2xl rounded-2xl overflow-hidden flex flex-col max-h-[90vh] text-zinc-800 dark:text-zinc-200 animate-in zoom-in-95 duration-150"
+        className="w-full max-w-lg caelestia-glass border border-outline/20 shadow-2xl rounded-3xl overflow-hidden flex flex-col max-h-[90vh] text-on-surface animate-in zoom-in-95 duration-200 ease-caelestia-decel ring-1 ring-white/10"
       >
         {/* 1. Modal Header */}
-        <header className="px-4 py-3 border-b border-border flex items-center justify-between bg-surface">
+        <header className="px-5 py-3.5 border-b border-outline/20 flex items-center justify-between bg-surface-container/60">
           <div className="flex items-center gap-2 font-bold text-xs">
             <div 
               className="h-3.5 w-3.5 rounded-full shadow-xs flex-shrink-0 ring-1 ring-black/20"
               style={{ backgroundColor: annotation.color || '#f59e0b' }}
             />
-            <span className="text-zinc-900 dark:text-zinc-100 font-semibold">
+            <span className="text-on-surface font-semibold">
               {isVoiceNote ? 'Voice Note & Comments' : 'Sticky Note & Discussion'}
             </span>
-            <span className="text-[10px] font-mono text-accent bg-accent/10 px-1.5 py-0.5 rounded font-bold">
+            <span className="text-[10px] font-mono text-accent bg-accent/15 px-2 py-0.5 rounded-full font-bold border border-accent/25">
               Page {annotation.pageNum}
             </span>
           </div>
@@ -294,7 +294,7 @@ export default function StickyNoteModal({
                   key={c}
                   onClick={() => onUpdateAnnotation({ ...annotation, color: c })}
                   style={{ backgroundColor: c }}
-                  className={`h-3.5 w-3.5 rounded-full transition-transform ${annotation.color === c ? 'scale-125 ring-2 ring-zinc-900 dark:ring-zinc-100' : 'opacity-60 hover:opacity-100'}`}
+                  className={`h-3.5 w-3.5 rounded-full transition-transform ${annotation.color === c ? 'scale-125 ring-2 ring-accent' : 'opacity-60 hover:opacity-100'}`}
                 />
               ))}
             </div>
@@ -302,14 +302,14 @@ export default function StickyNoteModal({
             <button
               onClick={() => onDeleteAnnotation(annotation.id)}
               title="Delete Note"
-              className="h-7 w-7 rounded-lg hover:bg-rose-500/10 hover:text-rose-500 flex items-center justify-center text-zinc-400 transition-colors"
+              className="h-7 w-7 rounded-full hover:bg-rose-500/20 hover:text-rose-300 flex items-center justify-center text-zinc-400 transition-colors"
             >
               <Trash2 className="h-3.5 w-3.5" />
             </button>
             <button
               onClick={onClose}
               title="Close (Esc)"
-              className="h-7 w-7 rounded-lg hover:bg-surface dark:hover:bg-surface flex items-center justify-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
+              className="h-7 w-7 rounded-full hover:bg-surface-high flex items-center justify-center text-zinc-400 hover:text-on-surface transition-colors"
             >
               <X className="h-3.5 w-3.5" />
             </button>
@@ -320,8 +320,8 @@ export default function StickyNoteModal({
         <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
           
           {/* SECTION A: MAIN NOTE TEXT EDITOR */}
-          <div className="flex flex-col gap-1.5 p-3 rounded-xl bg-surface border border-border">
-            <div className="flex items-center justify-between text-[11px] font-semibold text-zinc-700 dark:text-zinc-300">
+          <div className="flex flex-col gap-1.5 p-3.5 rounded-2xl bg-surface-lowest/70 border border-outline/15">
+            <div className="flex items-center justify-between text-[11px] font-semibold text-on-surface">
               <span>Primary Note Description</span>
               <span className="text-[10px] font-mono text-zinc-400 font-normal">Auto-saves live</span>
             </div>
@@ -331,7 +331,7 @@ export default function StickyNoteModal({
               placeholder="Write your main note or review description here..."
               rows={3}
               autoFocus={!isVoiceNote}
-              className="w-full bg-card p-2.5 rounded-lg border border-border text-xs text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-accent resize-y font-sans leading-relaxed shadow-xs"
+              className="w-full bg-surface-container p-2.5 rounded-xl border border-outline/25 text-xs text-on-surface placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-accent resize-y font-sans leading-relaxed shadow-xs"
             />
           </div>
 
@@ -507,14 +507,14 @@ export default function StickyNoteModal({
         </div>
 
         {/* 3. Modal Footer: Add Reply Form */}
-        <form onSubmit={handleAddReply} className="p-3 border-t border-border bg-surface flex flex-col gap-2">
+        <form onSubmit={handleAddReply} className="p-3.5 border-t border-outline/20 bg-surface-container/60 flex flex-col gap-2.5">
           <div className="flex items-center gap-2">
             <input
               type="text"
               value={authorName}
               onChange={(e) => setAuthorName(e.target.value)}
               placeholder="Your Name"
-              className="h-6 w-24 px-2 text-[10px] font-mono rounded bg-card border border-border text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-1 focus:ring-accent"
+              className="h-6 w-28 px-2.5 text-[10px] font-mono rounded-full bg-surface-lowest/70 border border-outline/20 text-on-surface focus:outline-none focus:ring-1 focus:ring-accent"
             />
             <span className="text-[10px] text-zinc-400 font-mono">Posting as author</span>
           </div>
@@ -525,12 +525,12 @@ export default function StickyNoteModal({
               value={newCommentText}
               onChange={(e) => setNewCommentText(e.target.value)}
               placeholder="Add a comment to this discussion thread..."
-              className="flex-1 h-8 px-3 text-xs rounded-xl bg-card border border-border text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-accent shadow-xs"
+              className="flex-1 h-9 px-3.5 text-xs rounded-full bg-surface-lowest/70 border border-outline/20 text-on-surface placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-accent shadow-xs"
             />
             <button
               type="submit"
               disabled={!newCommentText.trim()}
-              className="h-8 px-4 rounded-xl bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-semibold flex items-center gap-1.5 hover:bg-accent dark:hover:bg-accent dark:hover:text-white disabled:opacity-30 transition-all shadow-xs flex-shrink-0"
+              className="h-9 px-4 rounded-full bg-accent text-[#00363d] hover:bg-accent/90 text-xs font-bold flex items-center gap-1.5 disabled:opacity-30 transition-all duration-200 ease-caelestia-decel shadow-xs flex-shrink-0"
             >
               <Send className="h-3.5 w-3.5" />
               <span>Post</span>

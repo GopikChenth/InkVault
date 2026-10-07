@@ -3,21 +3,78 @@
 @tailwind utilities;
 
 :root {
-  --background: #f5f4ef;
-  --surface: #eae6dd;
+  --background: #f4fafb;
+  --surface: #ebf4f6;
+  --surface-dim: #d5e0e2;
+  --surface-bright: #f4fafb;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #e8f2f4;
+  --surface-container: #e0ecee;
+  --surface-container-high: #d8e6e8;
+  --surface-container-highest: #d0dfe1;
   --card: #ffffff;
-  --border: rgba(40, 36, 30, 0.12);
-  --accent: #2563eb;
-  --accent-hover: #1d4ed8;
+  --border: rgba(62, 73, 74, 0.14);
+  --border-active: rgba(0, 104, 116, 0.35);
+  --accent: #006874;
+  --accent-hover: #008291;
+  --accent-container: #9eeffd;
+  --on-accent: #ffffff;
+  --secondary: #4a6267;
+  --secondary-container: #cde7ec;
+  --tertiary: #6e5188;
+  --tertiary-container: #f5d9ff;
+  --on-surface: #161c1d;
+  --on-surface-variant: #3e494a;
+  --outline: #6e797a;
+  --outline-variant: #bec8ca;
 }
 
 .dark {
-  --background: #0e0e11;
-  --surface: #151518;
-  --card: #1e1e24;
-  --border: rgba(255, 255, 255, 0.08);
-  --accent: #3b82f6;
-  --accent-hover: #60a5fa;
+  --background: #101415;
+  --surface: #101415;
+  --surface-dim: #101415;
+  --surface-bright: #363a3b;
+  --surface-container-lowest: #0b0f10;
+  --surface-container-low: #181c1d;
+  --surface-container: #1c2021;
+  --surface-container-high: #272b2b;
+  --surface-container-highest: #313536;
+  --card: #181c1d;
+  --border: rgba(136, 147, 148, 0.16);
+  --border-active: rgba(129, 211, 224, 0.40);
+  --accent: #81d3e0;
+  --accent-hover: #9eeffd;
+  --accent-container: #28828e;
+  --on-accent: #00363d;
+  --secondary: #adccd1;
+  --secondary-container: #2f4b50;
+  --tertiary: #ddb9f7;
+  --tertiary-container: #a584bf;
+  --on-surface: #e0e3e4;
+  --on-surface-variant: #bec8ca;
+  --outline: #889394;
+  --outline-variant: #3e494a;
+}
+
+::selection {
+  background: rgba(129, 211, 224, 0.35);
+  color: inherit;
+}
+
+/* Custom Caelestia thin rounded scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--outline-variant);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--outline);
 }
 
 html, body, #root {
@@ -26,6 +83,8 @@ html, body, #root {
   margin: 0;
   padding: 0;
   overflow-x: hidden;
+  background-color: var(--background);
+  color: var(--on-surface);
 }
 
 @layer utilities {
@@ -35,6 +94,22 @@ html, body, #root {
   .backface-visible {
     backface-visibility: visible;
     -webkit-backface-visibility: visible;
+  }
+  .caelestia-glass {
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    background-color: color-mix(in srgb, var(--surface-container) 80%, transparent);
+    border: 1px solid var(--border);
+  }
+  .caelestia-glass-dock {
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    background-color: color-mix(in srgb, var(--surface-container-high) 85%, transparent);
+    border: 1px solid var(--border);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+  }
+  .caelestia-glow {
+    box-shadow: 0 0 24px -2px rgba(129, 211, 224, 0.28);
   }
   .no-scrollbar::-webkit-scrollbar {
     display: none !important;
@@ -105,14 +180,14 @@ html, body, #root {
 }
 
 .textLayer ::selection {
-  background: rgba(59, 130, 246, 0.35) !important;
-  background: color-mix(in srgb, #2563eb, transparent 65%) !important;
+  background: rgba(129, 211, 224, 0.40) !important;
+  background: color-mix(in srgb, var(--accent), transparent 60%) !important;
   color: transparent !important;
 }
 
 .textLayer ::-moz-selection {
-  background: rgba(59, 130, 246, 0.35) !important;
-  background: color-mix(in srgb, #2563eb, transparent 65%) !important;
+  background: rgba(129, 211, 224, 0.40) !important;
+  background: color-mix(in srgb, var(--accent), transparent 60%) !important;
   color: transparent !important;
 }
 

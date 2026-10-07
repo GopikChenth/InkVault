@@ -25,12 +25,12 @@ export default function PomodoroPromptToast() {
     : settings.focusMin;
 
   return (
-    <div className="fixed top-14 left-1/2 -translate-x-1/2 z-[100] max-w-md w-[92vw] sm:w-auto animate-in fade-in slide-in-from-top-4 duration-200">
+    <div className="fixed inset-x-0 top-14 pointer-events-none z-[100] flex justify-center px-4">
       <div 
-        className={`p-4 rounded-2xl shadow-2xl border flex flex-col gap-3 select-none bg-card dark:bg-zinc-900 ${
+        className={`pointer-events-auto max-w-md w-[min(94vw,28rem)] p-4 rounded-3xl shadow-2xl border flex flex-col gap-3 select-none bg-surface-container/95 dark:bg-[#151a1b]/95 backdrop-blur-xl animate-in fade-in slide-in-from-top-4 duration-200 ring-1 ring-white/10 ${
           isFocusCompleted
-            ? 'border-emerald-500/50 shadow-[0_20px_60px_rgba(16,185,129,0.2)] text-zinc-900 dark:text-zinc-100'
-            : 'border-rose-500/50 shadow-[0_20px_60px_rgba(244,63,94,0.2)] text-zinc-900 dark:text-zinc-100'
+            ? 'border-emerald-500/40 shadow-[0_20px_60px_rgba(16,185,129,0.2)] text-on-surface'
+            : 'border-rose-500/40 shadow-[0_20px_60px_rgba(244,63,94,0.2)] text-on-surface'
         }`}
       >
         

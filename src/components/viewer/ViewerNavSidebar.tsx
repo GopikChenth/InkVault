@@ -36,6 +36,7 @@ import {
   LoadedPDF
 } from '../../types';
 import FolderTreeExplorer from '../study/FolderTreeExplorer';
+import { SIDEBAR_CONSTRAINTS, clampSidebarWidth } from '../../utils/layoutConstraints';
 
 interface ThumbnailCardProps {
   pageNum: number;
@@ -79,7 +80,7 @@ const ThumbnailCard: React.FC<ThumbnailCardProps> = React.memo(({
   pdfDoc,
   rotation,
   columns = '1',
-  sidebarWidth = 280,
+  sidebarWidth = SIDEBAR_CONSTRAINTS.DEFAULT_WIDTH,
   onSelect,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -147,7 +148,7 @@ const ThumbnailCard: React.FC<ThumbnailCardProps> = React.memo(({
         const currentAspect = unscaledVp.width / unscaledVp.height;
 
         // 1. Native Integer-Pixel Target Width & Height (Dynamically adapts to sidebar expansion)
-        const availableWidth = sidebarWidth - 44;
+        const availableWidth = sidebarWidth - SIDEBAR_CONSTRAINTS.CONTENT_PADDING;
         const cssWidth = columns === '2' 
           ? Math.max(85, Math.floor((availableWidth - 14) / 2)) 
           : Math.min(Math.max(140, availableWidth - 16), 340);
@@ -217,14 +218,14 @@ const ThumbnailCard: React.FC<ThumbnailCardProps> = React.memo(({
       }}
       aria-label={`Page ${pageNum}${isCurrent ? ', current page' : ''}`}
       aria-current={isCurrent ? 'page' : undefined}
-      className="group relative flex flex-col items-center gap-1.5 p-2 rounded-xl transition-colors cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 [content-visibility:auto] [contain-intrinsic-size:0_220px]"
+      className="group relative flex flex-col items-center gap-1.5 p-2 rounded-2xl transition-colors cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent [content-visibility:auto] [contain-intrinsic-size:0_220px]"
     >
       {/* Paper Sheet Preview */}
       <div 
-        className={`bg-white rounded-[3px] overflow-hidden relative transition-shadow duration-150 flex items-center justify-center ${
+        className={`bg-white rounded-md overflow-hidden relative transition-all duration-200 flex items-center justify-center ${
           isCurrent
-            ? 'ring-2 ring-blue-600 dark:ring-blue-500 shadow-md'
-            : 'border border-zinc-200 dark:border-zinc-700 shadow-xs group-hover:border-zinc-400 dark:group-hover:border-zinc-500 group-hover:shadow-sm'
+            ? 'ring-2 ring-accent shadow-[0_0_15px_rgba(129,211,224,0.35)]'
+            : 'border border-border shadow-xs group-hover:border-accent/40 group-hover:shadow-sm'
         }`}
         style={{
           width: `${dimensions.width}px`,
@@ -239,8 +240,8 @@ const ThumbnailCard: React.FC<ThumbnailCardProps> = React.memo(({
           }`}
         />
         {!rendered && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-zinc-400 bg-zinc-50 dark:bg-zinc-800/40">
-            <FileText className="h-5 w-5 opacity-30 animate-pulse" aria-hidden="true" />
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-zinc-400 bg-surface-container">
+            <FileText className="h-5 w-5 opacity-30 animate-pulse text-accent" aria-hidden="true" />
             <span className="text-[10px] font-mono opacity-50 tabular-nums">{pageNum}</span>
           </div>
         )}
@@ -250,8 +251,8 @@ const ThumbnailCard: React.FC<ThumbnailCardProps> = React.memo(({
       <span
         className={`text-[11px] transition-colors font-medium tabular-nums ${
           isCurrent 
-            ? 'text-blue-600 dark:text-blue-400 font-bold' 
-            : 'text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-zinc-100'
+            ? 'text-accent font-bold' 
+            : 'text-zinc-500 dark:text-zinc-400 group-hover:text-on-surface'
         }`}
       >
         {pageNum}
@@ -438,7 +439,7 @@ export default function ViewerNavSidebar({
   // Resizable sidebar width state (persisted in localStorage)
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
     const saved = localStorage.getItem('inkvault_sidebar_width') ?? localStorage.getItem('pdflow_sidebar_width');
-    return saved ? Math.max(200, Math.min(650, parseInt(saved, 10))) : 280;
+    return saved ? clampSidebarWidth(parseInt(saved, 10)) : SIDEBAR_CONSTRAINTS.DEFAULT_WIDTH;
   });
   const [debouncedSidebarWidth, setDebouncedSidebarWidth] = useState(sidebarWidth);
   const [isResizing, setIsResizing] = useState(false);
@@ -463,7 +464,7 @@ export default function ViewerNavSidebar({
     if (!isResizing) return;
 
     const handleMouseMove = (e: MouseEvent) => {
-      const newWidth = Math.max(200, Math.min(650, e.clientX));
+      const newWidth = clampSidebarWidth(e.clientX);
       setSidebarWidth(newWidth);
     };
 
@@ -493,19 +494,19 @@ export default function ViewerNavSidebar({
       {/* Interactive Drag Handle to Expand / Resize Sidebar */}
       <div
         onMouseDown={startResizing}
-        onDoubleClick={() => setSidebarWidth(280)}
+        onDoubleClick={() => setSidebarWidth(SIDEBAR_CONSTRAINTS.DEFAULT_WIDTH)}
         title="Drag to resize sidebar • Double-click to reset"
         className={`absolute top-0 -right-1.5 w-3 h-full cursor-col-resize z-40 transition-colors flex items-center justify-center select-none ${
           isResizing ? 'bg-blue-500/30' : 'hover:bg-blue-500/20'
         }`}
       >
         <div className={`w-[2px] h-10 rounded-full transition-colors ${
-          isResizing ? 'bg-blue-600 dark:bg-blue-400' : 'bg-transparent group-hover/sidebar:bg-zinc-400/50'
+          isResizing ? 'bg-accent shadow-[0_0_12px_rgba(129,211,224,0.6)]' : 'bg-transparent group-hover/sidebar:bg-accent/40'
         }`} />
       </div>
       
       {/* 1. Sleek Fixed Header Bar & Navigation Strip */}
-      <div className="border-b border-border bg-card dark:bg-card flex-shrink-0 flex flex-col select-none">
+      <div className="border-b border-border bg-surface-container/60 dark:bg-surface-container/40 flex-shrink-0 flex flex-col select-none">
         {/* Document Info Row */}
         <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-border/50">
           <div className="min-w-0 pr-2">
@@ -525,14 +526,14 @@ export default function ViewerNavSidebar({
 
           <div className="flex items-center gap-1 flex-shrink-0">
             {activeTab === 'thumbnails' ? (
-              <div className="flex items-center gap-0.5 bg-card dark:bg-card border border-border rounded-lg p-0.5 shadow-2xs">
+              <div className="flex items-center gap-0.5 bg-surface-container border border-border rounded-full p-0.5 shadow-2xs">
                 <button
                   type="button"
                   onClick={() => setThumbnailColumns('1')}
                   title="Single Column View (1 per row)"
                   aria-label="Single column view"
-                  className={`p-1 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-1.5 focus-visible:ring-blue-500 ${
-                    thumbnailColumns === '1' ? 'bg-surface text-accent font-bold shadow-2xs' : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
+                  className={`p-1 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-1.5 focus-visible:ring-accent ${
+                    thumbnailColumns === '1' ? 'bg-accent text-[#00363d] font-bold shadow-2xs' : 'text-zinc-400 hover:text-on-surface'
                   }`}
                 >
                   <Columns className="h-3.5 w-3.5" aria-hidden="true" />
@@ -542,8 +543,8 @@ export default function ViewerNavSidebar({
                   onClick={() => setThumbnailColumns('2')}
                   title="2-Column Grid View"
                   aria-label="Two column grid view"
-                  className={`p-1 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-1.5 focus-visible:ring-blue-500 ${
-                    thumbnailColumns === '2' ? 'bg-surface text-accent font-bold shadow-2xs' : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
+                  className={`p-1 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-1.5 focus-visible:ring-accent ${
+                    thumbnailColumns === '2' ? 'bg-accent text-[#00363d] font-bold shadow-2xs' : 'text-zinc-400 hover:text-on-surface'
                   }`}
                 >
                   <Grid className="h-3.5 w-3.5" aria-hidden="true" />
@@ -558,7 +559,7 @@ export default function ViewerNavSidebar({
                 onClick={onClose}
                 title="Hide Sidebar (Ctrl+B)"
                 aria-label="Hide sidebar"
-                className="p-1 rounded-md border border-border/70 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-card transition-colors shadow-2xs cursor-pointer focus-visible:outline-none focus-visible:ring-1.5 focus-visible:ring-blue-500"
+                className="p-1 rounded-full border border-border text-zinc-400 hover:text-on-surface hover:bg-surface-container transition-colors shadow-2xs cursor-pointer focus-visible:outline-none focus-visible:ring-1.5 focus-visible:ring-accent"
               >
                 <PanelLeftClose className="h-3.5 w-3.5" aria-hidden="true" />
               </button>
@@ -567,15 +568,15 @@ export default function ViewerNavSidebar({
         </div>
 
         {/* 2. Navigation Tab Switcher Strip */}
-        <div className="flex items-center justify-between px-2 py-1.5 bg-surface dark:bg-surface gap-1.5 w-full overflow-hidden">
+        <div className="flex items-center justify-between px-2 py-1.5 bg-surface-container/60 gap-1 w-full overflow-hidden">
           <button
             type="button"
             onClick={() => onTabChange?.('thumbnails')}
             title="Page Thumbnails"
-            className={`flex-1 min-w-0 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-md text-[11px] font-medium transition-all ${
+            className={`flex-1 min-w-0 flex items-center justify-center gap-1.5 py-1 px-2.5 rounded-full text-[11px] font-medium transition-all ${
               activeTab === 'thumbnails'
-                ? 'bg-card text-accent font-semibold shadow-2xs border border-border/70'
-                : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+                ? 'bg-accent text-[#00363d] font-bold shadow-2xs'
+                : 'text-zinc-500 hover:text-on-surface'
             }`}
           >
             <Grid className="h-3.5 w-3.5 shrink-0" />
@@ -587,10 +588,10 @@ export default function ViewerNavSidebar({
               type="button"
               onClick={() => onTabChange?.('attachments')}
               title="Embedded Attachments"
-              className={`flex-1 min-w-0 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-md text-[11px] font-medium transition-all ${
+              className={`flex-1 min-w-0 flex items-center justify-center gap-1.5 py-1 px-2.5 rounded-full text-[11px] font-medium transition-all ${
                 activeTab === 'attachments'
-                  ? 'bg-card text-accent font-semibold shadow-2xs border border-border/70'
-                  : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+                  ? 'bg-accent text-[#00363d] font-bold shadow-2xs'
+                  : 'text-zinc-500 hover:text-on-surface'
               }`}
             >
               <Paperclip className="h-3.5 w-3.5 shrink-0" />
@@ -604,10 +605,10 @@ export default function ViewerNavSidebar({
               type="button"
               onClick={() => onTabChange?.('files')}
               title="Folder Structure Explorer"
-              className={`flex-1 min-w-0 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-md text-[11px] font-medium transition-all ${
+              className={`flex-1 min-w-0 flex items-center justify-center gap-1.5 py-1 px-2.5 rounded-full text-[11px] font-medium transition-all ${
                 activeTab === 'files'
-                  ? 'bg-card text-accent font-semibold shadow-2xs border border-border/70'
-                  : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+                  ? 'bg-accent text-[#00363d] font-bold shadow-2xs'
+                  : 'text-zinc-500 hover:text-on-surface'
               }`}
             >
               <FolderTree className="h-3.5 w-3.5 shrink-0" />

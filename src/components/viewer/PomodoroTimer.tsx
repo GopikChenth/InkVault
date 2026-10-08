@@ -20,7 +20,7 @@ interface PomodoroTimerProps {
   className?: string;
 }
 
-export default function PomodoroTimer({ className = '' }: PomodoroTimerProps) {
+function PomodoroTimer({ className = '' }: PomodoroTimerProps) {
   const {
     phase,
     secondsLeft,
@@ -478,3 +478,5 @@ export default function PomodoroTimer({ className = '' }: PomodoroTimerProps) {
     </div>
   );
 }
+
+export default React.memo(PomodoroTimer);

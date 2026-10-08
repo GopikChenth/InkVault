@@ -40,7 +40,7 @@ interface MinimalStudyBarProps {
   onExitStudyMode: () => void;
 }
 
-export default function MinimalStudyBar({
+function MinimalStudyBar({
   currentPage,
   totalPages,
   onPageChange,
@@ -274,3 +274,5 @@ export default function MinimalStudyBar({
     </div>
   );
 }
+
+export default React.memo(MinimalStudyBar);

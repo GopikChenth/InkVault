@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import { 
   Grid, 
@@ -73,6 +73,9 @@ function getSharedThumbnailObserver(): IntersectionObserver {
   }
   return sharedThumbnailObserver;
 }
+
+// In-memory cache for rendered thumbnail ImageBitmaps (instant tab restore)
+const thumbnailBitmapCache = new Map<string, ImageBitmap>();
 
 const ThumbnailCard: React.FC<ThumbnailCardProps> = React.memo(({
   pageNum,
@@ -176,6 +179,14 @@ const ThumbnailCard: React.FC<ThumbnailCardProps> = React.memo(({
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+        const cacheKey = `${(pdfDoc as any).fingerprint || 'doc'}_${pageNum}_${rotation}_${Math.round(viewport.width * outputScale)}`;
+        const cachedBmp = thumbnailBitmapCache.get(cacheKey);
+        if (cachedBmp) {
+          ctx.drawImage(cachedBmp, 0, 0);
+          setRendered(true);
+          return;
+        }
+
         // 5. Native OutputScale Matrix Transform (Autohinted Vector Rasterization)
         const transform = outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : undefined;
 
@@ -189,6 +200,19 @@ const ThumbnailCard: React.FC<ThumbnailCardProps> = React.memo(({
         await renderTask.promise;
         if (!isCancelled) {
           setRendered(true);
+          if (typeof window !== 'undefined' && 'createImageBitmap' in window) {
+            window.createImageBitmap(canvas).then((bmp) => {
+              if (thumbnailBitmapCache.size > 80) {
+                const oldest = thumbnailBitmapCache.keys().next().value;
+                if (oldest) {
+                  const b = thumbnailBitmapCache.get(oldest);
+                  b?.close?.();
+                  thumbnailBitmapCache.delete(oldest);
+                }
+              }
+              thumbnailBitmapCache.set(cacheKey, bmp);
+            }).catch(() => {});
+          }
         }
       } catch (err: any) {
         if (err?.name !== 'RenderingCancelledException') {
@@ -315,7 +339,7 @@ interface ViewerNavSidebarProps {
   isStudyMode?: boolean;
 }
 
-export default function ViewerNavSidebar({
+function ViewerNavSidebar({
   isOpen,
   onClose,
   activeTab,
@@ -357,6 +381,12 @@ export default function ViewerNavSidebar({
 
   // Thumbnail columns view mode (1 column vs 2 columns - default 1 column per row)
   const [thumbnailColumns, setThumbnailColumns] = useState<'1' | '2'>('1');
+
+  // Memoize page numbers array to avoid allocating new array on every render
+  const pageNumbers = useMemo(
+    () => Array.from({ length: totalPages }, (_, i) => i + 1),
+    [totalPages]
+  );
 
   // Outline expansion toggle state
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set(['root']));
@@ -625,7 +655,7 @@ export default function ViewerNavSidebar({
         {/* TAB 1: THUMBNAILS (PAGES) */}
         {activeTab === 'thumbnails' ? (
           <div className={`grid gap-3.5 ${thumbnailColumns === '2' ? 'grid-cols-2' : 'grid-cols-1'}`}>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+            {pageNumbers.map((pageNum) => (
               <ThumbnailCard
                 key={pageNum}
                 pageNum={pageNum}
@@ -995,3 +1025,5 @@ export default function ViewerNavSidebar({
     </aside>
   );
 }
+
+export default React.memo(ViewerNavSidebar);

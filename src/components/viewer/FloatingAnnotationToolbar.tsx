@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, memo } from 'react';
 import FloatingAnchor from '../common/FloatingAnchor';
 import { 
   MousePointer, 
@@ -87,7 +87,7 @@ interface FloatingAnnotationToolbarProps {
   focusMode?: boolean;
 }
 
-export default function FloatingAnnotationToolbar({
+function FloatingAnnotationToolbar({
   activeTool,
   onSelectTool,
   activeColor,
@@ -663,3 +663,5 @@ export default function FloatingAnnotationToolbar({
     </div>
   );
 }
+
+export default memo(FloatingAnnotationToolbar);

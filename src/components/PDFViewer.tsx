@@ -53,6 +53,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
 // In-memory document and text index cache across tabs (0ms tab switching & instant multi-doc search)
 export const globalDocProxyCache = new Map<string, pdfjsLib.PDFDocumentProxy>();
 export const globalTextIndexCache = new Map<string, PageTextData[]>();
+const EMPTY_ANNOTATIONS: PDFAnnotation[] = [];
 
 // Let the browser process input and paint while indexing large documents. PDF.js
 // resolves many page operations as microtasks, so an explicit yield is needed to
@@ -249,6 +250,14 @@ export default function PDFViewer({
   const activeStickyModalAnn = useMemo(() => {
     return annotations.find((a) => a.id === activeStickyModalAnnId) || null;
   }, [annotations, activeStickyModalAnnId]);
+
+  const handleOpenStickyNote = useCallback((ann: PDFAnnotation) => {
+    setActiveStickyModalAnnId(ann.id);
+  }, []);
+
+  const handleAnnotationToolUsed = useCallback(() => {
+    setActiveAnnotationTool('select');
+  }, []);
 
   // Synchronize session state & reading progress when currentPage or annotations change
   useEffect(() => {
@@ -2134,12 +2143,12 @@ export default function PDFViewer({
                             activeTool={activeAnnotationTool}
                             activeColor={activeColor}
                             strokeWidth={strokeWidth}
-                            annotations={annotationsByPage.get(p.pageNum) || []}
+                            annotations={annotationsByPage.get(p.pageNum) || EMPTY_ANNOTATIONS}
                             onAddAnnotation={handleAddAnnotation}
                             onUpdateAnnotation={handleUpdateAnnotation}
                             onDeleteAnnotation={handleDeleteAnnotation}
-                            onOpenStickyNote={(ann) => setActiveStickyModalAnnId(ann.id)}
-                            onToolUsed={() => setActiveAnnotationTool('select')}
+                            onOpenStickyNote={handleOpenStickyNote}
+                            onToolUsed={handleAnnotationToolUsed}
                           />
                         </>
                       ) : (

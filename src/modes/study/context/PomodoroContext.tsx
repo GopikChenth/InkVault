@@ -105,6 +105,8 @@ export function PomodoroProvider({ children }: { children: React.ReactNode }) {
   const [prompt, setPrompt] = useState<PomodoroPrompt | null>(null);
 
   const targetEndTimeRef = useRef<number | null>(null);
+  const secondsLeftRef = useRef(secondsLeft);
+  secondsLeftRef.current = secondsLeft;
 
   // Request browser notification permission once
   useEffect(() => {
@@ -139,10 +141,10 @@ export function PomodoroProvider({ children }: { children: React.ReactNode }) {
   }, [settings]);
 
   const startTimer = useCallback(() => {
-    targetEndTimeRef.current = Date.now() + secondsLeft * 1000;
+    targetEndTimeRef.current = Date.now() + secondsLeftRef.current * 1000;
     setIsRunning(true);
     setPrompt(null);
-  }, [secondsLeft]);
+  }, []);
 
   const pauseTimer = useCallback(() => {
     setIsRunning(false);
@@ -215,7 +217,7 @@ export function PomodoroProvider({ children }: { children: React.ReactNode }) {
     if (!isRunning) return;
 
     if (!targetEndTimeRef.current) {
-      targetEndTimeRef.current = Date.now() + secondsLeft * 1000;
+      targetEndTimeRef.current = Date.now() + secondsLeftRef.current * 1000;
     }
 
     const interval = setInterval(() => {
@@ -265,14 +267,14 @@ export function PomodoroProvider({ children }: { children: React.ReactNode }) {
     }, 250);
 
     return () => clearInterval(interval);
-  }, [isRunning, phase, settings, completedSessions, secondsLeft]);
+  }, [isRunning, phase, settings, completedSessions]);
 
   // Format MM:SS
-  const formatTime = (secs: number) => {
+  const formatTime = useCallback((secs: number) => {
     const m = Math.floor(secs / 60);
     const s = secs % 60;
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  };
+  }, []);
 
   // Progress percent
   const totalSeconds = (phase === 'focus' 
@@ -282,29 +284,48 @@ export function PomodoroProvider({ children }: { children: React.ReactNode }) {
       : settings.longBreakMin) * 60;
   const progressPercent = Math.min(100, Math.max(0, ((totalSeconds - secondsLeft) / totalSeconds) * 100));
 
+  const contextValue = React.useMemo<PomodoroContextType>(() => ({
+    phase,
+    secondsLeft,
+    isRunning,
+    completedSessions,
+    settings,
+    prompt,
+    startTimer,
+    pauseTimer,
+    toggleTimer,
+    resetTimer,
+    skipPhase,
+    switchPhase,
+    updateSettings,
+    formatTime,
+    progressPercent,
+    acceptPrompt,
+    dismissPrompt,
+    extendTime,
+  }), [
+    phase,
+    secondsLeft,
+    isRunning,
+    completedSessions,
+    settings,
+    prompt,
+    startTimer,
+    pauseTimer,
+    toggleTimer,
+    resetTimer,
+    skipPhase,
+    switchPhase,
+    updateSettings,
+    formatTime,
+    progressPercent,
+    acceptPrompt,
+    dismissPrompt,
+    extendTime,
+  ]);
+
   return (
-    <PomodoroContext.Provider
-      value={{
-        phase,
-        secondsLeft,
-        isRunning,
-        completedSessions,
-        settings,
-        prompt,
-        startTimer,
-        pauseTimer,
-        toggleTimer,
-        resetTimer,
-        skipPhase,
-        switchPhase,
-        updateSettings,
-        formatTime,
-        progressPercent,
-        acceptPrompt,
-        dismissPrompt,
-        extendTime,
-      }}
-    >
+    <PomodoroContext.Provider value={contextValue}>
       {children}
     </PomodoroContext.Provider>
   );

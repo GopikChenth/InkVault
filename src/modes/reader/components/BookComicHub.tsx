@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { 
   Search, 
   HelpCircle, 
@@ -26,7 +26,212 @@ interface BookComicHubProps {
 
 type SortOption = 'lastRead' | 'title' | 'progress' | 'recentAdded';
 
-export default function BookComicHub({
+interface BookCardProps {
+  doc: any;
+  isOpenMenu: boolean;
+  onToggleMenu: (id: string, e: React.MouseEvent) => void;
+  onOpenDoc: (doc: LoadedPDF) => void;
+  onMarkFinished: (doc: any, e: React.MouseEvent) => void;
+  onResetProgress: (doc: any, e: React.MouseEvent) => void;
+  onRatingChange: (docId: string, star: number, e: React.MouseEvent) => void;
+  onRemoveDoc: (docId: string) => void;
+}
+
+const BookCard = React.memo(function BookCard({
+  doc,
+  isOpenMenu,
+  onToggleMenu,
+  onOpenDoc,
+  onMarkFinished,
+  onResetProgress,
+  onRatingChange,
+  onRemoveDoc,
+}: BookCardProps) {
+  const formattedTime = doc.lastReadAt 
+    ? formatRelativeTime(doc.lastReadAt) 
+    : formatRelativeTime(doc.loadedAt);
+
+  return (
+    <div
+      onClick={() => onOpenDoc(doc)}
+      className="group flex flex-col cursor-pointer select-none"
+    >
+      {/* Book Cover Container with ~2:3 PC Book Proportion */}
+      <div className="relative aspect-[2/3] w-full rounded-xl overflow-hidden bg-[#161622] border border-zinc-800 shadow-md group-hover:border-rose-500/50">
+        
+        {/* Cover Art / Vector Spine */}
+        {doc.coverDataUrl ? (
+          <img
+            src={doc.coverDataUrl}
+            alt={doc.name}
+            className="w-full h-full object-cover object-center"
+            loading="lazy"
+          />
+        ) : (
+          <div className="w-full h-full flex flex-col justify-between p-4 bg-gradient-to-br from-zinc-800 via-[#1c1c2b] to-[#12121a]">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-mono font-bold text-zinc-500 uppercase">
+                {doc.isComic ? 'Comic' : doc.isEpub ? 'E-Book' : 'Document'}
+              </span>
+              <BookOpen className="h-4 w-4 text-zinc-600" />
+            </div>
+            <p className="text-xs font-bold text-zinc-200 line-clamp-4 leading-snug drop-shadow-sm">
+              {doc.name.replace(/\.[^/.]+$/, '')}
+            </p>
+            <div className="text-[10px] font-mono text-zinc-500 truncate">
+              {doc.size}
+            </div>
+          </div>
+        )}
+
+        {/* Format Badge (Top-Right) */}
+        <div className="absolute top-2 right-2">
+          <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold uppercase tracking-wider backdrop-blur-md bg-black/60 text-zinc-200 border border-white/10 shadow-xs">
+            {doc.isComic ? 'CBZ' : doc.isEpub ? 'EPUB' : 'PDF'}
+          </span>
+        </div>
+
+        {/* Progress Badge (Top-Left) */}
+        {(doc.isFinished || doc.progressPercent > 0) && (
+          <div className="absolute top-2 left-2">
+            <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-bold tracking-wider backdrop-blur-md shadow-xs ${
+              doc.isFinished
+                ? 'bg-emerald-500/80 text-white'
+                : 'bg-rose-600/80 text-white'
+            }`}>
+              {doc.isFinished ? 'Finished' : `${doc.progressPercent}%`}
+            </span>
+          </div>
+        )}
+
+        {/* Hover Overlay with Read Button and 3-Dots Menu */}
+        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex flex-col justify-between p-3 pointer-events-none group-hover:pointer-events-auto">
+          
+          {/* Top right menu button */}
+          <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              onClick={(e) => onToggleMenu(doc.id, e)}
+              className="h-7 w-7 rounded-lg bg-black/60 hover:bg-black/90 text-zinc-200 flex items-center justify-center backdrop-blur-md"
+              title="Options"
+            >
+              <MoreVertical className="h-3.5 w-3.5" />
+            </button>
+
+            {isOpenMenu && (
+              <div className="absolute right-3 top-10 w-44 rounded-xl bg-[#1c1c28] border border-zinc-700 shadow-2xl py-1 z-30 text-xs flex flex-col">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenDoc(doc);
+                  }}
+                  className="px-3 py-1.5 text-left text-zinc-200 hover:bg-rose-600 hover:text-white"
+                >
+                  Open in Reader
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => onMarkFinished(doc, e)}
+                  className="px-3 py-1.5 text-left text-zinc-200 hover:bg-rose-600 hover:text-white"
+                >
+                  Mark Finished (100%)
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => onResetProgress(doc, e)}
+                  className="px-3 py-1.5 text-left text-zinc-200 hover:bg-rose-600 hover:text-white"
+                >
+                  Reset Progress
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRemoveDoc(doc.id);
+                  }}
+                  className="px-3 py-1.5 text-left text-rose-400 hover:bg-rose-600 hover:text-white"
+                >
+                  Remove from Shelf
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Center Action */}
+          <div className="flex items-center justify-center">
+            <span className="px-3.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs shadow-lg flex items-center gap-1.5">
+              <BookOpen className="h-3.5 w-3.5" />
+              <span>Read</span>
+            </span>
+          </div>
+
+          {/* Bottom info on hover */}
+          <div className="text-[11px] font-mono text-zinc-300 bg-black/60 backdrop-blur-md rounded-md px-2 py-0.5 text-center">
+            {doc.pageCount && doc.pageCount > 1
+              ? `${doc.currentPage} / ${doc.pageCount} pages`
+              : `Page ${doc.currentPage}`}
+          </div>
+        </div>
+
+        {/* Progress Bar Indicator at bottom edge */}
+        <div className="absolute bottom-0 inset-x-0 h-1.5 bg-zinc-800/80">
+          <div
+            className={`h-full ${
+              doc.isFinished ? 'bg-emerald-500' : 'bg-rose-500'
+            }`}
+            style={{ width: `${doc.isFinished ? 100 : Math.max(3, doc.progressPercent)}%` }}
+          />
+        </div>
+
+      </div>
+
+      {/* Desktop Metadata Underneath Cover */}
+      <div className="pt-2.5 px-0.5 flex flex-col gap-1">
+        <h3 
+          className="text-xs font-semibold text-zinc-200 group-hover:text-rose-400 line-clamp-2 leading-snug"
+          title={doc.name}
+        >
+          {doc.name.replace(/\.[^/.]+$/, '')}
+        </h3>
+
+        {/* Star Rating & Last Read */}
+        <div className="flex items-center justify-between gap-1 text-[11px] text-zinc-400 pt-0.5">
+          {/* Interactive 5-Star Rating */}
+          <div 
+            className="flex items-center gap-0.5" 
+            onClick={(e) => e.stopPropagation()}
+            title={`Rating: ${doc.rating || 0}/5`}
+          >
+            {[1, 2, 3, 4, 5].map((star) => (
+              <button
+                key={star}
+                type="button"
+                onClick={(e) => onRatingChange(doc.id, star, e)}
+                className="p-0.5"
+              >
+                <Star
+                  className={`h-3 w-3 ${
+                    star <= (doc.rating || 0)
+                        ? 'text-amber-400 fill-amber-400'
+                        : 'text-zinc-600 hover:text-amber-300'
+                  }`}
+                />
+              </button>
+            ))}
+          </div>
+
+          <span className="text-[10px] font-mono text-zinc-500 truncate">
+            {formattedTime}
+          </span>
+        </div>
+      </div>
+
+    </div>
+  );
+});
+
+function BookComicHub({
   docs,
   onOpenDoc,
   onImportBook,
@@ -122,7 +327,7 @@ export default function BookComicHub({
     return result;
   }, [enrichedDocs, searchQuery, activeFilter, sortBy]);
 
-  const handleRatingChange = (docId: string, star: number, e: React.MouseEvent) => {
+  const handleRatingChange = useCallback((docId: string, star: number, e: React.MouseEvent) => {
     e.stopPropagation();
     saveBookRating(docId, star);
     const target = docs.find((d) => d.id === docId);
@@ -130,19 +335,24 @@ export default function BookComicHub({
       target.rating = star;
       onUpdateDocProgress?.(docId, target.currentPage || 1, target.isFinished);
     }
-  };
+  }, [docs, onUpdateDocProgress]);
 
-  const handleMarkFinished = (doc: typeof enrichedDocs[0], e: React.MouseEvent) => {
+  const handleMarkFinished = useCallback((doc: typeof enrichedDocs[0], e: React.MouseEvent) => {
     e.stopPropagation();
     setOpenMenuDocId(null);
     onUpdateDocProgress?.(doc.id, doc.pageCount || doc.currentPage || 1, true);
-  };
+  }, [onUpdateDocProgress]);
 
-  const handleResetProgress = (doc: typeof enrichedDocs[0], e: React.MouseEvent) => {
+  const handleResetProgress = useCallback((doc: typeof enrichedDocs[0], e: React.MouseEvent) => {
     e.stopPropagation();
     setOpenMenuDocId(null);
     onUpdateDocProgress?.(doc.id, 1, false);
-  };
+  }, [onUpdateDocProgress]);
+
+  const handleToggleMenu = useCallback((id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setOpenMenuDocId((prev) => (prev === id ? null : id));
+  }, []);
 
   return (
     <div className="flex-1 w-full h-full overflow-hidden bg-[#0c0c12] text-zinc-100 flex flex-col select-none">
@@ -267,193 +477,19 @@ export default function BookComicHub({
       <main className="flex-1 overflow-y-auto p-6 sm:p-8 w-full">
         {filteredAndSortedDocs.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-5 sm:gap-6">
-            {filteredAndSortedDocs.map((doc) => {
-              const formattedTime = doc.lastReadAt 
-                ? formatRelativeTime(doc.lastReadAt) 
-                : formatRelativeTime(doc.loadedAt);
-
-              return (
-                <div
-                  key={doc.id}
-                  onClick={() => onOpenDoc(doc)}
-                  className="group flex flex-col cursor-pointer select-none"
-                >
-                  {/* Book Cover Container with ~2:3 PC Book Proportion */}
-                  <div className="relative aspect-[2/3] w-full rounded-xl overflow-hidden bg-[#161622] border border-zinc-800 shadow-md group-hover:border-rose-500/50">
-                    
-                    {/* Cover Art / Vector Spine */}
-                    {doc.coverDataUrl ? (
-                      <img
-                        src={doc.coverDataUrl}
-                        alt={doc.name}
-                        className="w-full h-full object-cover object-center"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex flex-col justify-between p-4 bg-gradient-to-br from-zinc-800 via-[#1c1c2b] to-[#12121a]">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-mono font-bold text-zinc-500 uppercase">
-                            {doc.isComic ? 'Comic' : doc.isEpub ? 'E-Book' : 'Document'}
-                          </span>
-                          <BookOpen className="h-4 w-4 text-zinc-600" />
-                        </div>
-                        <p className="text-xs font-bold text-zinc-200 line-clamp-4 leading-snug drop-shadow-sm">
-                          {doc.name.replace(/\.[^/.]+$/, '')}
-                        </p>
-                        <div className="text-[10px] font-mono text-zinc-500 truncate">
-                          {doc.size}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Format Badge (Top-Right) */}
-                    <div className="absolute top-2 right-2">
-                      <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold uppercase tracking-wider backdrop-blur-md bg-black/60 text-zinc-200 border border-white/10 shadow-xs">
-                        {doc.isComic ? 'CBZ' : doc.isEpub ? 'EPUB' : 'PDF'}
-                      </span>
-                    </div>
-
-                    {/* Progress Badge (Top-Left) */}
-                    {(doc.isFinished || doc.progressPercent > 0) && (
-                      <div className="absolute top-2 left-2">
-                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-bold tracking-wider backdrop-blur-md shadow-xs ${
-                          doc.isFinished
-                            ? 'bg-emerald-500/80 text-white'
-                            : 'bg-rose-600/80 text-white'
-                        }`}>
-                          {doc.isFinished ? 'Finished' : `${doc.progressPercent}%`}
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Hover Overlay with Read Button and 3-Dots Menu */}
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex flex-col justify-between p-3 pointer-events-none group-hover:pointer-events-auto">
-                      
-                      {/* Top right menu button */}
-                      <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          type="button"
-                          onClick={() => setOpenMenuDocId(openMenuDocId === doc.id ? null : doc.id)}
-                          className="h-7 w-7 rounded-lg bg-black/60 hover:bg-black/90 text-zinc-200 flex items-center justify-center backdrop-blur-md"
-                          title="Options"
-                        >
-                          <MoreVertical className="h-3.5 w-3.5" />
-                        </button>
-
-                        {openMenuDocId === doc.id && (
-                          <div className="absolute right-3 top-10 w-44 rounded-xl bg-[#1c1c28] border border-zinc-700 shadow-2xl py-1 z-30 text-xs flex flex-col">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setOpenMenuDocId(null);
-                                onOpenDoc(doc);
-                              }}
-                              className="px-3 py-1.5 text-left text-zinc-200 hover:bg-rose-600 hover:text-white"
-                            >
-                              Open in Reader
-                            </button>
-                            <button
-                              type="button"
-                              onClick={(e) => handleMarkFinished(doc, e)}
-                              className="px-3 py-1.5 text-left text-zinc-200 hover:bg-rose-600 hover:text-white"
-                            >
-                              Mark Finished (100%)
-                            </button>
-                            <button
-                              type="button"
-                              onClick={(e) => handleResetProgress(doc, e)}
-                              className="px-3 py-1.5 text-left text-zinc-200 hover:bg-rose-600 hover:text-white"
-                            >
-                              Reset Progress
-                            </button>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setOpenMenuDocId(null);
-                                onRemoveDoc(doc.id);
-                              }}
-                              className="px-3 py-1.5 text-left text-rose-400 hover:bg-rose-600 hover:text-white"
-                            >
-                              Remove from Shelf
-                            </button>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Center Action */}
-                      <div className="flex items-center justify-center">
-                        <span className="px-3.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs shadow-lg flex items-center gap-1.5">
-                          <BookOpen className="h-3.5 w-3.5" />
-                          <span>Read</span>
-                        </span>
-                      </div>
-
-                      {/* Bottom info on hover */}
-                      <div className="text-[11px] font-mono text-zinc-300 bg-black/60 backdrop-blur-md rounded-md px-2 py-0.5 text-center">
-                        {doc.pageCount && doc.pageCount > 1
-                          ? `${doc.currentPage} / ${doc.pageCount} pages`
-                          : `Page ${doc.currentPage}`}
-                      </div>
-                    </div>
-
-                    {/* Progress Bar Indicator at bottom edge */}
-                    <div className="absolute bottom-0 inset-x-0 h-1.5 bg-zinc-800/80">
-                      <div
-                        className={`h-full ${
-                          doc.isFinished ? 'bg-emerald-500' : 'bg-rose-500'
-                        }`}
-                        style={{ width: `${doc.isFinished ? 100 : Math.max(3, doc.progressPercent)}%` }}
-                      />
-                    </div>
-
-                  </div>
-
-                  {/* Desktop Metadata Underneath Cover */}
-                  <div className="pt-2.5 px-0.5 flex flex-col gap-1">
-                    <h3 
-                      className="text-xs font-semibold text-zinc-200 group-hover:text-rose-400 line-clamp-2 leading-snug"
-                      title={doc.name}
-                    >
-                      {doc.name.replace(/\.[^/.]+$/, '')}
-                    </h3>
-
-                    {/* Star Rating & Last Read */}
-                    <div className="flex items-center justify-between gap-1 text-[11px] text-zinc-400 pt-0.5">
-                      {/* Interactive 5-Star Rating */}
-                      <div 
-                        className="flex items-center gap-0.5" 
-                        onClick={(e) => e.stopPropagation()}
-                        title={`Rating: ${doc.rating || 0}/5`}
-                      >
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <button
-                            key={star}
-                            type="button"
-                            onClick={(e) => handleRatingChange(doc.id, star, e)}
-                            className="p-0.5"
-                          >
-                            <Star
-                              className={`h-3 w-3 ${
-                                star <= (doc.rating || 0)
-                                    ? 'text-amber-400 fill-amber-400'
-                                    : 'text-zinc-600 hover:text-amber-300'
-                              }`}
-                            />
-                          </button>
-                        ))}
-                      </div>
-
-                      <span className="text-[10px] font-mono text-zinc-500 truncate">
-                        {formattedTime}
-                      </span>
-                    </div>
-                  </div>
-
-                </div>
-              );
-            })}
+            {filteredAndSortedDocs.map((doc) => (
+              <BookCard
+                key={doc.id}
+                doc={doc}
+                isOpenMenu={openMenuDocId === doc.id}
+                onToggleMenu={handleToggleMenu}
+                onOpenDoc={onOpenDoc}
+                onMarkFinished={handleMarkFinished}
+                onResetProgress={handleResetProgress}
+                onRatingChange={handleRatingChange}
+                onRemoveDoc={onRemoveDoc}
+              />
+            ))}
           </div>
         ) : searchQuery ? (
           <div className="h-64 flex flex-col items-center justify-center text-center p-8 select-none">
@@ -559,3 +595,5 @@ export default function BookComicHub({
     </div>
   );
 }
+
+export default React.memo(BookComicHub);

@@ -82,7 +82,7 @@ const DocumentTabItem = React.memo(function DocumentTabItem({
   );
 });
 
-export default function DocumentTabBar({
+function DocumentTabBar({
   docs,
   activeDocId,
   onSelectDoc,
@@ -194,3 +194,5 @@ export default function DocumentTabBar({
     </div>
   );
 }
+
+export default React.memo(DocumentTabBar);

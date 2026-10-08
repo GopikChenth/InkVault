@@ -31,7 +31,7 @@ interface SearchOverlayProps {
   isSearching?: boolean;
 }
 
-export default function SearchOverlay({
+function SearchOverlay({
   isOpen,
   onClose,
   query,
@@ -235,3 +235,5 @@ export default function SearchOverlay({
     </div>
   );
 }
+
+export default React.memo(SearchOverlay);

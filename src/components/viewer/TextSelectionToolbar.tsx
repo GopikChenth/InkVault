@@ -46,7 +46,7 @@ interface TextSelectionToolbarProps {
   isStudyMode?: boolean;
 }
 
-export default function TextSelectionToolbar({
+function TextSelectionToolbar({
   selectionData,
   onHighlight,
   onSearchOnline,
@@ -261,3 +261,5 @@ export default function TextSelectionToolbar({
     </div>
   );
 }
+
+export default React.memo(TextSelectionToolbar);

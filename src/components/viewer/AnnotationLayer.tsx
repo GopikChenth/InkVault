@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { 
   StickyNote as StickyIcon, 
   Mic as MicIcon, 
@@ -45,7 +45,10 @@ function AnnotationLayer({
   const [polygonPoints, setPolygonPoints] = useState<Array<{ x: number; y: number }>>([]);
 
   // Active page annotations
-  const pageAnnotations = annotations.filter((a) => a.pageNum === pageNum);
+  const pageAnnotations = useMemo(
+    () => annotations.filter((a) => a.pageNum === pageNum),
+    [annotations, pageNum]
+  );
 
   // Normalized relative coordinate helper (0..1)
   const getRelativeCoords = useCallback((e: React.MouseEvent): { x: number; y: number } => {

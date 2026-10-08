@@ -508,11 +508,11 @@ export default function TitleBar({
       {/* 2. Center: Active Document Title */}
       <div 
         data-tauri-drag-region
-        className="flex-1 flex items-center justify-center min-w-0 px-2 h-full cursor-default"
+        className="hidden md:flex flex-1 items-center justify-center min-w-0 px-2 h-full cursor-default"
       >
         <span 
           data-tauri-drag-region
-          className="text-[11px] font-mono text-zinc-500 dark:text-zinc-400 truncate max-w-md font-medium"
+          className="text-[11px] font-mono text-zinc-500 dark:text-zinc-400 truncate max-w-xs lg:max-w-md font-medium"
         >
           {activeDocName ? `${title} — ${activeDocName}` : title}
         </span>

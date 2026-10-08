@@ -8,7 +8,9 @@ import {
   Home, 
   UploadCloud, 
   FolderUp, 
-  BookOpen 
+  BookOpen,
+  PanelLeftClose,
+  PanelLeftOpen
 } from 'lucide-react';
 import { LoadedPDF, PDFAnnotation, AppMode } from '../types';
 import PDFViewer, { globalDocProxyCache, globalTextIndexCache } from '../components/PDFViewer';
@@ -93,6 +95,8 @@ export default function WorkspacePage({
     setInternalActiveTab(tab);
     if (onActiveTabChange) onActiveTabChange(tab);
   }, [onActiveTabChange]);
+
+  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
 
   // 2. Documents & Session Management
   const [openDocs, setOpenDocs] = useState<LoadedPDF[]>([]);
@@ -492,8 +496,8 @@ export default function WorkspacePage({
         />
 
         {/* 1. Left Sidebar Navigation */}
-        {!(activeTab === 'viewer' && activeDoc) && (
-          <aside className="w-64 flex-shrink-0 flex flex-col justify-between border-r border-border bg-surface dark:bg-surface p-4">
+        {!(activeTab === 'viewer' && activeDoc) && isSidebarOpen && (
+          <aside className="w-56 sm:w-64 flex-shrink-0 flex flex-col justify-between border-r border-border bg-surface dark:bg-surface p-3 sm:p-4">
             <div className="flex flex-col gap-4">
               {/* Mode-Specific Sidebar Delegation */}
               {currentMode === 'editor' && (
@@ -587,20 +591,29 @@ export default function WorkspacePage({
           )}
 
           {!(activeTab === 'viewer' && activeDoc) && (
-            <header className="h-12 border-b border-border flex items-center justify-between px-6 bg-surface dark:bg-surface flex-shrink-0 z-20">
-              <div className="flex items-center gap-3 text-xs font-mono text-zinc-500 min-w-0">
+            <header className="h-12 border-b border-border flex items-center justify-between px-3 sm:px-6 bg-surface dark:bg-surface flex-shrink-0 z-20">
+              <div className="flex items-center gap-2 sm:gap-2.5 text-xs font-mono text-zinc-500 min-w-0">
+                <button
+                  type="button"
+                  onClick={() => setIsSidebarOpen((prev) => !prev)}
+                  title={isSidebarOpen ? "Collapse Sidebar" : "Expand Sidebar"}
+                  className="h-7 w-7 rounded-lg border border-border flex items-center justify-center text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-card transition-colors flex-shrink-0 mr-0.5"
+                >
+                  {isSidebarOpen ? <PanelLeftClose className="h-3.5 w-3.5" /> : <PanelLeftOpen className="h-3.5 w-3.5" />}
+                </button>
+
                 <button 
                   type="button"
                   onClick={onReturnToCover}
                   className="flex items-center gap-1 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors flex-shrink-0"
                 >
                   <Home className="h-3.5 w-3.5" />
-                  <span>Cover</span>
+                  <span className="hidden sm:inline">Cover</span>
                 </button>
                 <span>/</span>
                 <span className="font-semibold text-zinc-800 dark:text-zinc-200 flex-shrink-0">Workspace</span>
                 <span>/</span>
-                <span className="capitalize">{activeTab.replace('-', ' ')}</span>
+                <span className="capitalize truncate">{activeTab.replace('-', ' ')}</span>
               </div>
 
               {currentMode !== 'reader' && (

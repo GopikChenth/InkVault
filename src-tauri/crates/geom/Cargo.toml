@@ -1,0 +1,11 @@
+[package]
+name = "inkvault-geom"
+description = "Geometry primitives for InkVault (points, rects, page transforms)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]

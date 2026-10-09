@@ -1,0 +1,21 @@
+[package]
+name = "inkvault-redact"
+description = "Redaction (architecture §11.2): marks, apply (glyphs, images, vectors, XObjects, annotations, fields), verification"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+inkvault-cos = { workspace = true }
+inkvault-content = { workspace = true }
+inkvault-fonts = { workspace = true }
+inkvault-model = { workspace = true }
+inkvault-forms = { workspace = true }
+inkvault-edit = { workspace = true }
+inkvault-annot = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]

@@ -1,0 +1,16 @@
+[package]
+name = "inkvault-organize"
+description = "Page and document-structure edits: rotate, delete, move, insert pages; document info"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+inkvault-content = { workspace = true }
+inkvault-cos = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]

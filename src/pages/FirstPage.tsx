@@ -84,7 +84,7 @@ export default function FirstPage({
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(90vw,40rem)] h-[min(90vw,40rem)] bg-accent/10 dark:bg-accent/15 rounded-full blur-[160px] pointer-events-none" />
 
       {/* 1. Header Navigation */}
-      <header className="relative z-20 w-full max-w-7xl mx-auto px-6 py-6 flex items-center justify-between">
+      <header className="relative z-20 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 flex items-center justify-between overflow-hidden">
         {/* Brand */}
         <div className="flex items-center gap-3">
           <div className="h-9 w-9 rounded-2xl bg-accent text-[#00363d] flex items-center justify-center font-extrabold text-sm tracking-tight shadow-md">
@@ -104,8 +104,9 @@ export default function FirstPage({
         <div className="flex items-center gap-3">
           {/* Direct CTA */}
           <button
+            type="button"
             onClick={() => onEnterWorkspace(activeMode)}
-            className="flex items-center gap-2 px-4 py-2 rounded-full bg-accent hover:bg-accent-hover text-[#00363d] text-xs font-bold transition-all shadow-md active:scale-95 group"
+            className="flex items-center gap-2 px-4 py-2 rounded-full bg-accent hover:bg-accent-hover text-[#00363d] text-xs font-bold transition-all shadow-md active:scale-95 cursor-pointer group flex-shrink-0"
           >
             <span>{activeModeConfig.headerLabel}</span>
             <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
@@ -114,10 +115,10 @@ export default function FirstPage({
       </header>
 
       {/* 2. Hero Body Section with Anime.js Paper Stack */}
-      <main className="relative z-10 w-full max-w-7xl mx-auto px-6 py-8 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+      <main className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center overflow-hidden">
         
         {/* Left Column: Hero Content */}
-        <div className="lg:col-span-6 flex flex-col gap-6 text-left">
+        <div className="lg:col-span-7 xl:col-span-6 flex flex-col gap-6 text-left min-w-0">
           
           {/* Main Headline */}
           <div className="space-y-2">
@@ -154,9 +155,15 @@ export default function FirstPage({
                   <button
                     key={mode.id}
                     type="button"
-                    onClick={() => handleSelectMode(mode.id)}
+                    onClick={() => {
+                      if (activeMode === mode.id) {
+                        onEnterWorkspace(mode.id);
+                      } else {
+                        handleSelectMode(mode.id);
+                      }
+                    }}
                     onDoubleClick={() => onEnterWorkspace(mode.id)}
-                    className={`group relative flex flex-col p-3.5 rounded-2xl border text-left transition-all duration-200 cursor-pointer ${
+                    className={`group relative flex flex-col p-3.5 rounded-2xl border text-left transition-all duration-200 cursor-pointer active:scale-[0.98] ${
                       isSelected
                         ? 'border-accent/60 bg-accent/[0.08] dark:bg-accent/[0.14] shadow-sm ring-1 ring-accent/40'
                         : 'border-border bg-card/60 hover:bg-card hover:border-zinc-300 dark:hover:border-zinc-700'
@@ -190,8 +197,9 @@ export default function FirstPage({
           {/* Primary Action Group */}
           <div className="flex flex-wrap items-center gap-3 pt-1">
             <button
+              type="button"
               onClick={() => onEnterWorkspace(activeMode)}
-              className="flex items-center gap-2.5 px-6 py-3.5 rounded-full bg-accent hover:bg-accent-hover text-[#00363d] text-sm font-bold transition-all shadow-lg hover:shadow-accent/25 active:scale-[0.98] group"
+              className="flex items-center gap-2.5 px-6 py-3.5 rounded-full bg-accent hover:bg-accent-hover text-[#00363d] text-sm font-bold transition-all shadow-lg hover:shadow-accent/25 active:scale-[0.98] cursor-pointer group"
             >
               <FolderOpen className="h-4 w-4" />
               <span>{activeModeConfig.actionLabel}</span>
@@ -203,8 +211,8 @@ export default function FirstPage({
 
         </div>
 
-        {/* Right Column: 3D Paper Stack Anime.js Showcase */}
-        <div className="lg:col-span-6 flex items-center justify-center relative py-6">
+        {/* Right Column: 3D Paper Stack Showcase */}
+        <div className="lg:col-span-5 xl:col-span-6 flex items-center justify-center relative py-4 lg:py-6 overflow-hidden w-full">
           <PaperStack />
         </div>
 

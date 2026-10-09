@@ -47,15 +47,15 @@ export default function PaperStack() {
 
       animeTimelineRef.current = tl;
 
-      // Step 1: Top card peels up, elevates, slides out to the right in 3D
+      // Step 1: Top card peels up, elevates, slides gracefully within bounds
       tl.add(topCardEl, {
-        translateX: 240,
-        translateY: -70,
-        translateZ: 140,
-        rotateX: 20,
-        rotateY: -28,
-        rotateZ: 12,
-        scale: 1.05,
+        translateX: 24,
+        translateY: -40,
+        translateZ: 85,
+        rotateX: 14,
+        rotateY: -10,
+        rotateZ: 4,
+        scale: 1.02,
         duration: 750,
         ease: 'cubicBezier(0.05, 0.7, 0.1, 1)',
       });
@@ -235,7 +235,7 @@ export default function PaperStack() {
 
   return (
     <div 
-      className="relative w-full max-w-[540px] h-[500px] flex items-center justify-center select-none"
+      className="relative w-full max-w-[380px] sm:max-w-[430px] lg:max-w-[460px] h-[410px] sm:h-[450px] lg:h-[480px] flex items-center justify-center select-none transform scale-[0.78] sm:scale-[0.86] md:scale-[0.92] lg:scale-[0.96] xl:scale-100 transition-transform origin-center"
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       style={{ perspective: `${STACK_CONSTRAINTS.PERSPECTIVE_PX}px` }}
@@ -251,7 +251,7 @@ export default function PaperStack() {
       <div
         ref={containerRef}
         style={{ maxWidth: `${STACK_CONSTRAINTS.CARD_MAX_WIDTH_PX}px`, height: `${STACK_CONSTRAINTS.CARD_HEIGHT_PX}px` }}
-        className="relative w-[min(90vw,360px)] preserve-3d"
+        className="relative w-[min(88vw,350px)] preserve-3d"
       >
         <div 
           ref={stackWrapperRef} 

@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { LoadedPDF } from '../../../../types';
 import EmptyState from '../../../../components/EmptyState';
+import { nativeCompressPDF } from '../../../../utils/nativePdfBridge';
 
 interface CompressToolProps {
   initialDoc: LoadedPDF | null;
@@ -56,28 +57,26 @@ export default function CompressTool({ initialDoc, onOpenCompressedDoc }: Compre
     setCompressing(true);
 
     try {
-      const arrayBuffer = await doc.file.arrayBuffer();
-      const pdfDoc = await PDFDocument.load(arrayBuffer, {
-        ignoreEncryption: true,
-        updateMetadata: false,
-      });
+      let pdfBytes: Uint8Array;
+      const nativeResult = await nativeCompressPDF(doc.file, doc.name, preset, doc.filePath);
 
-      // Stream compression & object compaction
-      // In pdf-lib, saving with useObjectStreams compresses all indirect objects into FlateDecode object streams
-      const pdfBytes = await pdfDoc.save({
-        useObjectStreams: true,
-        addDefaultPage: false,
-      });
+      if (nativeResult) {
+        pdfBytes = nativeResult;
+      } else {
+        const arrayBuffer = await doc.file.arrayBuffer();
+        const pdfDoc = await PDFDocument.load(arrayBuffer, {
+          ignoreEncryption: true,
+          updateMetadata: false,
+        });
 
-      // Compute actual reduced size or apply optimized ratio
-      const rawOutputSize = Math.min(
-        pdfBytes.length,
-        preset === 'extreme' 
-          ? Math.round(doc.rawSize * 0.48) 
-          : preset === 'balanced' 
-          ? Math.round(doc.rawSize * 0.68) 
-          : Math.round(doc.rawSize * 0.85)
-      );
+        pdfBytes = await pdfDoc.save({
+          useObjectStreams: true,
+          addDefaultPage: false,
+        });
+      }
+
+      // Compute actual real reduced size
+      const rawOutputSize = pdfBytes.length;
 
       const blob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' });
       const blobUrl = URL.createObjectURL(blob);

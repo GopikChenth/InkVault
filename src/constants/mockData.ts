@@ -1,13 +1,4 @@
-import { 
-  FileText, 
-  Layers, 
-  Combine, 
-  Scissors, 
-  Minimize2, 
-  Stamp, 
-  Lock 
-} from 'lucide-react';
-import { DocumentSheet, NavItem, ToolItem } from '../types';
+import { DocumentSheet } from '../types';
 
 export const DOCUMENTS: readonly DocumentSheet[] = [
   {
@@ -65,17 +56,4 @@ export const DOCUMENTS: readonly DocumentSheet[] = [
     pages: 24,
     size: '7.9 MB',
   },
-] as const;
-
-export const NAV_ITEMS: readonly NavItem[] = [
-  { id: 'recent', label: 'Recent Documents', icon: Layers },
-  { id: 'viewer', label: 'PDF Viewer', icon: FileText },
-] as const;
-
-export const TOOL_ITEMS: readonly ToolItem[] = [
-  { id: 'merge', label: 'Merge PDF', icon: Combine },
-  { id: 'split', label: 'Split & Extract', icon: Scissors },
-  { id: 'compress', label: 'Compress PDF', icon: Minimize2 },
-  { id: 'watermark', label: 'Watermark', icon: Stamp },
-  { id: 'protect', label: 'Protect & Unlock', icon: Lock },
 ] as const;

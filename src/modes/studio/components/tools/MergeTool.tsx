@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { LoadedPDF } from '../../../../types';
 import EmptyState from '../../../../components/EmptyState';
+import { nativeMergePDFs } from '../../../../utils/nativePdfBridge';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -154,16 +155,24 @@ export default function MergeTool({ initialDoc, onOpenMergedDoc }: MergeToolProp
 
     setMerging(true);
     try {
-      const mergedPdf = await PDFDocument.create();
+      let pdfBytes: Uint8Array;
+      const nativeResult = await nativeMergePDFs(items.map((it) => ({
+        file: it.file,
+        name: it.name,
+      })));
 
-      for (const item of items) {
-        const arrayBuffer = await item.file.arrayBuffer();
-        const srcDoc = await PDFDocument.load(arrayBuffer);
-        const copiedPages = await mergedPdf.copyPages(srcDoc, srcDoc.getPageIndices());
-        copiedPages.forEach((page) => mergedPdf.addPage(page));
+      if (nativeResult) {
+        pdfBytes = nativeResult;
+      } else {
+        const mergedPdf = await PDFDocument.create();
+        for (const item of items) {
+          const arrayBuffer = await item.file.arrayBuffer();
+          const srcDoc = await PDFDocument.load(arrayBuffer);
+          const copiedPages = await mergedPdf.copyPages(srcDoc, srcDoc.getPageIndices());
+          copiedPages.forEach((page) => mergedPdf.addPage(page));
+        }
+        pdfBytes = await mergedPdf.save();
       }
-
-      const pdfBytes = await mergedPdf.save();
       const blob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' });
       const blobUrl = URL.createObjectURL(blob);
       const cleanName = outputName.endsWith('.pdf') ? outputName : `${outputName}.pdf`;

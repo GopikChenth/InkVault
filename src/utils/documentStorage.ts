@@ -181,13 +181,6 @@ export function removeDocumentFromMetadataCache(id: string): void {
   } catch {}
 }
 
-export function removeDocumentsBySubjectFromMetadataCache(subjectId: string): void {
-  try {
-    const cached = loadMetadataCache();
-    saveMetadataCache(cached.filter((d) => d.subjectId !== subjectId));
-  } catch {}
-}
-
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     if (typeof indexedDB === 'undefined') {
@@ -345,26 +338,5 @@ export async function removeDocumentFromStorage(id: string): Promise<void> {
     store.delete(id);
   } catch (err) {
     console.warn(`Failed to delete document ${id} from IndexedDB:`, err);
-  }
-}
-
-export async function removeDocumentsBySubject(subjectId: string): Promise<void> {
-  removeDocumentsBySubjectFromMetadataCache(subjectId);
-  try {
-    const db = await openDB();
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    const store = tx.objectStore(STORE_NAME);
-    const request = store.getAll();
-
-    request.onsuccess = () => {
-      const records: SerializedDocRecord[] = request.result || [];
-      for (const rec of records) {
-        if (rec.subjectId === subjectId) {
-          store.delete(rec.id);
-        }
-      }
-    };
-  } catch (err) {
-    console.warn(`Failed to remove subject documents from IndexedDB:`, err);
   }
 }

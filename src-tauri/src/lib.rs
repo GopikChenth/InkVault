@@ -189,6 +189,81 @@ fn read_file_bytes(path: String) -> Result<Vec<u8>, String> {
     fs::read(&path).map_err(|e| e.to_string())
 }
 
+pub mod pdf_engine;
+use pdf_engine::PDFInputPayload;
+
+#[tauri::command]
+fn native_merge(items: Vec<PDFInputPayload>) -> Result<Vec<u8>, String> {
+    pdf_engine::native_merge_pdfs(items)
+}
+
+#[tauri::command]
+fn native_split(item: PDFInputPayload, page_indices: Vec<usize>) -> Result<Vec<u8>, String> {
+    pdf_engine::native_split_pdf(item, page_indices)
+}
+
+#[tauri::command]
+fn native_protect(
+    item: PDFInputPayload,
+    user_password: Option<String>,
+    owner_password: Option<String>,
+    allow_print: bool,
+    allow_copy: bool,
+) -> Result<Vec<u8>, String> {
+    pdf_engine::native_protect_pdf(item, user_password, owner_password, allow_print, allow_copy)
+}
+
+#[tauri::command]
+fn native_compress(item: PDFInputPayload, preset: String) -> Result<Vec<u8>, String> {
+    pdf_engine::native_compress_pdf(item, &preset)
+}
+
+#[tauri::command]
+fn native_sanitize(item: PDFInputPayload) -> Result<Vec<u8>, String> {
+    pdf_engine::native_sanitize_pdf(item)
+}
+
+#[tauri::command]
+fn native_sign(
+    item: PDFInputPayload,
+    cert_payload: PDFInputPayload,
+    cert_password: String,
+    page: usize,
+    rect: Option<[f64; 4]>,
+    reason: Option<String>,
+    location: Option<String>,
+    contact: Option<String>,
+) -> Result<Vec<u8>, String> {
+    pdf_engine::native_sign_pdf(
+        item,
+        cert_payload,
+        &cert_password,
+        page,
+        rect,
+        reason,
+        location,
+        contact,
+    )
+}
+
+#[tauri::command]
+fn native_redact(
+    item: PDFInputPayload,
+    page: usize,
+    rects: Vec<[f64; 4]>,
+    overlay_text: Option<String>,
+) -> Result<Vec<u8>, String> {
+    pdf_engine::native_redact_pdf(item, page, rects, overlay_text)
+}
+
+#[tauri::command]
+fn native_create_forms(
+    item: PDFInputPayload,
+    fields: Vec<pdf_engine::FormFieldPayload>,
+) -> Result<Vec<u8>, String> {
+    pdf_engine::native_create_form_fields(item, fields)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -196,7 +271,15 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             pick_study_folder,
             scan_subject_folder,
-            read_file_bytes
+            read_file_bytes,
+            native_merge,
+            native_split,
+            native_protect,
+            native_compress,
+            native_sanitize,
+            native_sign,
+            native_redact,
+            native_create_forms
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

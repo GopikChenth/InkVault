@@ -1,9 +1,48 @@
 [package]
 name = "ink-vault"
 version = "0.1.0"
-description = "Lightweight, Modern & Offline Document Suite"
-authors = ["Ink Vault Team"]
+description = "Lightweight, Modern & Offline Document Suite by ArcadeLabs"
+authors = ["ArcadeLabs Team"]
 edition = "2021"
+
+[workspace]
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+rust-version = "1.90"
+repository = "https://github.com/ArcadeLabs/InkVault"
+
+[workspace.dependencies]
+# internal inkvault crates
+inkvault-geom = { path = "crates/geom", version = "0.1.0" }
+inkvault-filters = { path = "crates/filters", version = "0.1.0" }
+inkvault-cos = { path = "crates/cos", version = "0.1.0" }
+inkvault-crypt = { path = "crates/crypt", version = "0.1.0" }
+inkvault-organize = { path = "crates/organize", version = "0.1.0" }
+inkvault-annot = { path = "crates/annot", version = "0.1.0" }
+inkvault-fonts = { path = "crates/fonts", version = "0.1.0" }
+inkvault-model = { path = "crates/model", version = "0.1.0" }
+inkvault-content = { path = "crates/content", version = "0.1.0" }
+inkvault-redact = { path = "crates/redact", version = "0.1.0" }
+inkvault-sign = { path = "crates/sign", version = "0.1.0" }
+inkvault-optimize = { path = "crates/optimize", version = "0.1.0" }
+inkvault-forms = { path = "crates/forms", version = "0.1.0" }
+inkvault-edit = { path = "crates/edit", version = "0.1.0" }
+
+flate2 = { version = "1.1", default-features = false, features = ["rust_backend"] }
+weezl = "0.2"
+thiserror = "2"
+serde = { version = "1", features = ["derive", "rc"] }
+serde_json = "1"
+log = "0.4"
+kurbo = "0.13"
+proptest = "1"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
 
 [lib]
 name = "ink_vault_lib"
@@ -16,7 +55,16 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = [] }
 tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+
+# Native InkVault engine crates
+inkvault-cos = { path = "crates/cos" }
+inkvault-crypt = { path = "crates/crypt" }
+inkvault-organize = { path = "crates/organize" }
+inkvault-optimize = { path = "crates/optimize" }
+inkvault-redact = { path = "crates/redact" }
+inkvault-sign = { path = "crates/sign" }
+inkvault-annot = { path = "crates/annot" }
+inkvault-forms = { path = "crates/forms" }
 
 [profile.release]
 opt-level = "z"
@@ -24,4 +72,3 @@ lto = true
 codegen-units = 1
 panic = "abort"
 strip = true
-

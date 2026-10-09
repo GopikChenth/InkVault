@@ -6,7 +6,9 @@ import {
   Scissors, 
   Minimize2, 
   Stamp, 
-  Lock 
+  Lock,
+  Award,
+  FormInput
 } from 'lucide-react';
 import { StudioToolItem } from '../types';
 
@@ -16,6 +18,8 @@ export const STUDIO_TOOL_ITEMS: StudioToolItem[] = [
   { id: 'compress', label: 'Compress PDF', icon: Minimize2, description: 'Reduce file footprint' },
   { id: 'watermark', label: 'Watermark', icon: Stamp, description: 'Apply text or stamp mark' },
   { id: 'protect', label: 'Protect / Lock', icon: Lock, description: 'Encrypt or set passwords' },
+  { id: 'sign', label: 'Digital Sign', icon: Award, description: 'PAdES certificate signing' },
+  { id: 'forms', label: 'Prepare Form', icon: FormInput, description: 'AcroForm field authoring' },
 ];
 
 export interface StudioSidebarProps {

@@ -1,5 +1,3 @@
-import { LucideIcon } from 'lucide-react';
-
 export type PageView = 'firstPage' | 'workspace';
 export type AppMode = 'editor' | 'study' | 'reader';
 
@@ -57,26 +55,6 @@ export interface StudySubject {
   createdAt: string;
   icon?: string;
   folderPath?: string;
-}
-
-export interface OrganizerPageItem {
-  id: string;
-  originalPageNumber: number; // 1-indexed
-  rotation: number; // 0, 90, 180, 270
-  selected?: boolean;
-}
-
-export interface NavItem {
-  id: string;
-  label: string;
-  icon: LucideIcon;
-  count?: number;
-}
-
-export interface ToolItem {
-  id: string;
-  label: string;
-  icon: LucideIcon;
 }
 
 // ----------------------------------------------------
@@ -152,7 +130,8 @@ export type AnnotationToolType =
   | 'measure-area'
   | 'sticky-note'
   | 'textbox'
-  | 'voice-note';
+  | 'voice-note'
+  | 'redact-area';
 
 export interface CommentReply {
   id: string;

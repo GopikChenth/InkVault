@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, Suspense, lazy } from 'react';
 import { PageView, AppMode } from './types';
 import FirstPage from './pages/FirstPage';
 import TitleBar from './components/TitleBar';
+import ErrorBoundary from './components/common/ErrorBoundary';
 
 // Lazy-load non-initial viewports to reduce initial bundle and memory
 const WorkspacePage = lazy(() => import('./pages/WorkspacePage'));
@@ -125,7 +126,7 @@ export default function App() {
   }, [currentView]);
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-background text-zinc-800 dark:text-zinc-200">
+    <div className="flex flex-col h-screen w-full overflow-hidden bg-background text-zinc-800 dark:text-zinc-200">
       
       {/* Global Desktop Custom TitleBar & Menu Bar */}
       <TitleBar
@@ -138,33 +139,42 @@ export default function App() {
         onReturnToCover={handleReturnToCover}
         onToggleFullscreen={handleToggleFullscreen}
         currentMode={appMode}
-        onSelectMode={setAppMode}
+        onSelectMode={(mode) => {
+          setAppMode(mode);
+          setCurrentView('workspace');
+        }}
       />
 
       {/* Main App Viewport */}
       <div className="flex-1 overflow-hidden relative">
-        <Suspense fallback={<PageLoadingFallback />}>
-          {currentView === 'firstPage' ? (
-            <FirstPage
-              onEnterWorkspace={handleEnterWorkspace}
-              darkMode={darkMode}
-              onToggleDarkMode={handleToggleDarkMode}
-              currentMode={appMode}
-              onSelectMode={setAppMode}
-            />
-          ) : (
-            <WorkspacePage
-              onReturnToCover={handleReturnToCover}
-              darkMode={darkMode}
-              onToggleDarkMode={handleToggleDarkMode}
-              controlledActiveTab={activeTab}
-              onActiveTabChange={setActiveTab}
-              onActiveDocChange={setActiveDocName}
-              initialMode={appMode}
-              onModeChange={setAppMode}
-            />
-          )}
-        </Suspense>
+        <ErrorBoundary onReset={() => setCurrentView('firstPage')}>
+          <Suspense fallback={<PageLoadingFallback />}>
+            {currentView === 'firstPage' ? (
+              <FirstPage
+                onEnterWorkspace={handleEnterWorkspace}
+                darkMode={darkMode}
+                onToggleDarkMode={handleToggleDarkMode}
+                currentMode={appMode}
+                onSelectMode={setAppMode}
+              />
+            ) : (
+              <WorkspacePage
+                onReturnToCover={handleReturnToCover}
+                darkMode={darkMode}
+                onToggleDarkMode={handleToggleDarkMode}
+                controlledActiveTab={activeTab}
+                onActiveTabChange={setActiveTab}
+                activeTab={activeTab}
+                onSelectTab={setActiveTab}
+                onActiveDocChange={setActiveDocName}
+                currentMode={appMode}
+                initialMode={appMode}
+                onModeChange={setAppMode}
+                onSelectMode={setAppMode}
+              />
+            )}
+          </Suspense>
+        </ErrorBoundary>
       </div>
 
     </div>

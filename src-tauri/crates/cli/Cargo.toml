@@ -1,0 +1,21 @@
+[package]
+name = "inkvault-cli"
+description = "Headless CLI and Model Context Protocol (MCP) server for InkVault by ArcadeLabs"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+inkvault-cos = { workspace = true }
+inkvault-crypt = { workspace = true }
+inkvault-organize = { workspace = true }
+inkvault-optimize = { workspace = true }
+inkvault-redact = { workspace = true }
+inkvault-sign = { workspace = true }
+inkvault-annot = { workspace = true }
+inkvault-model = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }

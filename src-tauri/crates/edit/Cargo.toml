@@ -1,0 +1,19 @@
+[package]
+name = "inkvault-edit"
+description = "Page content editing: headers and footers, watermarks, backgrounds, Bates numbers (ISO 32000-2 §14.8)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+inkvault-cos = { workspace = true }
+inkvault-content = { workspace = true }
+inkvault-fonts = { workspace = true }
+inkvault-model = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+inkvault-annot = { workspace = true }

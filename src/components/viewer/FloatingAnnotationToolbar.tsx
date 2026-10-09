@@ -23,7 +23,9 @@ import {
   Download, 
   Trash2, 
   ChevronUp, 
-  Palette
+  Palette,
+  Eraser,
+  Award
 } from 'lucide-react';
 import { AnnotationToolType } from '../../types';
 
@@ -76,6 +78,7 @@ interface FloatingAnnotationToolbarProps {
   onExportXFDF: () => void;
   onExportJSON: () => void;
   onExportAnnotatedPDF?: () => void;
+  onOpenSignModal?: () => void;
   // Zoom & View Controls
   scale?: number;
   onZoomIn?: () => void;
@@ -102,6 +105,7 @@ function FloatingAnnotationToolbar({
   onExportXFDF,
   onExportJSON,
   onExportAnnotatedPDF,
+  onOpenSignModal,
   scale,
   onZoomIn,
   onZoomOut,
@@ -415,9 +419,41 @@ function FloatingAnnotationToolbar({
         <Mic className="h-4 w-4" />
       </button>
 
+      {/* 8. Redact Area Tool */}
+      <button
+        onClick={() => {
+          onSelectTool('redact-area');
+          closeAllMenus();
+        }}
+        title="Redact Area — Click and drag to mark and strip stream data"
+        className={`h-8 px-2.5 rounded-full border flex items-center gap-1.5 text-xs font-semibold whitespace-nowrap transition-all flex-shrink-0 ${
+          activeTool === 'redact-area'
+            ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
+            : 'border-border hover:bg-surface-container text-rose-600 dark:text-rose-400'
+        }`}
+      >
+        <Eraser className="h-3.5 w-3.5" />
+        <span className="hidden sm:inline">Redact Area</span>
+      </button>
+
+      {/* 9. Digital Sign Modal Trigger */}
+      {onOpenSignModal && (
+        <button
+          onClick={() => {
+            onOpenSignModal();
+            closeAllMenus();
+          }}
+          title="Digital Sign — PAdES B-B Certificate Signing"
+          className="h-8 px-2.5 rounded-full border border-border hover:bg-surface-container flex items-center gap-1.5 text-xs font-semibold whitespace-nowrap text-zinc-800 dark:text-zinc-100 transition-all flex-shrink-0"
+        >
+          <Award className="h-3.5 w-3.5 text-accent" />
+          <span className="hidden md:inline">Sign</span>
+        </button>
+      )}
+
       <div className="w-[1px] h-4 bg-border mx-0.5 flex-shrink-0" />
 
-      {/* 8. Color Palette & Stroke Picker Dropdown */}
+      {/* 10. Color Palette & Stroke Picker Dropdown */}
       <div className="relative flex-shrink-0">
         <button
           ref={colorBtnRef}

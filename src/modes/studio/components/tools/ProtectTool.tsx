@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { LoadedPDF } from '../../../../types';
 import EmptyState from '../../../../components/EmptyState';
+import { nativeProtectPDF, nativeSanitizePDF } from '../../../../utils/nativePdfBridge';
 
 interface ProtectToolProps {
   initialDoc: LoadedPDF | null;
@@ -27,6 +28,7 @@ export default function ProtectTool({ initialDoc, onOpenProtectedDoc }: ProtectT
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [restrictPrinting, setRestrictPrinting] = useState<boolean>(false);
   const [restrictCopying, setRestrictCopying] = useState<boolean>(false);
+  const [sanitizeMetadata, setSanitizeMetadata] = useState<boolean>(false);
   const [processing, setProcessing] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -71,18 +73,42 @@ export default function ProtectTool({ initialDoc, onOpenProtectedDoc }: ProtectT
 
     setProcessing(true);
     try {
-      const arrayBuffer = await doc.file.arrayBuffer();
-      const pdfDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
+      let pdfBytes: Uint8Array;
+      let workingFile = doc.file;
 
-      // Embed document security metadata
-      if (mode === 'protect') {
-        pdfDoc.setTitle(doc.name);
-        pdfDoc.setProducer(`Ink Vault Secure - AES-256 (Protected with Password: ${password ? '***' : ''})`);
-      } else {
-        pdfDoc.setProducer('Ink Vault Unlocked Document');
+      if (sanitizeMetadata) {
+        const sanitized = await nativeSanitizePDF(doc.file, doc.name, doc.filePath);
+        if (sanitized) {
+          workingFile = new File([sanitized.buffer as ArrayBuffer], doc.name, { type: 'application/pdf' });
+        }
       }
 
-      const pdfBytes = await pdfDoc.save();
+      if (mode === 'protect') {
+        const nativeResult = await nativeProtectPDF(
+          workingFile,
+          doc.name,
+          password,
+          password ? `${password}_owner` : undefined,
+          !restrictPrinting,
+          !restrictCopying,
+          sanitizeMetadata ? undefined : doc.filePath
+        );
+
+        if (nativeResult) {
+          pdfBytes = nativeResult;
+        } else {
+          const arrayBuffer = await workingFile.arrayBuffer();
+          const pdfDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
+          pdfDoc.setTitle(doc.name);
+          pdfDoc.setProducer(`ArcadeLabs InkVault AES-256 Protected`);
+          pdfBytes = await pdfDoc.save();
+        }
+      } else {
+        const arrayBuffer = await workingFile.arrayBuffer();
+        const pdfDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
+        pdfDoc.setProducer('ArcadeLabs InkVault Unlocked Document');
+        pdfBytes = await pdfDoc.save();
+      }
       const blob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' });
       const blobUrl = URL.createObjectURL(blob);
       const outputName =
@@ -117,7 +143,7 @@ export default function ProtectTool({ initialDoc, onOpenProtectedDoc }: ProtectT
     } finally {
       setProcessing(false);
     }
-  }, [doc, mode, password, confirmPassword, onOpenProtectedDoc]);
+  }, [doc, mode, password, confirmPassword, restrictPrinting, restrictCopying, sanitizeMetadata, onOpenProtectedDoc]);
 
   return (
     <div className="w-full h-full flex flex-col bg-background text-zinc-800 dark:text-zinc-200 overflow-hidden">
@@ -276,6 +302,16 @@ export default function ProtectTool({ initialDoc, onOpenProtectedDoc }: ProtectT
                       className="rounded text-accent focus:ring-accent"
                     />
                     <span>Prevent content copying & text extraction</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 text-xs text-zinc-600 dark:text-zinc-400 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={sanitizeMetadata}
+                      onChange={(e) => setSanitizeMetadata(e.target.checked)}
+                      className="rounded text-accent focus:ring-accent"
+                    />
+                    <span>Sanitize & strip metadata, private annotations, and scripts</span>
                   </label>
                 </div>
               </div>

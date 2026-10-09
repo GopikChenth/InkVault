@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { LoadedPDF } from '../../../../types';
 import EmptyState from '../../../../components/EmptyState';
+import { nativeSplitPDF } from '../../../../utils/nativePdfBridge';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -138,14 +139,21 @@ export default function SplitTool({ initialDoc, onOpenExtractedDoc }: SplitToolP
 
     setProcessing(true);
     try {
-      const arrayBuffer = await doc.file.arrayBuffer();
-      const srcDoc = await PDFDocument.load(arrayBuffer);
-      const newDoc = await PDFDocument.create();
+      let pdfBytes: Uint8Array;
+      const nativeResult = await nativeSplitPDF(doc.file, doc.name, targetIndices, doc.filePath);
 
-      const copiedPages = await newDoc.copyPages(srcDoc, targetIndices);
-      copiedPages.forEach((page) => newDoc.addPage(page));
+      if (nativeResult) {
+        pdfBytes = nativeResult;
+      } else {
+        const arrayBuffer = await doc.file.arrayBuffer();
+        const srcDoc = await PDFDocument.load(arrayBuffer);
+        const newDoc = await PDFDocument.create();
 
-      const pdfBytes = await newDoc.save();
+        const copiedPages = await newDoc.copyPages(srcDoc, targetIndices);
+        copiedPages.forEach((page) => newDoc.addPage(page));
+
+        pdfBytes = await newDoc.save();
+      }
       const blob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' });
       const blobUrl = URL.createObjectURL(blob);
       const outputName = doc.name.replace(/\.pdf$/i, '') + '_Extracted.pdf';

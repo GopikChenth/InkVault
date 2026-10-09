@@ -39,6 +39,8 @@ const SplitTool = React.lazy(() => import('../modes/studio/components/tools/Spli
 const CompressTool = React.lazy(() => import('../modes/studio/components/tools/CompressTool'));
 const WatermarkTool = React.lazy(() => import('../modes/studio/components/tools/WatermarkTool'));
 const ProtectTool = React.lazy(() => import('../modes/studio/components/tools/ProtectTool'));
+const DigitalSignTool = React.lazy(() => import('../modes/studio/components/tools/DigitalSignTool'));
+const PrepareFormTool = React.lazy(() => import('../modes/studio/components/tools/PrepareFormTool'));
 
 import { 
   StudySidebar, 
@@ -65,10 +67,16 @@ interface WorkspacePageProps {
   onReturnToCover: () => void;
   darkMode: boolean;
   onToggleDarkMode: () => void;
+  // Tabs (controlled from App or TitleBar)
+  activeTab?: string;
   controlledActiveTab?: string;
+  onSelectTab?: (tab: string) => void;
   onActiveTabChange?: (tab: string) => void;
   onActiveDocChange?: (docName: string | null) => void;
+  // Modes (controlled from App or TitleBar)
+  currentMode?: AppMode;
   initialMode?: AppMode;
+  onSelectMode?: (mode: AppMode) => void;
   onModeChange?: (mode: AppMode) => void;
 }
 
@@ -76,25 +84,43 @@ export default function WorkspacePage({
   onReturnToCover,
   darkMode,
   onToggleDarkMode,
+  activeTab: propActiveTab,
   controlledActiveTab,
+  onSelectTab: propOnSelectTab,
   onActiveTabChange,
   onActiveDocChange,
+  currentMode: propCurrentMode,
   initialMode = 'editor',
+  onSelectMode: propOnSelectMode,
   onModeChange,
 }: WorkspacePageProps) {
   // 1. Mode & Tab Navigation State
-  const [currentMode, setCurrentMode] = useState<AppMode>(initialMode);
+  const effectiveInitialMode = propCurrentMode ?? initialMode ?? 'editor';
+  const [currentMode, setCurrentMode] = useState<AppMode>(effectiveInitialMode);
 
+  // Sync mode changes from parent (e.g. TitleBar mode switcher)
   useEffect(() => {
-    if (initialMode) setCurrentMode(initialMode);
-  }, [initialMode]);
+    if (propCurrentMode && propCurrentMode !== currentMode) {
+      setCurrentMode(propCurrentMode);
+    }
+  }, [propCurrentMode]);
 
-  const [internalActiveTab, setInternalActiveTab] = useState<string>('recent');
-  const activeTab = controlledActiveTab ?? internalActiveTab;
+  const [internalActiveTab, setInternalActiveTab] = useState<string>(() => propActiveTab ?? controlledActiveTab ?? 'recent');
+  const activeTab = propActiveTab ?? controlledActiveTab ?? internalActiveTab;
+
+  // Sync tab changes from parent (e.g. File menu tools)
+  useEffect(() => {
+    const incomingTab = propActiveTab ?? controlledActiveTab;
+    if (incomingTab && incomingTab !== internalActiveTab) {
+      setInternalActiveTab(incomingTab);
+    }
+  }, [propActiveTab, controlledActiveTab]);
+
   const setActiveTab = useCallback((tab: string) => {
     setInternalActiveTab(tab);
     if (onActiveTabChange) onActiveTabChange(tab);
-  }, [onActiveTabChange]);
+    if (propOnSelectTab) propOnSelectTab(tab);
+  }, [onActiveTabChange, propOnSelectTab]);
 
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
 
@@ -112,7 +138,8 @@ export default function WorkspacePage({
       return current;
     });
     if (onModeChange) onModeChange(mode);
-  }, [onModeChange, setActiveTab]);
+    if (propOnSelectMode) propOnSelectMode(mode);
+  }, [onModeChange, propOnSelectMode, setActiveTab]);
 
   const [activeDocIdByMode, setActiveDocIdByMode] = useState<Record<AppMode, string | null>>(() => {
     try {
@@ -754,6 +781,10 @@ export default function WorkspacePage({
                 <WatermarkTool initialDoc={activeDoc} onOpenWatermarkedDoc={handleRegisterAndOpenDoc} />
               ) : activeTab === 'protect' ? (
                 <ProtectTool initialDoc={activeDoc} onOpenProtectedDoc={handleRegisterAndOpenDoc} />
+              ) : activeTab === 'sign' ? (
+                <DigitalSignTool initialDoc={activeDoc} onOpenSignedDoc={handleRegisterAndOpenDoc} />
+              ) : activeTab === 'forms' ? (
+                <PrepareFormTool initialDoc={activeDoc} onOpenFormDoc={handleRegisterAndOpenDoc} />
               ) : null}
             </React.Suspense>
           </div>

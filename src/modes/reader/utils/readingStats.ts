@@ -143,11 +143,3 @@ export function formatRelativeTime(dateInput?: string | Date | null): string {
   const diffYears = Math.floor(diffDays / 365);
   return `${diffYears} year${diffYears > 1 ? 's' : ''} ago`;
 }
-
-export function formatMinutes(minutes: number): string {
-  if (!minutes || minutes <= 0) return '0m';
-  if (minutes < 60) return `${Math.round(minutes)}m`;
-  const hrs = Math.floor(minutes / 60);
-  const mins = Math.round(minutes % 60);
-  return mins > 0 ? `${hrs}h ${mins}m` : `${hrs}h`;
-}

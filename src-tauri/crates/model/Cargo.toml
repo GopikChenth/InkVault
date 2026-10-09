@@ -1,0 +1,12 @@
+[package]
+name = "inkvault-model"
+description = "Typed views over the PDF object graph (page tree with inherited attributes, page geometry)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+inkvault-cos = { workspace = true }

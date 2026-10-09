@@ -145,11 +145,10 @@ export default function TitleBar({
   return (
     <div 
       ref={menuContainerRef}
-      data-tauri-drag-region
       className="h-8 w-full bg-surface/85 dark:bg-[#101415]/90 backdrop-blur-xl border-b border-border flex items-center justify-between px-2 select-none z-50 text-xs text-zinc-700 dark:text-zinc-300 flex-shrink-0"
     >
       {/* 1. Left: Brand & Menu Items */}
-      <div className="flex items-center gap-1 min-w-0" data-tauri-drag-region>
+      <div className="flex items-center gap-1 min-w-0 flex-shrink-0">
         
         {/* App Icon */}
         <div 
@@ -507,14 +506,12 @@ export default function TitleBar({
 
       {/* 2. Center: Active Document Title */}
       <div 
-        data-tauri-drag-region
-        className="hidden md:flex flex-1 items-center justify-center min-w-0 px-2 h-full cursor-default"
+        className="hidden md:flex flex-1 items-center justify-center min-w-0 px-2 h-full cursor-default pointer-events-none select-none"
       >
         <span 
-          data-tauri-drag-region
           className="text-[11px] font-mono text-zinc-500 dark:text-zinc-400 truncate max-w-xs lg:max-w-md font-medium"
         >
-          {activeDocName ? `${title} — ${activeDocName}` : title}
+          {activeDocName ? `${title} — ${activeDocName}` : `${title} · 100% Offline`}
         </span>
       </div>
 

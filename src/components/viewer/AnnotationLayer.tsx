@@ -2,7 +2,10 @@ import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { 
   StickyNote as StickyIcon, 
   Mic as MicIcon, 
-  Trash2
+  Trash2,
+  ShieldAlert,
+  X,
+  Eraser
 } from 'lucide-react';
 import { PDFAnnotation, AnnotationToolType } from '../../types';
 
@@ -18,6 +21,7 @@ interface AnnotationLayerProps {
   onUpdateAnnotation: (annotation: PDFAnnotation) => void;
   onDeleteAnnotation: (id: string) => void;
   onOpenStickyNote: (annotation: PDFAnnotation) => void;
+  onApplyRedaction?: (pageNum: number, rect: { x: number; y: number; width: number; height: number }, id: string) => void;
   onToolUsed?: () => void;
 }
 
@@ -33,6 +37,7 @@ function AnnotationLayer({
   onUpdateAnnotation,
   onDeleteAnnotation,
   onOpenStickyNote,
+  onApplyRedaction,
   onToolUsed,
 }: AnnotationLayerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -222,6 +227,18 @@ function AnnotationLayer({
         strokeWidth,
         createdAt: new Date(),
       });
+    } else if (activeTool === 'redact-area') {
+      onAddAnnotation({
+        id: `redact-${Date.now()}`,
+        docId: '',
+        pageNum,
+        type: 'redact-area',
+        rect: { x: minX, y: minY, width: w, height: h },
+        color: '#e11d48',
+        strokeWidth: 2,
+        createdAt: new Date(),
+      });
+      onToolUsed?.();
     } else if (activeTool === 'arrow') {
       onAddAnnotation({
         id: `arrow-${Date.now()}`,
@@ -610,6 +627,18 @@ function AnnotationLayer({
                 rx="4"
               />
             )}
+            {activeTool === 'redact-area' && (
+              <rect
+                x={Math.min(startPoint.x, currentDragPoint.x) * width}
+                y={Math.min(startPoint.y, currentDragPoint.y) * height}
+                width={Math.abs(currentDragPoint.x - startPoint.x) * width}
+                height={Math.abs(currentDragPoint.y - startPoint.y) * height}
+                fill="rgba(225, 29, 72, 0.25)"
+                stroke="#e11d48"
+                strokeWidth="2"
+                strokeDasharray="4 2"
+              />
+            )}
             {activeTool === 'line' && (
               <line
                 x1={startPoint.x * width}
@@ -784,6 +813,47 @@ function AnnotationLayer({
                 className="w-full bg-transparent resize-none focus:outline-none text-xs font-semibold text-zinc-900 dark:text-zinc-100 min-h-[36px]"
                 rows={2}
               />
+            </div>
+          );
+        }
+
+        if (ann.type === 'redact-area' && ann.rect) {
+          return (
+            <div
+              key={ann.id}
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                left: `${ann.rect.x * 100}%`,
+                top: `${ann.rect.y * 100}%`,
+                width: `${ann.rect.width * 100}%`,
+                height: `${ann.rect.height * 100}%`,
+              }}
+              className="interactive-annotation absolute z-25 pointer-events-auto border-2 border-dashed border-rose-600 bg-rose-950/35 backdrop-blur-[1px] flex flex-col justify-between p-1 shadow-lg rounded-sm"
+            >
+              <div className="flex items-center justify-between gap-1 bg-black/85 px-1.5 py-0.5 rounded text-[9px] font-mono text-white font-bold tracking-wider">
+                <span className="text-rose-400 flex items-center gap-1">
+                  <ShieldAlert className="h-3 w-3" /> REDACT
+                </span>
+                <button
+                  onClick={() => onDeleteAnnotation(ann.id)}
+                  title="Cancel redaction mark"
+                  className="text-zinc-400 hover:text-white transition-colors"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+
+              {onApplyRedaction && (
+                <button
+                  type="button"
+                  onClick={() => onApplyRedaction(pageNum, ann.rect!, ann.id)}
+                  className="w-full py-1 px-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-[10px] rounded shadow-xs flex items-center justify-center gap-1 transition-transform active:scale-95"
+                >
+                  <Eraser className="h-3 w-3" />
+                  <span>Apply Redaction</span>
+                </button>
+              )}
             </div>
           );
         }

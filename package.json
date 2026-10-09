@@ -12,7 +12,9 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "cli": "cargo run --manifest-path src-tauri/Cargo.toml -p inkvault-cli --bin inkvault --",
+    "mcp": "cargo run --manifest-path src-tauri/Cargo.toml -p inkvault-cli --bin inkvault -- mcp"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.11.1",

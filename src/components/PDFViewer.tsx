@@ -42,8 +42,10 @@ import MinimalStudyBar from './viewer/MinimalStudyBar';
 import PomodoroTimer from './viewer/PomodoroTimer';
 import TextSelectionToolbar, { SelectionData } from './viewer/TextSelectionToolbar';
 import FloatingAnchor from './common/FloatingAnchor';
+import DigitalSignModal from './viewer/DigitalSignModal';
 import { exportToXFDF, exportToJSON, downloadFile, bakeAnnotationsToPDF } from '../utils/annotationExporter';
 import { recordReadingActivity } from '../utils/readingStats';
+import { nativeRedactPDF } from '../utils/nativePdfBridge';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -245,6 +247,7 @@ export default function PDFViewer({
   const [undoStack, setUndoStack] = useState<PDFAnnotation[][]>([]);
   const [redoStack, setRedoStack] = useState<PDFAnnotation[][]>([]);
   const [activeStickyModalAnnId, setActiveStickyModalAnnId] = useState<string | null>(null);
+  const [isSignModalOpen, setIsSignModalOpen] = useState<boolean>(false);
 
   // Derive active modal annotation directly from annotations state
   const activeStickyModalAnn = useMemo(() => {
@@ -438,6 +441,87 @@ export default function PDFViewer({
     setAnnotations(next);
     persistAnnotations(next);
   }, [redoStack, annotations, persistAnnotations]);
+
+  // True Stream Redaction (inkvault-redact)
+  const handleApplyRedaction = useCallback(async (
+    targetPageNum: number,
+    normRect: { x: number; y: number; width: number; height: number },
+    annotationId: string
+  ) => {
+    if (!doc) return;
+    const pageInfo = pages.find((p) => p.pageNum === targetPageNum);
+    const pdfW = pageInfo?.width || 612;
+    const pdfH = pageInfo?.height || 792;
+    const x0 = normRect.x * pdfW;
+    const y0 = (1 - normRect.y - normRect.height) * pdfH;
+    const x1 = (normRect.x + normRect.width) * pdfW;
+    const y1 = (1 - normRect.y) * pdfH;
+
+    try {
+      const outputBytes = await nativeRedactPDF(
+        doc.file,
+        doc.name,
+        targetPageNum - 1,
+        [[x0, y0, x1, y1]],
+        undefined,
+        doc.filePath
+      );
+
+      if (!outputBytes) {
+        throw new Error('Native stream redaction failed or not available.');
+      }
+
+      handleDeleteAnnotation(annotationId);
+
+      const blob = new Blob([outputBytes.buffer as ArrayBuffer], { type: 'application/pdf' });
+      const newBlobUrl = URL.createObjectURL(blob);
+      const updatedFile = new File([blob], doc.name, { type: 'application/pdf' });
+
+      doc.file = updatedFile;
+      doc.blobUrl = newBlobUrl;
+      doc.rawSize = outputBytes.length;
+
+      globalDocProxyCache.delete(doc.id);
+      globalTextIndexCache.delete(doc.id);
+
+      const loadingTask = pdfjsLib.getDocument({
+        data: outputBytes,
+        cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.6.205/cmaps/',
+        cMapPacked: true,
+      });
+      const newPdfDoc = await loadingTask.promise;
+      setPdfDoc(newPdfDoc);
+      renderedPagesRef.current.clear();
+      canvasMapRef.current.clear();
+    } catch (err) {
+      console.error('Error applying stream redaction:', err);
+      alert('Stream redaction failed: Ensure valid page coordinates.');
+    }
+  }, [doc, pages, handleDeleteAnnotation]);
+
+  const handleSignedDocUpdated = useCallback(async (newDoc: LoadedPDF) => {
+    doc.file = newDoc.file;
+    doc.blobUrl = newDoc.blobUrl;
+    doc.rawSize = newDoc.rawSize;
+
+    globalDocProxyCache.delete(doc.id);
+    globalTextIndexCache.delete(doc.id);
+
+    try {
+      const arrayBuffer = await newDoc.file.arrayBuffer();
+      const loadingTask = pdfjsLib.getDocument({
+        data: new Uint8Array(arrayBuffer),
+        cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.6.205/cmaps/',
+        cMapPacked: true,
+      });
+      const newPdfDoc = await loadingTask.promise;
+      setPdfDoc(newPdfDoc);
+      renderedPagesRef.current.clear();
+      canvasMapRef.current.clear();
+    } catch (err) {
+      console.error('Failed to reload signed PDF:', err);
+    }
+  }, [doc]);
 
   // ----------------------------------------------------
   // Contextual Text Selection Toolbar & Quick Actions
@@ -2148,6 +2232,7 @@ export default function PDFViewer({
                             onUpdateAnnotation={handleUpdateAnnotation}
                             onDeleteAnnotation={handleDeleteAnnotation}
                             onOpenStickyNote={handleOpenStickyNote}
+                            onApplyRedaction={handleApplyRedaction}
                             onToolUsed={handleAnnotationToolUsed}
                           />
                         </>
@@ -2185,6 +2270,7 @@ export default function PDFViewer({
           onExportXFDF={handleExportXFDF}
           onExportJSON={handleExportJSON}
           onExportAnnotatedPDF={handleExportAnnotatedPDF}
+          onOpenSignModal={() => setIsSignModalOpen(true)}
           scale={scale}
           onZoomIn={handleZoomIn}
           onZoomOut={handleZoomOut}
@@ -2227,6 +2313,15 @@ export default function PDFViewer({
         onClose={() => setSelectionData(null)}
         defaultColor={activeColor}
         isStudyMode={isStudyMode}
+      />
+
+      {/* 10. Native Digital Signature Modal */}
+      <DigitalSignModal
+        isOpen={isSignModalOpen}
+        onClose={() => setIsSignModalOpen(false)}
+        doc={doc}
+        currentPage={currentPage}
+        onDocumentUpdated={handleSignedDocUpdated}
       />
 
     </div>

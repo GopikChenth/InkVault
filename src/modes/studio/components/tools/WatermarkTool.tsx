@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { LoadedPDF } from '../../../../types';
 import EmptyState from '../../../../components/EmptyState';
+import { nativeWatermarkPDF } from '../../../../utils/nativePdfBridge';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -152,37 +153,60 @@ export default function WatermarkTool({ initialDoc, onOpenWatermarkedDoc }: Wate
     return rgb(r || 0, g || 0, b || 0);
   };
 
-  // Apply Watermark to all pages in-memory via pdf-lib
+  // Apply Watermark to all pages (Native Rust engine with client-side fallback)
   const handleApplyWatermark = useCallback(async (openDirectly: boolean = false) => {
     if (!doc) return;
     setApplying(true);
 
     try {
-      const arrayBuffer = await doc.file.arrayBuffer();
-      const pdfDoc = await PDFDocument.load(arrayBuffer);
-      const helveticaFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+      let pdfBytes: Uint8Array;
+      const clean = colorHex.replace('#', '');
+      const r = parseInt(clean.substring(0, 2), 16) / 255;
+      const g = parseInt(clean.substring(2, 4), 16) / 255;
+      const b = parseInt(clean.substring(4, 6), 16) / 255;
 
-      const pages = pdfDoc.getPages();
-      const color = hexToRgb(colorHex);
-
-      for (const page of pages) {
-        const { width, height } = page.getSize();
-        const textWidth = helveticaFont.widthOfTextAtSize(watermarkText, fontSize);
-        const textHeight = helveticaFont.heightAtSize(fontSize);
-
-        // Center calculation
-        page.drawText(watermarkText, {
-          x: width / 2 - (textWidth / 2) * Math.cos((rotationAngle * Math.PI) / 180),
-          y: height / 2 - (textHeight / 2) * Math.sin((rotationAngle * Math.PI) / 180),
-          size: fontSize,
-          font: helveticaFont,
-          color,
+      const nativeResult = await nativeWatermarkPDF(
+        doc.file,
+        doc.name,
+        {
+          text: watermarkText,
+          fontSize,
+          colorRgb: [r, g, b],
           opacity,
-          rotate: degrees(rotationAngle),
-        });
+          rotation: rotationAngle,
+        },
+        doc.filePath
+      );
+
+      if (nativeResult) {
+        pdfBytes = nativeResult;
+      } else {
+        const arrayBuffer = await doc.file.arrayBuffer();
+        const pdfDoc = await PDFDocument.load(arrayBuffer);
+        const helveticaFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+        const pages = pdfDoc.getPages();
+        const color = hexToRgb(colorHex);
+
+        for (const page of pages) {
+          const { width, height } = page.getSize();
+          const textWidth = helveticaFont.widthOfTextAtSize(watermarkText, fontSize);
+          const textHeight = helveticaFont.heightAtSize(fontSize);
+
+          // Center calculation
+          page.drawText(watermarkText, {
+            x: width / 2 - (textWidth / 2) * Math.cos((rotationAngle * Math.PI) / 180),
+            y: height / 2 - (textHeight / 2) * Math.sin((rotationAngle * Math.PI) / 180),
+            size: fontSize,
+            font: helveticaFont,
+            color,
+            opacity,
+            rotate: degrees(rotationAngle),
+          });
+        }
+        pdfBytes = await pdfDoc.save();
       }
 
-      const pdfBytes = await pdfDoc.save();
       const blob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' });
       const blobUrl = URL.createObjectURL(blob);
       const outputName = doc.name.replace(/\.pdf$/i, '') + '_Watermarked.pdf';
@@ -255,8 +279,8 @@ export default function WatermarkTool({ initialDoc, onOpenWatermarkedDoc }: Wate
         {!doc ? (
           <EmptyState
             icon={Stamp}
-            title="Select a PDF to Watermark"
-            description="Add text watermarks with customizable opacity, rotation, and colors."
+            title="Add Watermark"
+            description="Add custom text watermarks with control over opacity and rotation."
             actionLabel="Browse PDF"
             onAction={() => fileInputRef.current?.click()}
           />

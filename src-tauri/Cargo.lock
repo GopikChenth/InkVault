@@ -2069,6 +2069,7 @@ dependencies = [
  "inkvault-annot",
  "inkvault-cos",
  "inkvault-crypt",
+ "inkvault-edit",
  "inkvault-forms",
  "inkvault-optimize",
  "inkvault-organize",

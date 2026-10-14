@@ -171,7 +171,7 @@ function SearchOverlay({
             title="Match Case (Alt+C)"
             className={`h-6 px-2.5 rounded-full flex items-center gap-1 text-[10px] font-mono transition-all ${
               isCaseSensitive 
-                ? 'bg-accent text-[#00363d] font-bold shadow-xs' 
+                ? 'bg-accent text-accent-on font-bold shadow-xs' 
                 : 'text-zinc-500 hover:bg-surface-container hover:text-on-surface'
             }`}
           >
@@ -186,7 +186,7 @@ function SearchOverlay({
             title="Match Whole Word (Alt+W)"
             className={`h-6 px-2.5 rounded-full flex items-center gap-1 text-[10px] font-mono transition-all disabled:opacity-30 ${
               isWholeWord && !isRegex
-                ? 'bg-accent text-[#00363d] font-bold shadow-xs' 
+                ? 'bg-accent text-accent-on font-bold shadow-xs' 
                 : 'text-zinc-500 hover:bg-surface-container hover:text-on-surface'
             }`}
           >
@@ -200,7 +200,7 @@ function SearchOverlay({
             title="Use Regular Expression (Alt+R)"
             className={`h-6 px-2.5 rounded-full flex items-center gap-1 text-[10px] font-mono transition-all ${
               isRegex 
-                ? 'bg-accent text-[#00363d] font-bold shadow-xs' 
+                ? 'bg-accent text-accent-on font-bold shadow-xs' 
                 : 'text-zinc-500 hover:bg-surface-container hover:text-on-surface'
             }`}
           >
@@ -215,7 +215,7 @@ function SearchOverlay({
           title="Search across all open documents in session"
           className={`h-6 px-2.5 rounded-full flex items-center gap-1 text-[10px] font-mono transition-all ${
             isMultiDoc 
-              ? 'bg-tertiary text-[#00363d] font-bold shadow-xs' 
+              ? 'bg-tertiary text-white shadow-xs font-bold' 
               : 'text-zinc-500 hover:bg-surface-container hover:text-on-surface'
           }`}
         >

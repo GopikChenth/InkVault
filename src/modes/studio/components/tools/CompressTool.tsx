@@ -140,8 +140,8 @@ export default function CompressTool({ initialDoc, onOpenCompressedDoc }: Compre
         {!doc ? (
           <EmptyState
             icon={Minimize2}
-            title="Select a PDF to Compress"
-            description="Reduce document file size for email sharing, storage, and fast web distribution."
+            title="Compress PDF"
+            description="Reduce document file size for easy sharing."
             actionLabel="Browse PDF"
             onAction={() => fileInputRef.current?.click()}
           />

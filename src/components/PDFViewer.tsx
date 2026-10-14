@@ -133,28 +133,24 @@ export default function PDFViewer({
   const [loading, setLoading] = useState<boolean>(true);
   const [isBakingAnnotations, setIsBakingAnnotations] = useState<boolean>(false);
 
-  // Track active reading time in minutes and pages read
+  // Automated Reader activity logger: record unique pages turned and active immersion minutes
+  const visitedPagesRef = useRef<Set<number>>(new Set());
   useEffect(() => {
-    const startTime = Date.now();
-    let prevPage = doc.currentPage || 1;
+    if (initialAppMode === 'reader' && currentPage > 0 && !visitedPagesRef.current.has(currentPage)) {
+      visitedPagesRef.current.add(currentPage);
+      recordReadingActivity(1, 0);
+    }
+  }, [initialAppMode, currentPage]);
 
-    const interval = setInterval(() => {
-      const currentPageNum = doc.currentPage || 1;
-      const pagesDiff = Math.max(0, currentPageNum - prevPage);
-      prevPage = currentPageNum;
-      recordReadingActivity(pagesDiff, 1);
-    }, 60000);
-
-    return () => {
-      clearInterval(interval);
-      const minutesElapsed = Math.round((Date.now() - startTime) / 60000);
-      const currentPageNum = doc.currentPage || 1;
-      const pagesDiff = Math.max(0, currentPageNum - prevPage);
-      if (minutesElapsed >= 1 || pagesDiff > 0) {
-        recordReadingActivity(pagesDiff, Math.max(1, minutesElapsed));
+  useEffect(() => {
+    if (initialAppMode !== 'reader') return;
+    const timer = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        recordReadingActivity(0, 1);
       }
-    };
-  }, [doc]);
+    }, 60000);
+    return () => clearInterval(timer);
+  }, [initialAppMode]);
 
   // 1. Page Layout Controls
   const [layoutMode, setLayoutMode] = useState<PageLayoutMode>(() => 
@@ -171,6 +167,24 @@ export default function PDFViewer({
   const [studyTint, setStudyTint] = useState<'default' | 'dark'>('default');
   const [isStudyBarPinned, setIsStudyBarPinned] = useState<boolean>(true);
   const [isStudyBarHovered, setIsStudyBarHovered] = useState<boolean>(false);
+
+  // Circadian Paper Tone (Reader mode: warm paper, dark espresso, or original)
+  const [readerPaperTone, setReaderPaperTone] = useState<'warm' | 'dark' | 'original'>(() => {
+    try {
+      const saved = localStorage.getItem('inkvault_reader_paper_tone');
+      if (saved === 'warm' || saved === 'dark' || saved === 'original') return saved;
+      return 'warm';
+    } catch {
+      return 'warm';
+    }
+  });
+
+  const handleSetReaderPaperTone = useCallback((tone: 'warm' | 'dark' | 'original') => {
+    setReaderPaperTone(tone);
+    try {
+      localStorage.setItem('inkvault_reader_paper_tone', tone);
+    } catch {}
+  }, []);
 
   // 3. Navigation Panes (Left Drawer)
   const [isNavSidebarOpen, setIsNavSidebarOpen] = useState<boolean>(() => {
@@ -486,8 +500,9 @@ export default function PDFViewer({
 
       const loadingTask = pdfjsLib.getDocument({
         data: outputBytes,
-        cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.6.205/cmaps/',
+        cMapUrl: '/cmaps/',
         cMapPacked: true,
+        standardFontDataUrl: '/standard_fonts/',
       });
       const newPdfDoc = await loadingTask.promise;
       setPdfDoc(newPdfDoc);
@@ -511,8 +526,9 @@ export default function PDFViewer({
       const arrayBuffer = await newDoc.file.arrayBuffer();
       const loadingTask = pdfjsLib.getDocument({
         data: new Uint8Array(arrayBuffer),
-        cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.6.205/cmaps/',
+        cMapUrl: '/cmaps/',
         cMapPacked: true,
+        standardFontDataUrl: '/standard_fonts/',
       });
       const newPdfDoc = await loadingTask.promise;
       setPdfDoc(newPdfDoc);
@@ -838,9 +854,9 @@ export default function PDFViewer({
     } else {
       const loadingTask = pdfjsLib.getDocument({
         url: doc.blobUrl,
-        cMapUrl: 'https://unpkg.com/pdfjs-dist@5.6.205/cmaps/',
+        cMapUrl: '/cmaps/',
         cMapPacked: true,
-        standardFontDataUrl: 'https://unpkg.com/pdfjs-dist@5.6.205/standard_fonts/',
+        standardFontDataUrl: '/standard_fonts/',
         enableXfa: true,
       });
 
@@ -1530,6 +1546,21 @@ export default function PDFViewer({
   };
 
   const tintStyle = useMemo(() => {
+    if (initialAppMode === 'reader') {
+      if (readerPaperTone === 'warm') {
+        return {
+          filter: 'sepia(0.22) contrast(0.98) brightness(0.98)',
+        };
+      }
+      if (readerPaperTone === 'dark') {
+        return {
+          filter: 'invert(0.90) hue-rotate(180deg) sepia(0.22) contrast(0.95)',
+          backgroundColor: '#13110f',
+        };
+      }
+      return {};
+    }
+
     if (!isStudyMode || studyTint === 'default') return {};
     if (studyTint === 'dark') {
       return {
@@ -1538,7 +1569,7 @@ export default function PDFViewer({
       };
     }
     return {};
-  }, [isStudyMode, studyTint]);
+  }, [initialAppMode, readerPaperTone, isStudyMode, studyTint]);
 
   // Keyboard Shortcuts (Esc closes open overlays/menus without closing PDF, ⌘Z undo, ⌘⇧Z redo, ⌘F search, ⌘B sidebar, Zen mode, Rotations)
   useEffect(() => {
@@ -1911,25 +1942,25 @@ export default function PDFViewer({
               <div className="px-2.5 py-1 text-[10px] font-mono text-zinc-400 uppercase font-semibold tracking-wider">Page Layout</div>
               <button
                 onClick={() => { setLayoutMode('continuous'); setShowLayoutMenu(false); }}
-                className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-left transition-all duration-200 ease-caelestia-decel ${layoutMode === 'continuous' ? 'bg-accent text-[#00363d] font-bold shadow-xs' : 'hover:bg-surface-high text-on-surface'}`}
+                className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-left transition-all duration-200 ease-caelestia-decel ${layoutMode === 'continuous' ? 'bg-accent text-accent-on font-bold shadow-xs' : 'hover:bg-surface-high text-on-surface'}`}
               >
                 <span>Continuous Scroll</span>
               </button>
               <button
                 onClick={() => { setLayoutMode('single'); setShowLayoutMenu(false); }}
-                className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-left transition-all duration-200 ease-caelestia-decel ${layoutMode === 'single' ? 'bg-accent text-[#00363d] font-bold shadow-xs' : 'hover:bg-surface-high text-on-surface'}`}
+                className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-left transition-all duration-200 ease-caelestia-decel ${layoutMode === 'single' ? 'bg-accent text-accent-on font-bold shadow-xs' : 'hover:bg-surface-high text-on-surface'}`}
               >
                 <span>Single Page View</span>
               </button>
               <button
                 onClick={() => { setLayoutMode('two-page'); setShowLayoutMenu(false); }}
-                className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-left transition-all duration-200 ease-caelestia-decel ${layoutMode === 'two-page' ? 'bg-accent text-[#00363d] font-bold shadow-xs' : 'hover:bg-surface-high text-on-surface'}`}
+                className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-left transition-all duration-200 ease-caelestia-decel ${layoutMode === 'two-page' ? 'bg-accent text-accent-on font-bold shadow-xs' : 'hover:bg-surface-high text-on-surface'}`}
               >
                 <span>Two-Page Book View</span>
               </button>
               <button
                 onClick={() => { setLayoutMode('facing-pages'); setShowLayoutMenu(false); }}
-                className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-left transition-all duration-200 ease-caelestia-decel ${layoutMode === 'facing-pages' ? 'bg-accent text-[#00363d] font-bold shadow-xs' : 'hover:bg-surface-high text-on-surface'}`}
+                className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-left transition-all duration-200 ease-caelestia-decel ${layoutMode === 'facing-pages' ? 'bg-accent text-accent-on font-bold shadow-xs' : 'hover:bg-surface-high text-on-surface'}`}
               >
                 <span>Facing Pages</span>
               </button>
@@ -1948,6 +1979,48 @@ export default function PDFViewer({
             </FloatingAnchor>
           </div>
 
+          {/* Reader Circadian Paper Tone Switcher */}
+          {initialAppMode === 'reader' && (
+            <div className="flex items-center gap-0.5 bg-surface-container border border-outline/20 p-0.5 rounded-full text-xs">
+              <button
+                type="button"
+                onClick={() => handleSetReaderPaperTone('warm')}
+                title="Circadian Warm Paper (Low melanopsin stimulation)"
+                className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-all duration-200 ${
+                  readerPaperTone === 'warm'
+                    ? 'bg-accent text-accent-on font-semibold shadow-xs'
+                    : 'text-on-surface hover:bg-surface-high'
+                }`}
+              >
+                📜 Warm
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSetReaderPaperTone('dark')}
+                title="Espresso Darkroom Inversion"
+                className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-all duration-200 ${
+                  readerPaperTone === 'dark'
+                    ? 'bg-accent text-accent-on font-semibold shadow-xs'
+                    : 'text-on-surface hover:bg-surface-high'
+                }`}
+              >
+                🌙 Dark
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSetReaderPaperTone('original')}
+                title="Original Unfiltered Document"
+                className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-all duration-200 ${
+                  readerPaperTone === 'original'
+                    ? 'bg-accent text-accent-on font-semibold shadow-xs'
+                    : 'text-on-surface hover:bg-surface-high'
+                }`}
+              >
+                Original
+              </button>
+            </div>
+          )}
+
           {/* 2. Text Reflow Reader Mode Toggle */}
           <button
             onClick={() => setIsReflowOpen(true)}
@@ -1963,7 +2036,7 @@ export default function PDFViewer({
             onClick={() => setIsSearchOpen((prev) => !prev)}
             title="Find & Search (⌘F / Ctrl+F)"
             className={`h-8 w-8 rounded-full border flex items-center justify-center transition-all duration-200 ease-caelestia-decel shadow-xs ${
-              isSearchOpen ? 'bg-accent text-[#00363d] border-accent font-bold shadow-sm ring-2 ring-accent/30' : 'border-outline/20 hover:bg-surface-container text-on-surface'
+              isSearchOpen ? 'bg-accent text-accent-on border-accent font-bold shadow-sm ring-2 ring-accent/30' : 'border-outline/20 hover:bg-surface-container text-on-surface'
             }`}
           >
             <Search className="h-3.5 w-3.5" />
@@ -1974,7 +2047,7 @@ export default function PDFViewer({
             onClick={() => setFocusMode((prev) => !prev)}
             title={focusMode ? 'Exit Zen Focus Mode [Z]' : 'Enter Zen Focus Mode (Dims UI) [Z]'}
             className={`h-8 w-8 rounded-full border flex items-center justify-center transition-all duration-200 ease-caelestia-decel shadow-xs ${
-              focusMode ? 'bg-tertiary text-[#381e72] border-tertiary font-bold shadow-sm ring-2 ring-tertiary/30' : 'border-outline/20 hover:bg-surface-container text-on-surface'
+              focusMode ? 'bg-tertiary text-accent-on border-tertiary font-bold shadow-sm ring-2 ring-tertiary/30' : 'border-outline/20 hover:bg-surface-container text-on-surface'
             }`}
           >
             <Eye className="h-3.5 w-3.5" />

@@ -47,7 +47,7 @@ export const StudySidebar: React.FC<StudySidebarProps> = ({
       <button
         type="button"
         onClick={onTriggerImportFolder}
-        className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-zinc-100 dark:text-zinc-900 text-xs font-semibold hover:bg-accent dark:hover:bg-accent dark:hover:text-white transition-all shadow-sm group active:scale-[0.98]"
+        className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-zinc-100 dark:text-zinc-900 text-xs font-semibold hover:bg-accent hover:text-accent-on transition-all shadow-sm group active:scale-[0.98]"
       >
         <span className="flex items-center gap-2">
           <FolderUp className="h-4 w-4" />
@@ -68,10 +68,10 @@ export const StudySidebar: React.FC<StudySidebarProps> = ({
         <button
           type="button"
           onClick={() => onSelectTab('viewer')}
-          className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+          className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium outline-none focus:outline-none select-none transition-colors duration-75 ${
             activeTab === 'viewer'
               ? 'bg-card text-zinc-900 dark:text-zinc-100 shadow-sm border border-border font-semibold'
-              : 'text-zinc-600 dark:text-zinc-400 hover:bg-card hover:text-zinc-900 dark:hover:text-zinc-100'
+              : 'text-zinc-600 dark:text-zinc-400 hover:bg-card/70 hover:text-zinc-900 dark:hover:text-zinc-100 border border-transparent'
           }`}
         >
           <span className="flex items-center gap-2.5">
@@ -89,10 +89,10 @@ export const StudySidebar: React.FC<StudySidebarProps> = ({
         <button
           type="button"
           onClick={() => onSelectTab('recent')}
-          className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+          className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium outline-none focus:outline-none select-none transition-colors duration-75 ${
             activeTab === 'recent'
               ? 'bg-card text-zinc-900 dark:text-zinc-100 shadow-sm border border-border font-semibold'
-              : 'text-zinc-600 dark:text-zinc-400 hover:bg-card hover:text-zinc-900 dark:hover:text-zinc-100'
+              : 'text-zinc-600 dark:text-zinc-400 hover:bg-card/70 hover:text-zinc-900 dark:hover:text-zinc-100 border border-transparent'
           }`}
         >
           <span className="flex items-center gap-2.5">
@@ -207,7 +207,7 @@ export const StudySidebar: React.FC<StudySidebarProps> = ({
         {studySubjects.length === 0 && (
           <div className="px-2 py-3 rounded-lg border border-dashed border-border bg-card/40 text-center">
             <p className="text-[11px] text-zinc-400">
-              No subjects yet. Click Import or drop a folder to organize coursework.
+              No subjects yet. Import or drop a folder.
             </p>
           </div>
         )}

@@ -388,6 +388,16 @@ function ViewerNavSidebar({
     [totalPages]
   );
 
+  const displayName = useMemo(() => {
+    if (!docName) return 'Document';
+    return docName.split('/').pop() || docName;
+  }, [docName]);
+
+  const folderName = useMemo(() => {
+    if (!docName || !docName.includes('/')) return null;
+    return docName.substring(0, docName.lastIndexOf('/'));
+  }, [docName]);
+
   // Outline expansion toggle state
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set(['root']));
 
@@ -538,17 +548,23 @@ function ViewerNavSidebar({
       {/* 1. Sleek Fixed Header Bar & Navigation Strip */}
       <div className="border-b border-border bg-surface-container/60 dark:bg-surface-container/40 flex-shrink-0 flex flex-col select-none">
         {/* Document Info Row */}
-        <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-border/50">
-          <div className="min-w-0 pr-2">
-            <h4 className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate" title={docName}>
-              {docName || 'Document'}
+        <div className="px-3.5 py-2 flex items-center justify-between border-b border-border/50">
+          <div className="min-w-0 pr-2 flex-1">
+            <h4 className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate" title={docName || displayName}>
+              {displayName}
             </h4>
-            <div className="flex items-center gap-1.5 text-[10px] font-mono text-zinc-400 mt-0.5">
-              <span>{totalPages} {totalPages === 1 ? 'page' : 'pages'}</span>
+            <div className="flex items-center gap-1.5 text-[10px] font-mono text-zinc-400 mt-0.5 truncate">
+              {folderName && (
+                <>
+                  <span className="text-accent truncate font-semibold">{folderName}</span>
+                  <span>•</span>
+                </>
+              )}
+              <span className="shrink-0">{totalPages} {totalPages === 1 ? 'page' : 'pages'}</span>
               {docSize ? (
                 <>
-                  <span>•</span>
-                  <span>{docSize}</span>
+                  <span className="shrink-0">•</span>
+                  <span className="shrink-0">{docSize}</span>
                 </>
               ) : null}
             </div>
@@ -563,7 +579,7 @@ function ViewerNavSidebar({
                   title="Single Column View (1 per row)"
                   aria-label="Single column view"
                   className={`p-1 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-1.5 focus-visible:ring-accent ${
-                    thumbnailColumns === '1' ? 'bg-accent text-[#00363d] font-bold shadow-2xs' : 'text-zinc-400 hover:text-on-surface'
+                    thumbnailColumns === '1' ? 'bg-accent text-accent-on font-bold shadow-2xs' : 'text-zinc-400 hover:text-on-surface'
                   }`}
                 >
                   <Columns className="h-3.5 w-3.5" aria-hidden="true" />
@@ -574,7 +590,7 @@ function ViewerNavSidebar({
                   title="2-Column Grid View"
                   aria-label="Two column grid view"
                   className={`p-1 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-1.5 focus-visible:ring-accent ${
-                    thumbnailColumns === '2' ? 'bg-accent text-[#00363d] font-bold shadow-2xs' : 'text-zinc-400 hover:text-on-surface'
+                    thumbnailColumns === '2' ? 'bg-accent text-accent-on font-bold shadow-2xs' : 'text-zinc-400 hover:text-on-surface'
                   }`}
                 >
                   <Grid className="h-3.5 w-3.5" aria-hidden="true" />
@@ -598,52 +614,52 @@ function ViewerNavSidebar({
         </div>
 
         {/* 2. Navigation Tab Switcher Strip */}
-        <div className="flex items-center justify-between px-2 py-1.5 bg-surface-container/60 gap-1 w-full overflow-hidden">
+        <div className="flex items-center px-2 py-1.5 bg-surface-container/60 gap-1 w-full overflow-x-auto no-scrollbar border-t border-border/20">
           <button
             type="button"
             onClick={() => onTabChange?.('thumbnails')}
             title="Page Thumbnails"
-            className={`flex-1 min-w-0 flex items-center justify-center gap-1.5 py-1 px-2.5 rounded-full text-[11px] font-medium transition-all ${
+            className={`shrink-0 flex items-center gap-1.5 py-1 px-2.5 rounded-full text-[11px] font-medium transition-all whitespace-nowrap ${
               activeTab === 'thumbnails'
-                ? 'bg-accent text-[#00363d] font-bold shadow-2xs'
+                ? 'bg-accent text-accent-on font-bold shadow-2xs'
                 : 'text-zinc-500 hover:text-on-surface'
             }`}
           >
             <Grid className="h-3.5 w-3.5 shrink-0" />
-            <span className="truncate">Pages</span>
+            <span>Pages</span>
           </button>
-
-          {attachments && attachments.length > 0 ? (
-            <button
-              type="button"
-              onClick={() => onTabChange?.('attachments')}
-              title="Embedded Attachments"
-              className={`flex-1 min-w-0 flex items-center justify-center gap-1.5 py-1 px-2.5 rounded-full text-[11px] font-medium transition-all ${
-                activeTab === 'attachments'
-                  ? 'bg-accent text-[#00363d] font-bold shadow-2xs'
-                  : 'text-zinc-500 hover:text-on-surface'
-              }`}
-            >
-              <Paperclip className="h-3.5 w-3.5 shrink-0" />
-              <span className="truncate">Files</span>
-              <span className="text-[9px] font-mono opacity-70 shrink-0">({attachments.length})</span>
-            </button>
-          ) : null}
 
           {isStudyMode && allDocs && allDocs.length > 0 ? (
             <button
               type="button"
               onClick={() => onTabChange?.('files')}
               title="Folder Structure Explorer"
-              className={`flex-1 min-w-0 flex items-center justify-center gap-1.5 py-1 px-2.5 rounded-full text-[11px] font-medium transition-all ${
+              className={`shrink-0 flex items-center gap-1.5 py-1 px-2.5 rounded-full text-[11px] font-medium transition-all whitespace-nowrap ${
                 activeTab === 'files'
-                  ? 'bg-accent text-[#00363d] font-bold shadow-2xs'
+                  ? 'bg-accent text-accent-on font-bold shadow-2xs'
                   : 'text-zinc-500 hover:text-on-surface'
               }`}
             >
               <FolderTree className="h-3.5 w-3.5 shrink-0" />
-              <span className="truncate">Folder</span>
+              <span>Folder</span>
               <span className="text-[9px] font-mono opacity-70 shrink-0">({allDocs.length})</span>
+            </button>
+          ) : null}
+
+          {attachments && attachments.length > 0 ? (
+            <button
+              type="button"
+              onClick={() => onTabChange?.('attachments')}
+              title="Embedded Attachments"
+              className={`shrink-0 flex items-center gap-1.5 py-1 px-2.5 rounded-full text-[11px] font-medium transition-all whitespace-nowrap ${
+                activeTab === 'attachments'
+                  ? 'bg-accent text-accent-on font-bold shadow-2xs'
+                  : 'text-zinc-500 hover:text-on-surface'
+              }`}
+            >
+              <Paperclip className="h-3.5 w-3.5 shrink-0" />
+              <span>Attachments</span>
+              <span className="text-[9px] font-mono opacity-70 shrink-0">({attachments.length})</span>
             </button>
           ) : null}
         </div>
@@ -974,15 +990,6 @@ function ViewerNavSidebar({
         {/* TAB 6: FOLDER EXPLORER (VS CODE TREE) */}
         {isStudyMode && activeTab === 'files' && allDocs && allDocs.length > 0 ? (
           <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between pb-1.5 border-b border-border/80">
-              <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
-                <FolderTree className="h-4 w-4 text-accent" />
-                <span>Folder Structure</span>
-              </span>
-              <span className="text-[10px] font-mono text-zinc-400">
-                {allDocs.length} {allDocs.length === 1 ? 'file' : 'files'}
-              </span>
-            </div>
             <FolderTreeExplorer
               docs={allDocs}
               activeDocId={activeDocId}

@@ -154,7 +154,7 @@ function FloatingAnnotationToolbar({
         title="Select & Navigate (V)"
         className={`h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
           activeTool === 'select' 
-            ? 'bg-accent text-[#00363d] shadow-xs font-bold' 
+            ? 'bg-accent text-accent-on shadow-xs font-bold' 
             : 'hover:bg-surface-container text-zinc-700 dark:text-zinc-200'
         }`}
       >
@@ -177,7 +177,7 @@ function FloatingAnnotationToolbar({
           title="Text Markup Tools (Highlight, Underline, Strikeout, Squiggly, Callout)"
           className={`h-8 px-3 rounded-full border flex items-center gap-1 text-xs font-semibold whitespace-nowrap transition-all ${
             isTextMarkupActive 
-              ? 'bg-accent text-[#00363d] border-accent shadow-xs' 
+              ? 'bg-accent text-accent-on border-accent shadow-xs' 
               : 'border-border hover:bg-surface-container text-zinc-800 dark:text-zinc-200'
           }`}
         >
@@ -203,35 +203,35 @@ function FloatingAnnotationToolbar({
           <div className="px-2 py-1 text-[10px] font-mono text-zinc-500 dark:text-zinc-400 uppercase font-semibold">Text Markup</div>
           <button
             onClick={() => { onSelectTool('highlight'); setShowMarkupMenu(false); }}
-            className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-left transition-colors ${activeTool === 'highlight' ? 'bg-accent text-[#00363d] font-bold' : 'hover:bg-accent/15 hover:text-accent text-zinc-800 dark:text-zinc-200'}`}
+            className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-left transition-colors ${activeTool === 'highlight' ? 'bg-accent text-accent-on font-bold' : 'hover:bg-accent/15 hover:text-accent text-zinc-800 dark:text-zinc-200'}`}
           >
             <Highlighter className="h-3.5 w-3.5 text-amber-500" />
             <span>Highlight</span>
           </button>
           <button
             onClick={() => { onSelectTool('underline'); setShowMarkupMenu(false); }}
-            className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-left transition-colors ${activeTool === 'underline' ? 'bg-accent text-[#00363d] font-bold' : 'hover:bg-accent/15 hover:text-accent text-zinc-800 dark:text-zinc-200'}`}
+            className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-left transition-colors ${activeTool === 'underline' ? 'bg-accent text-accent-on font-bold' : 'hover:bg-accent/15 hover:text-accent text-zinc-800 dark:text-zinc-200'}`}
           >
             <UnderlineIcon className="h-3.5 w-3.5 text-emerald-500" />
             <span>Underline</span>
           </button>
           <button
             onClick={() => { onSelectTool('strikeout'); setShowMarkupMenu(false); }}
-            className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-left transition-colors ${activeTool === 'strikeout' ? 'bg-accent text-[#00363d] font-bold' : 'hover:bg-accent/15 hover:text-accent text-zinc-800 dark:text-zinc-200'}`}
+            className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-left transition-colors ${activeTool === 'strikeout' ? 'bg-accent text-accent-on font-bold' : 'hover:bg-accent/15 hover:text-accent text-zinc-800 dark:text-zinc-200'}`}
           >
             <Strikethrough className="h-3.5 w-3.5 text-rose-500" />
             <span>Strikethrough</span>
           </button>
           <button
             onClick={() => { onSelectTool('squiggly'); setShowMarkupMenu(false); }}
-            className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-left transition-colors ${activeTool === 'squiggly' ? 'bg-accent text-[#00363d] font-bold' : 'hover:bg-accent/15 hover:text-accent text-zinc-800 dark:text-zinc-200'}`}
+            className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-left transition-colors ${activeTool === 'squiggly' ? 'bg-accent text-accent-on font-bold' : 'hover:bg-accent/15 hover:text-accent text-zinc-800 dark:text-zinc-200'}`}
           >
             <Spline className="h-3.5 w-3.5 text-purple-500" />
             <span>Squiggly Underline</span>
           </button>
           <button
             onClick={() => { onSelectTool('callout'); setShowMarkupMenu(false); }}
-            className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-left transition-colors ${activeTool === 'callout' ? 'bg-accent text-[#00363d] font-bold' : 'hover:bg-accent/15 hover:text-accent text-zinc-800 dark:text-zinc-200'}`}
+            className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-left transition-colors ${activeTool === 'callout' ? 'bg-accent text-accent-on font-bold' : 'hover:bg-accent/15 hover:text-accent text-zinc-800 dark:text-zinc-200'}`}
           >
             <MessageSquareQuote className="h-3.5 w-3.5 text-sky-500" />
             <span>Text Callout</span>
@@ -253,7 +253,7 @@ function FloatingAnnotationToolbar({
           title="Drawing & Shapes (Pen, Rectangle, Arrow, Line, Polygon)"
           className={`h-8 px-3 rounded-full border flex items-center gap-1 text-xs font-semibold whitespace-nowrap transition-all ${
             isShapeActive 
-              ? 'bg-accent text-[#00363d] border-accent shadow-xs' 
+              ? 'bg-accent text-accent-on border-accent shadow-xs' 
               : 'border-border hover:bg-surface-container text-zinc-800 dark:text-zinc-100'
           }`}
         >
@@ -279,35 +279,35 @@ function FloatingAnnotationToolbar({
           <div className="px-2 py-1 text-[10px] font-mono text-zinc-500 dark:text-zinc-400 uppercase font-semibold">Drawing & Shapes</div>
           <button
             onClick={() => { onSelectTool('pen'); setShowShapesMenu(false); }}
-            className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-left transition-colors ${activeTool === 'pen' ? 'bg-accent text-[#00363d] font-bold' : 'hover:bg-accent/15 hover:text-accent text-zinc-800 dark:text-zinc-100'}`}
+            className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-left transition-colors ${activeTool === 'pen' ? 'bg-accent text-accent-on font-bold' : 'hover:bg-accent/15 hover:text-accent text-zinc-800 dark:text-zinc-100'}`}
           >
             <PenTool className="h-3.5 w-3.5" />
             <span>Freehand Pen</span>
           </button>
           <button
             onClick={() => { onSelectTool('rectangle'); setShowShapesMenu(false); }}
-            className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-left transition-colors ${activeTool === 'rectangle' ? 'bg-accent text-[#00363d] font-bold' : 'hover:bg-accent/15 hover:text-accent text-zinc-800 dark:text-zinc-100'}`}
+            className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-left transition-colors ${activeTool === 'rectangle' ? 'bg-accent text-accent-on font-bold' : 'hover:bg-accent/15 hover:text-accent text-zinc-800 dark:text-zinc-100'}`}
           >
             <Square className="h-3.5 w-3.5" />
             <span>Rectangle</span>
           </button>
           <button
             onClick={() => { onSelectTool('arrow'); setShowShapesMenu(false); }}
-            className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-left transition-colors ${activeTool === 'arrow' ? 'bg-accent text-[#00363d] font-bold' : 'hover:bg-accent/15 hover:text-accent text-zinc-800 dark:text-zinc-100'}`}
+            className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-left transition-colors ${activeTool === 'arrow' ? 'bg-accent text-accent-on font-bold' : 'hover:bg-accent/15 hover:text-accent text-zinc-800 dark:text-zinc-100'}`}
           >
             <ArrowUpRight className="h-3.5 w-3.5" />
             <span>Arrow Pointer</span>
           </button>
           <button
             onClick={() => { onSelectTool('line'); setShowShapesMenu(false); }}
-            className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-left transition-colors ${activeTool === 'line' ? 'bg-accent text-[#00363d] font-bold' : 'hover:bg-accent/15 hover:text-accent text-zinc-800 dark:text-zinc-100'}`}
+            className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-left transition-colors ${activeTool === 'line' ? 'bg-accent text-accent-on font-bold' : 'hover:bg-accent/15 hover:text-accent text-zinc-800 dark:text-zinc-100'}`}
           >
             <Minus className="h-3.5 w-3.5" />
             <span>Straight Line</span>
           </button>
           <button
             onClick={() => { onSelectTool('polygon'); setShowShapesMenu(false); }}
-            className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-left transition-colors ${activeTool === 'polygon' ? 'bg-accent text-[#00363d] font-bold' : 'hover:bg-accent/15 hover:text-accent text-zinc-800 dark:text-zinc-100'}`}
+            className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-left transition-colors ${activeTool === 'polygon' ? 'bg-accent text-accent-on font-bold' : 'hover:bg-accent/15 hover:text-accent text-zinc-800 dark:text-zinc-100'}`}
           >
             <Hexagon className="h-3.5 w-3.5" />
             <span>Polygon Area</span>
@@ -329,7 +329,7 @@ function FloatingAnnotationToolbar({
           title="Measuring Tools (Distance / Perimeter & Area)"
           className={`h-8 px-3 rounded-full border flex items-center gap-1 text-xs font-semibold whitespace-nowrap transition-all ${
             isMeasureActive 
-              ? 'bg-accent text-[#00363d] border-accent shadow-xs' 
+              ? 'bg-accent text-accent-on border-accent shadow-xs' 
               : 'border-border hover:bg-surface-container text-zinc-800 dark:text-zinc-100'
           }`}
         >
@@ -348,7 +348,7 @@ function FloatingAnnotationToolbar({
           <div className="px-2 py-1 text-[10px] font-mono text-zinc-500 dark:text-zinc-400 uppercase font-semibold">Measuring Tools</div>
           <button
             onClick={() => { onSelectTool('measure-distance'); setShowMeasureMenu(false); }}
-            className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-left transition-colors ${activeTool === 'measure-distance' ? 'bg-accent text-[#00363d] font-bold' : 'hover:bg-accent/15 hover:text-accent text-zinc-800 dark:text-zinc-100'}`}
+            className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-left transition-colors ${activeTool === 'measure-distance' ? 'bg-accent text-accent-on font-bold' : 'hover:bg-accent/15 hover:text-accent text-zinc-800 dark:text-zinc-100'}`}
           >
             <Ruler className="h-3.5 w-3.5 text-accent" />
             <div>
@@ -358,7 +358,7 @@ function FloatingAnnotationToolbar({
           </button>
           <button
             onClick={() => { onSelectTool('measure-area'); setShowMeasureMenu(false); }}
-            className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-left transition-colors ${activeTool === 'measure-area' ? 'bg-accent text-[#00363d] font-bold' : 'hover:bg-accent/15 hover:text-accent text-zinc-800 dark:text-zinc-100'}`}
+            className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-left transition-colors ${activeTool === 'measure-area' ? 'bg-accent text-accent-on font-bold' : 'hover:bg-accent/15 hover:text-accent text-zinc-800 dark:text-zinc-100'}`}
           >
             <DraftingCompass className="h-3.5 w-3.5 text-accent" />
             <div>
@@ -380,7 +380,7 @@ function FloatingAnnotationToolbar({
         title="Text Box Tool (T) — Click anywhere on canvas to type"
         className={`h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
           activeTool === 'textbox' 
-            ? 'bg-accent text-[#00363d] shadow-xs font-bold' 
+            ? 'bg-accent text-accent-on shadow-xs font-bold' 
             : 'hover:bg-surface-container text-zinc-700 dark:text-zinc-200'
         }`}
       >
@@ -519,7 +519,7 @@ function FloatingAnnotationToolbar({
                     setShowColorMenu(false);
                   }}
                   className={`h-6 px-2 rounded-lg text-xs font-mono font-semibold transition-all ${
-                    strokeWidth === sz ? 'bg-accent text-[#00363d] shadow-xs' : 'text-zinc-500 hover:text-on-surface'
+                    strokeWidth === sz ? 'bg-accent text-accent-on shadow-xs' : 'text-zinc-500 hover:text-on-surface'
                   }`}
                 >
                   {sz}px

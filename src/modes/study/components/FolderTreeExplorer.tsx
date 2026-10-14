@@ -9,7 +9,6 @@ import {
   Sparkles, 
   Search, 
   X, 
-  CheckCircle2, 
   Trash2, 
   ArrowRight,
   Minimize2,
@@ -261,6 +260,7 @@ export const FolderTreeExplorer: React.FC<FolderTreeExplorerProps> = ({
             {folder.files.map((file) => {
               if (query && !isMatch(file.name, query)) return null;
               const isActive = activeDocId === file.id;
+              const cleanFileName = file.name.replace(/\.pdf$/i, '');
 
               return (
                 <div
@@ -276,23 +276,26 @@ export const FolderTreeExplorer: React.FC<FolderTreeExplorerProps> = ({
                       ? 'hover:bg-zinc-200/60 dark:hover:bg-zinc-800/60 text-zinc-700 dark:text-zinc-300'
                       : 'hover:bg-surface border border-transparent hover:border-border text-zinc-700 dark:text-zinc-300'
                   }`}
+                  title={file.name}
                 >
-                  <div className="flex items-center gap-2 min-w-0">
+                  <div className="flex-1 min-w-0 flex items-center gap-2">
                     {getFileIcon(file.name)}
                     <span className="truncate text-xs group-hover/file:text-accent transition-colors">
-                      {file.name}
+                      {cleanFileName}
                     </span>
-                    {isActive && (
-                      <span className="inline-flex items-center gap-0.5 text-[9px] font-mono px-1 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex-shrink-0">
-                        <CheckCircle2 className="h-2.5 w-2.5" /> Active
-                      </span>
-                    )}
                   </div>
 
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className="text-[10px] font-mono text-zinc-400 group-hover/file:opacity-0 sm:group-hover/file:opacity-100 transition-opacity">
-                      {file.doc.size}
-                    </span>
+                  <div className="flex items-center gap-1.5 flex-shrink-0 ml-1.5">
+                    {isActive ? (
+                      <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 shrink-0">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        <span>Active</span>
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-mono text-zinc-400">
+                        {file.doc.size}
+                      </span>
+                    )}
 
                     {onRemoveDoc && (
                       <button
@@ -333,7 +336,7 @@ export const FolderTreeExplorer: React.FC<FolderTreeExplorerProps> = ({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Filter files in folder..."
+              placeholder="Filter files..."
               className="w-full pl-8 pr-7 py-1 text-xs rounded-lg bg-surface border border-border focus:outline-none focus:border-accent text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 transition-colors"
             />
             {searchQuery && (

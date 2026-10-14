@@ -104,19 +104,19 @@ export default function TextReflowView({
           <div className="hidden sm:flex items-center gap-1 bg-surface-container border border-outline/20 rounded-full p-1 text-xs">
             <button
               onClick={() => setSettings((s) => ({ ...s, fontFamily: 'serif' }))}
-              className={`px-3 py-1 rounded-full text-xs transition-all duration-200 ease-caelestia-decel ${settings.fontFamily === 'serif' ? 'bg-accent text-[#00363d] font-bold shadow-xs' : 'text-zinc-400 hover:text-on-surface'}`}
+              className={`px-3 py-1 rounded-full text-xs transition-all duration-200 ease-caelestia-decel ${settings.fontFamily === 'serif' ? 'bg-accent text-accent-on font-bold shadow-xs' : 'text-zinc-400 hover:text-on-surface'}`}
             >
               Serif
             </button>
             <button
               onClick={() => setSettings((s) => ({ ...s, fontFamily: 'sans' }))}
-              className={`px-3 py-1 rounded-full text-xs transition-all duration-200 ease-caelestia-decel ${settings.fontFamily === 'sans' ? 'bg-accent text-[#00363d] font-bold shadow-xs' : 'text-zinc-400 hover:text-on-surface'}`}
+              className={`px-3 py-1 rounded-full text-xs transition-all duration-200 ease-caelestia-decel ${settings.fontFamily === 'sans' ? 'bg-accent text-accent-on font-bold shadow-xs' : 'text-zinc-400 hover:text-on-surface'}`}
             >
               Sans
             </button>
             <button
               onClick={() => setSettings((s) => ({ ...s, fontFamily: 'mono' }))}
-              className={`px-3 py-1 rounded-full text-xs transition-all duration-200 ease-caelestia-decel ${settings.fontFamily === 'mono' ? 'bg-accent text-[#00363d] font-bold shadow-xs' : 'text-zinc-400 hover:text-on-surface'}`}
+              className={`px-3 py-1 rounded-full text-xs transition-all duration-200 ease-caelestia-decel ${settings.fontFamily === 'mono' ? 'bg-accent text-accent-on font-bold shadow-xs' : 'text-zinc-400 hover:text-on-surface'}`}
             >
               Mono
             </button>
@@ -127,21 +127,21 @@ export default function TextReflowView({
             <button
               onClick={() => setSettings((s) => ({ ...s, maxWidth: 640 }))}
               title="Narrow Column"
-              className={`px-3 py-1 rounded-full text-xs transition-all duration-200 ease-caelestia-decel ${settings.maxWidth === 640 ? 'bg-accent text-[#00363d] font-bold shadow-xs' : 'text-zinc-400 hover:text-on-surface'}`}
+              className={`px-3 py-1 rounded-full text-xs transition-all duration-200 ease-caelestia-decel ${settings.maxWidth === 640 ? 'bg-accent text-accent-on font-bold shadow-xs' : 'text-zinc-400 hover:text-on-surface'}`}
             >
               Narrow
             </button>
             <button
               onClick={() => setSettings((s) => ({ ...s, maxWidth: 760 }))}
               title="Standard Column"
-              className={`px-3 py-1 rounded-full text-xs transition-all duration-200 ease-caelestia-decel ${settings.maxWidth === 760 ? 'bg-accent text-[#00363d] font-bold shadow-xs' : 'text-zinc-400 hover:text-on-surface'}`}
+              className={`px-3 py-1 rounded-full text-xs transition-all duration-200 ease-caelestia-decel ${settings.maxWidth === 760 ? 'bg-accent text-accent-on font-bold shadow-xs' : 'text-zinc-400 hover:text-on-surface'}`}
             >
               Standard
             </button>
             <button
               onClick={() => setSettings((s) => ({ ...s, maxWidth: 960 }))}
               title="Wide Column"
-              className={`px-3 py-1 rounded-full text-xs transition-all duration-200 ease-caelestia-decel ${settings.maxWidth === 960 ? 'bg-accent text-[#00363d] font-bold shadow-xs' : 'text-zinc-400 hover:text-on-surface'}`}
+              className={`px-3 py-1 rounded-full text-xs transition-all duration-200 ease-caelestia-decel ${settings.maxWidth === 960 ? 'bg-accent text-accent-on font-bold shadow-xs' : 'text-zinc-400 hover:text-on-surface'}`}
             >
               Wide
             </button>

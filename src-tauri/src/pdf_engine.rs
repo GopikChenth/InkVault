@@ -377,3 +377,94 @@ pub fn native_create_form_fields(
 
     Ok(output_bytes)
 }
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct WatermarkPayload {
+    pub text: String,
+    pub pages: Option<Vec<usize>>, // None = all pages (0-indexed)
+    pub font_size: Option<f64>,    // 0.0 or None = auto fit
+    pub color_rgb: Option<[f64; 3]>, // [r, g, b] 0.0..1.0
+    pub opacity: Option<f64>,      // 0.0..1.0
+    pub rotation: Option<f64>,     // degrees (e.g. 45.0, -45.0)
+    pub behind: Option<bool>,
+    pub offset: Option<[f64; 2]>,
+}
+
+/// Native watermarking: applies standard marked-content artifact watermarks with precision graphics state
+pub fn native_watermark_pdf(
+    item: PDFInputPayload,
+    wm: WatermarkPayload,
+) -> Result<Vec<u8>, String> {
+    let bytes = item.get_bytes()?;
+    let mut doc = Document::open(Arc::new(bytes))
+        .map_err(|e| format!("Failed to parse PDF: {:?}", e))?;
+
+    let total_pages = inkvault_organize::page_count(&doc)
+        .map_err(|e| format!("Failed to count pages: {:?}", e))?;
+
+    let pages: Vec<usize> = wm.pages.unwrap_or_else(|| (0..total_pages).collect());
+    if pages.is_empty() {
+        return Err("No pages selected for watermarking".to_string());
+    }
+
+    let native_wm = inkvault_edit::Watermark {
+        text: wm.text,
+        source: None,
+        scale: 0.5,
+        font_size: wm.font_size.unwrap_or(0.0),
+        color: wm.color_rgb.unwrap_or([0.88, 0.11, 0.28]),
+        opacity: wm.opacity.unwrap_or(0.25).clamp(0.01, 1.0),
+        rotation: wm.rotation.unwrap_or(45.0),
+        behind: wm.behind.unwrap_or(false),
+        offset: wm.offset.unwrap_or([0.0, 0.0]),
+    };
+
+    inkvault_edit::add_watermark(&mut doc, &pages, &native_wm, true)
+        .map_err(|e| format!("Failed to apply native watermark: {:?}", e))?;
+
+    let output_bytes = write_full(&doc, &SaveOptions::default())
+        .map_err(|e| format!("Failed to serialize watermarked PDF: {:?}", e))?;
+
+    Ok(output_bytes)
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct PageOrganizeAction {
+    pub page_index: usize, // 0-indexed original page
+    pub rotation_delta: Option<i64>, // e.g. 90, 180, 270
+}
+
+/// Native page organization: reorders, rotates, and deletes pages atomically
+pub fn native_organize_pdf(
+    item: PDFInputPayload,
+    new_page_order: Vec<PageOrganizeAction>,
+) -> Result<Vec<u8>, String> {
+    if new_page_order.is_empty() {
+        return Err("A document must keep at least one page".to_string());
+    }
+
+    let bytes = item.get_bytes()?;
+    let doc = Document::open(Arc::new(bytes))
+        .map_err(|e| format!("Failed to parse PDF: {:?}", e))?;
+
+    let indices: Vec<usize> = new_page_order.iter().map(|a| a.page_index).collect();
+
+    // 1. Reorder / extract keeping only the selected pages in the new sequence
+    let mut organized_doc = inkvault_organize::extract_pages(&doc, &indices)
+        .map_err(|e| format!("Failed to organize pages: {:?}", e))?;
+
+    // 2. Apply any per-page rotation deltas
+    for (new_idx, action) in new_page_order.iter().enumerate() {
+        if let Some(deg) = action.rotation_delta {
+            if deg != 0 {
+                inkvault_organize::rotate_pages(&mut organized_doc, &[new_idx], deg)
+                    .map_err(|e| format!("Failed to rotate page {}: {:?}", new_idx + 1, e))?;
+            }
+        }
+    }
+
+    let output_bytes = write_full(&organized_doc, &SaveOptions::default())
+        .map_err(|e| format!("Failed to serialize organized PDF: {:?}", e))?;
+
+    Ok(output_bytes)
+}

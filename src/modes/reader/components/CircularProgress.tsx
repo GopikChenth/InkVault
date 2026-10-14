@@ -11,7 +11,7 @@ export default function CircularProgress({
   percentage,
   size = 36,
   strokeWidth = 3.5,
-  color = '#ef4444', // Crimson / Red accent from screenshot
+  color = 'var(--accent)',
   showText = true,
   className = '',
 }: CircularProgressProps) {
@@ -36,7 +36,7 @@ export default function CircularProgress({
           stroke="currentColor"
           strokeWidth={strokeWidth}
           fill="none"
-          className="text-zinc-200 dark:text-zinc-800/80"
+          className="text-surface-container-high"
         />
         {/* Progress Arc */}
         <circle

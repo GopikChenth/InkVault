@@ -65,6 +65,7 @@ inkvault-redact = { path = "crates/redact" }
 inkvault-sign = { path = "crates/sign" }
 inkvault-annot = { path = "crates/annot" }
 inkvault-forms = { path = "crates/forms" }
+inkvault-edit = { path = "crates/edit" }
 
 [profile.release]
 opt-level = "z"

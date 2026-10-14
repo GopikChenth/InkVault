@@ -10,7 +10,9 @@ import {
   FolderUp, 
   BookOpen,
   PanelLeftClose,
-  PanelLeftOpen
+  PanelLeftOpen,
+  GraduationCap,
+  Folder
 } from 'lucide-react';
 import { LoadedPDF, PDFAnnotation, AppMode } from '../types';
 import PDFViewer, { globalDocProxyCache, globalTextIndexCache } from '../components/PDFViewer';
@@ -33,14 +35,15 @@ import {
   STUDIO_TOOL_ITEMS
 } from '../modes/studio';
 
-// Lazy-load heavy PDF manipulation studio tools
-const MergeTool = React.lazy(() => import('../modes/studio/components/tools/MergeTool'));
-const SplitTool = React.lazy(() => import('../modes/studio/components/tools/SplitTool'));
-const CompressTool = React.lazy(() => import('../modes/studio/components/tools/CompressTool'));
-const WatermarkTool = React.lazy(() => import('../modes/studio/components/tools/WatermarkTool'));
-const ProtectTool = React.lazy(() => import('../modes/studio/components/tools/ProtectTool'));
-const DigitalSignTool = React.lazy(() => import('../modes/studio/components/tools/DigitalSignTool'));
-const PrepareFormTool = React.lazy(() => import('../modes/studio/components/tools/PrepareFormTool'));
+// Studio PDF manipulation tools (direct imports for instant tab switching)
+import MergeTool from '../modes/studio/components/tools/MergeTool';
+import SplitTool from '../modes/studio/components/tools/SplitTool';
+import CompressTool from '../modes/studio/components/tools/CompressTool';
+import WatermarkTool from '../modes/studio/components/tools/WatermarkTool';
+import ProtectTool from '../modes/studio/components/tools/ProtectTool';
+import DigitalSignTool from '../modes/studio/components/tools/DigitalSignTool';
+import PrepareFormTool from '../modes/studio/components/tools/PrepareFormTool';
+import OrganizePagesTool from '../modes/studio/components/tools/OrganizePagesTool';
 
 import { 
   StudySidebar, 
@@ -53,15 +56,6 @@ import {
   ReaderSidebar, 
   BookComicHub 
 } from '../modes/reader';
-
-function ToolLoadingFallback() {
-  return (
-    <div className="flex-1 w-full h-full flex flex-col items-center justify-center bg-background gap-3 min-h-[300px]">
-      <div className="h-8 w-8 rounded-full border-2 border-accent border-t-transparent animate-spin" />
-      <span className="text-xs font-mono text-zinc-400">Loading module...</span>
-    </div>
-  );
-}
 
 interface WorkspacePageProps {
   onReturnToCover: () => void;
@@ -104,6 +98,11 @@ export default function WorkspacePage({
       setCurrentMode(propCurrentMode);
     }
   }, [propCurrentMode]);
+
+  // Sync data-mode on document.documentElement
+  useEffect(() => {
+    document.documentElement.setAttribute('data-mode', currentMode);
+  }, [currentMode]);
 
   const [internalActiveTab, setInternalActiveTab] = useState<string>(() => propActiveTab ?? controlledActiveTab ?? 'recent');
   const activeTab = propActiveTab ?? controlledActiveTab ?? internalActiveTab;
@@ -499,7 +498,8 @@ export default function WorkspacePage({
       )}
 
       <div 
-        className="flex w-full h-full overflow-hidden bg-background text-zinc-800 dark:text-zinc-200"
+        data-mode={currentMode}
+        className="flex w-full h-full overflow-hidden bg-background text-zinc-800 dark:text-zinc-200 transition-colors duration-200"
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -619,12 +619,12 @@ export default function WorkspacePage({
 
           {!(activeTab === 'viewer' && activeDoc) && (
             <header className="h-12 border-b border-border flex items-center justify-between px-3 sm:px-6 bg-surface dark:bg-surface flex-shrink-0 z-20">
-              <div className="flex items-center gap-2 sm:gap-2.5 text-xs font-mono text-zinc-500 min-w-0">
+              <div className="flex items-center gap-2 sm:gap-2.5 text-xs font-mono text-on-surface-variant min-w-0">
                 <button
                   type="button"
                   onClick={() => setIsSidebarOpen((prev) => !prev)}
                   title={isSidebarOpen ? "Collapse Sidebar" : "Expand Sidebar"}
-                  className="h-7 w-7 rounded-lg border border-border flex items-center justify-center text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-card transition-colors flex-shrink-0 mr-0.5"
+                  className="h-7 w-7 rounded-lg border border-border flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-card transition-colors flex-shrink-0 mr-0.5"
                 >
                   {isSidebarOpen ? <PanelLeftClose className="h-3.5 w-3.5" /> : <PanelLeftOpen className="h-3.5 w-3.5" />}
                 </button>
@@ -632,13 +632,13 @@ export default function WorkspacePage({
                 <button 
                   type="button"
                   onClick={onReturnToCover}
-                  className="flex items-center gap-1 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors flex-shrink-0"
+                  className="flex items-center gap-1 text-on-surface-variant hover:text-on-surface transition-colors flex-shrink-0"
                 >
                   <Home className="h-3.5 w-3.5" />
                   <span className="hidden sm:inline">Cover</span>
                 </button>
                 <span>/</span>
-                <span className="font-semibold text-zinc-800 dark:text-zinc-200 flex-shrink-0">Workspace</span>
+                <span className="font-semibold text-on-surface flex-shrink-0">Workspace</span>
                 <span>/</span>
                 <span className="capitalize truncate">{activeTab.replace('-', ' ')}</span>
               </div>
@@ -647,7 +647,7 @@ export default function WorkspacePage({
                 <button
                   type="button"
                   onClick={currentMode === 'study' ? handleTriggerImportFolder : handleTriggerOpenFile}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-zinc-100 dark:text-zinc-900 text-xs font-semibold hover:bg-accent dark:hover:bg-accent dark:hover:text-white transition-colors shadow-sm"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container border border-border text-on-surface hover:bg-surface-high text-xs font-semibold transition-colors shadow-2xs"
                 >
                   {currentMode === 'study' ? <FolderUp className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
                   <span>{currentMode === 'study' ? 'Import Folder' : 'Open PDF'}</span>
@@ -658,8 +658,7 @@ export default function WorkspacePage({
 
           {/* Workspace Canvas Area */}
           <div className="flex-1 overflow-hidden relative flex flex-col p-0 m-0">
-            <React.Suspense fallback={<ToolLoadingFallback />}>
-              {activeTab === 'viewer' ? (
+            {activeTab === 'viewer' ? (
                 activeDoc ? (
                   <PDFViewer 
                     key={activeDoc.id} 
@@ -714,30 +713,33 @@ export default function WorkspacePage({
                   />
                 ) : (
                   <EmptyState
-                    icon={currentMode === 'study' ? FolderUp : currentMode === 'reader' ? BookOpen : FolderOpen}
+                    icon={currentMode === 'study' ? GraduationCap : currentMode === 'reader' ? BookOpen : FolderOpen}
                     title={
                       currentMode === 'study'
-                        ? 'Import a Study Subject Folder'
+                        ? 'Import Subject Folder'
                         : currentMode === 'reader'
-                        ? 'Open a Book or Comic'
-                        : 'Select a PDF to view'
+                        ? 'Your Bookshelf is Empty'
+                        : 'No Document Open'
                     }
                     description={
                       currentMode === 'study'
-                        ? 'Select a folder from your computer or drag and drop any folder directly into the workspace to organize it by subject.'
+                        ? 'Select a folder to organize your study documents.'
                         : currentMode === 'reader'
-                        ? 'Select a CBZ, CBR, EPUB, or PDF document to start reading.'
-                        : 'Click to open file manager or drag and drop one or more PDF documents anywhere into the workspace.'
+                        ? 'Add books or comics to start reading.'
+                        : 'Select a PDF document to view and edit.'
                     }
                     actionLabel={
                       currentMode === 'study'
                         ? 'Select Folder from Computer'
                         : currentMode === 'reader'
-                        ? 'Browse Books & Comics'
+                        ? 'Add Book or Comic'
                         : 'Browse Local Files'
                     }
+                    actionIcon={currentMode === 'study' ? FolderUp : Plus}
                     onAction={currentMode === 'study' ? handleTriggerImportFolder : handleTriggerOpenFile}
-                    hint={currentMode === 'study' ? 'or drag and drop folder anywhere' : 'or drag and drop document anywhere'}
+                    shortcut={currentMode === 'reader' ? '⌘O' : undefined}
+                    hint={currentMode === 'study' ? 'Or drag & drop a folder here' : 'Or drag & drop files here'}
+                    hintIcon={currentMode === 'study' ? Folder : currentMode === 'reader' ? BookOpen : UploadCloud}
                   />
                 )
               ) : activeTab === 'recent' ? (
@@ -771,6 +773,8 @@ export default function WorkspacePage({
                     onTriggerOpenFile={handleTriggerOpenFile}
                   />
                 )
+              ) : activeTab === 'organize' ? (
+                <OrganizePagesTool initialDoc={activeDoc} onOpenOrganizedDoc={handleRegisterAndOpenDoc} />
               ) : activeTab === 'merge' ? (
                 <MergeTool initialDoc={activeDoc} onOpenMergedDoc={handleRegisterAndOpenDoc} />
               ) : activeTab === 'split' ? (
@@ -786,7 +790,6 @@ export default function WorkspacePage({
               ) : activeTab === 'forms' ? (
                 <PrepareFormTool initialDoc={activeDoc} onOpenFormDoc={handleRegisterAndOpenDoc} />
               ) : null}
-            </React.Suspense>
           </div>
 
         </main>

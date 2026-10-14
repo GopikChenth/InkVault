@@ -193,8 +193,8 @@ export default function PrepareFormTool({ initialDoc, onOpenFormDoc }: PrepareFo
         {!doc ? (
           <EmptyState
             icon={FormInput}
-            title="Select a PDF to Prepare Form Fields"
-            description="Create interactive AcroForm text inputs, checkboxes, dropdowns, and buttons for fillable PDF documents."
+            title="Prepare Form Fields"
+            description="Create fillable text fields, checkboxes, and buttons."
             actionLabel="Browse PDF"
             onAction={() => fileInputRef.current?.click()}
           />

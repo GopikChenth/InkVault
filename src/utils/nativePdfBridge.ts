@@ -258,3 +258,80 @@ export async function nativeCreateForms(
   }
 }
 
+export interface WatermarkOptions {
+  text: string;
+  pages?: number[];
+  fontSize?: number;
+  colorRgb?: [number, number, number];
+  opacity?: number;
+  rotation?: number;
+  behind?: boolean;
+  offset?: [number, number];
+}
+
+/**
+ * High-performance Native Rust Watermarking powered by inkvault-edit engine
+ */
+export async function nativeWatermarkPDF(
+  file: File,
+  name: string,
+  options: WatermarkOptions,
+  path?: string
+): Promise<Uint8Array | null> {
+  if (!isTauriEnvironment()) return null;
+  try {
+    const bytes = path ? undefined : await fileToBytes(file);
+    const item: PDFInputPayload = { name, path, bytes };
+    const output = await invoke<number[]>('native_watermark', {
+      item,
+      wm: {
+        text: options.text,
+        pages: options.pages ?? null,
+        font_size: options.fontSize ?? null,
+        color_rgb: options.colorRgb ?? null,
+        opacity: options.opacity ?? null,
+        rotation: options.rotation ?? null,
+        behind: options.behind ?? null,
+        offset: options.offset ?? null,
+      },
+    });
+    return new Uint8Array(output);
+  } catch (err) {
+    console.warn('[InkVault Engine] Native watermark failed:', err);
+    return null;
+  }
+}
+
+export interface PageOrganizeItem {
+  pageIndex: number;
+  rotationDelta?: number;
+}
+
+/**
+ * High-performance Native Rust Page Organization (reorder, rotate, delete) powered by inkvault-organize
+ */
+export async function nativeOrganizePDF(
+  file: File,
+  name: string,
+  actions: PageOrganizeItem[],
+  path?: string
+): Promise<Uint8Array | null> {
+  if (!isTauriEnvironment()) return null;
+  try {
+    const bytes = path ? undefined : await fileToBytes(file);
+    const item: PDFInputPayload = { name, path, bytes };
+    const output = await invoke<number[]>('native_organize', {
+      item,
+      actions: actions.map((a) => ({
+        page_index: a.pageIndex,
+        rotation_delta: a.rotationDelta ?? null,
+      })),
+    });
+    return new Uint8Array(output);
+  } catch (err) {
+    console.warn('[InkVault Engine] Native organize failed:', err);
+    return null;
+  }
+}
+
+

@@ -1,4 +1,4 @@
-import { useState, useLayoutEffect, useEffect, RefObject } from 'react';
+import { useState, useLayoutEffect, useEffect, RefObject, useCallback } from 'react';
 import {
   calculateClampedPopoverPosition,
   PopoverPlacement,
@@ -29,16 +29,16 @@ export function useFloatingConstraints(
     enabled = true,
   } = options;
 
-  const [result, setResult] = useState<PopoverPositionResult>({
-    x: 0,
-    y: 0,
-    actualPlacement: 'bottom',
-    horizontalAlign: 'start',
-    maxHeight: 400,
-  });
-
-  const updatePosition = () => {
-    if (!enabled || typeof window === 'undefined') return;
+  const computePosition = useCallback((floatingEl: HTMLElement | null = null): PopoverPositionResult => {
+    if (!enabled || typeof window === 'undefined') {
+      return {
+        x: 0,
+        y: 0,
+        actualPlacement: 'bottom',
+        horizontalAlign: 'start',
+        maxHeight: 400,
+      };
+    }
 
     let anchorRect: Rect | null = null;
     if ('currentRect' in anchorRef && anchorRef.currentRect) {
@@ -55,26 +55,41 @@ export function useFloatingConstraints(
       };
     }
 
-    if (!anchorRect) return;
+    if (!anchorRect) {
+      return {
+        x: 0,
+        y: 0,
+        actualPlacement: 'bottom',
+        horizontalAlign: 'start',
+        maxHeight: 400,
+      };
+    }
 
-    const floatingEl = floatingRef.current;
     const contentDims = floatingEl
       ? { width: floatingEl.offsetWidth, height: floatingEl.offsetHeight }
       : { width: 220, height: 200 };
 
-    const pos = calculateClampedPopoverPosition(anchorRect, contentDims, placement, {
+    return calculateClampedPopoverPosition(anchorRect, contentDims, placement, {
       offset,
       viewportPadding,
       viewportWidth: window.innerWidth,
       viewportHeight: window.innerHeight,
     });
+  }, [anchorRef, enabled, placement, offset, viewportPadding]);
 
+  // Compute position synchronously on initial mount so element is never placed at (0, 0)
+  const [result, setResult] = useState<PopoverPositionResult>(() => computePosition(null));
+
+  const updatePosition = useCallback(() => {
+    if (!enabled || typeof window === 'undefined') return;
+    const floatingEl = floatingRef.current;
+    const pos = computePosition(floatingEl);
     setResult(pos);
-  };
+  }, [enabled, floatingRef, computePosition]);
 
   useLayoutEffect(() => {
     updatePosition();
-  }, [enabled, placement, offset, viewportPadding]);
+  }, [updatePosition]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -90,15 +105,19 @@ export function useFloatingConstraints(
       window.removeEventListener('resize', handleUpdate);
       window.removeEventListener('scroll', handleUpdate, true);
     };
-  }, [enabled]);
+  }, [enabled, updatePosition]);
+
+  const isPositioned = result.x !== 0 || result.y !== 0;
 
   return {
     ...result,
+    isPositioned,
     style: {
       position: 'fixed' as const,
       left: `${result.x}px`,
       top: `${result.y}px`,
       maxHeight: `${result.maxHeight}px`,
+      visibility: isPositioned ? ('visible' as const) : ('hidden' as const),
     },
     updatePosition,
   };

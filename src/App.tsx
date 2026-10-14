@@ -28,7 +28,9 @@ export default function App() {
     return 'editor';
   });
 
+  // Sync data-mode on root html element & persist mode in localStorage
   useEffect(() => {
+    document.documentElement.setAttribute('data-mode', appMode);
     try {
       localStorage.setItem('inkvault_app_mode', appMode);
     } catch {}
@@ -126,7 +128,7 @@ export default function App() {
   }, [currentView]);
 
   return (
-    <div className="flex flex-col h-screen w-full overflow-hidden bg-background text-zinc-800 dark:text-zinc-200">
+    <div data-mode={appMode} className="flex flex-col h-screen w-full overflow-hidden bg-background text-zinc-800 dark:text-zinc-200 transition-colors duration-200">
       
       {/* Global Desktop Custom TitleBar & Menu Bar */}
       <TitleBar

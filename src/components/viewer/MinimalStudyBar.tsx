@@ -224,7 +224,7 @@ function MinimalStudyBar({
           title="Search Document [⌘F]"
           className={`h-7 w-7 rounded-full flex items-center justify-center transition-colors ${
             isSearchOpen
-              ? 'bg-accent text-[#00363d] font-bold shadow-xs'
+              ? 'bg-accent text-accent-on font-bold shadow-xs'
               : 'hover:bg-surface-container text-zinc-500 hover:text-accent'
           }`}
         >

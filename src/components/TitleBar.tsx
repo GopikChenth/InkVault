@@ -13,11 +13,13 @@ import {
   Maximize2,
   Plus,
   GraduationCap,
-  BookOpen
+  BookOpen,
+  LayoutGrid,
+  Award,
+  FormInput
 } from 'lucide-react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { AppMode } from '../types';
-import FloatingAnchor from './common/FloatingAnchor';
 
 interface TitleBarProps {
   title?: string;
@@ -48,12 +50,6 @@ export default function TitleBar({
   const [isMaximized, setIsMaximized] = useState<boolean>(false);
   const [isTauri, setIsTauri] = useState<boolean>(false);
   const menuContainerRef = useRef<HTMLDivElement>(null);
-
-  const fileBtnRef = useRef<HTMLButtonElement>(null);
-  const editBtnRef = useRef<HTMLButtonElement>(null);
-  const viewBtnRef = useRef<HTMLButtonElement>(null);
-  const windowBtnRef = useRef<HTMLButtonElement>(null);
-  const helpBtnRef = useRef<HTMLButtonElement>(null);
 
   // Detect Tauri Environment
   useEffect(() => {
@@ -153,7 +149,7 @@ export default function TitleBar({
         {/* App Icon */}
         <div 
           onClick={onReturnToCover}
-          className="h-5 w-5 rounded-md bg-accent text-[#00363d] flex items-center justify-center font-black text-[9px] shadow-xs cursor-pointer hover:bg-accent-hover transition-colors mr-1"
+          className="h-5 w-5 rounded-md bg-accent text-accent-on flex items-center justify-center font-black text-[9px] shadow-xs cursor-pointer hover:bg-accent-hover transition-colors mr-1"
           title="Ink Vault Home"
         >
           IV
@@ -166,340 +162,348 @@ export default function TitleBar({
         {/* Menu 1: File */}
         <div className="relative">
           <button
-            ref={fileBtnRef}
             onClick={() => toggleMenu('file')}
             onMouseEnter={() => handleMenuHover('file')}
-            className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
+            className={`px-2 py-0.5 rounded text-[11px] font-medium outline-none focus:outline-none select-none transition-colors ${
               activeMenu === 'file' 
-                ? 'bg-zinc-200/80 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-semibold' 
-                : 'hover:bg-zinc-200/60 dark:hover:bg-zinc-800/60 text-zinc-700 dark:text-zinc-300'
+                ? 'bg-surface-container text-on-surface font-semibold' 
+                : 'hover:bg-surface-container/60 text-on-surface-variant'
             }`}
           >
             File
           </button>
 
-          <FloatingAnchor
-            isOpen={activeMenu === 'file'}
-            onClose={() => setActiveMenu(null)}
-            anchorRef={fileBtnRef}
-            placement="bottom-start"
-            className="w-56 rounded-2xl caelestia-glass shadow-2xl py-1.5 z-50 text-[11px] flex flex-col ring-1 ring-white/10"
-          >
-            {onOpenDocument && (
-              <>
-                <button
-                  onClick={() => handleAction(onOpenDocument)}
-                  className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-accent hover:text-[#00363d] font-medium transition-colors text-left"
-                >
-                  <span className="flex items-center gap-2">
-                    <Plus className="h-3.5 w-3.5" /> New Tab...
-                  </span>
-                  <span className="text-[9px] font-mono opacity-60">⌘T</span>
-                </button>
-
-                <button
-                  onClick={() => handleAction(onOpenDocument)}
-                  className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-accent hover:text-[#00363d] font-medium transition-colors text-left"
-                >
-                  <span className="flex items-center gap-2">
-                    <FolderOpen className="h-3.5 w-3.5" /> Open Document...
-                  </span>
-                  <span className="text-[9px] font-mono opacity-60">⌘O</span>
-                </button>
-              </>
-            )}
-
-            {onSelectTab && (
-              <button
-                onClick={() => handleAction(() => onSelectTab('recent'))}
-                className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-accent hover:text-[#00363d] font-medium transition-colors text-left"
-              >
-                <span className="flex items-center gap-2">
-                  <Layers className="h-3.5 w-3.5" /> Recent Documents
-                </span>
-              </button>
-            )}
-
-            {currentMode === 'editor' && onSelectTab && (
-              <>
-                <div className="my-1 border-t border-border" />
-                <button
-                  onClick={() => handleAction(() => onSelectTab('merge'))}
-                  className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-accent hover:text-[#00363d] font-medium transition-colors text-left"
-                >
-                  <Combine className="h-3.5 w-3.5" /> Merge PDF
-                </button>
-                <button
-                  onClick={() => handleAction(() => onSelectTab('split'))}
-                  className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-accent hover:text-[#00363d] font-medium transition-colors text-left"
-                >
-                  <Scissors className="h-3.5 w-3.5" /> Split & Extract
-                </button>
-                <button
-                  onClick={() => handleAction(() => onSelectTab('compress'))}
-                  className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-accent hover:text-[#00363d] font-medium transition-colors text-left"
-                >
-                  <Minimize2 className="h-3.5 w-3.5" /> Compress PDF
-                </button>
-                <button
-                  onClick={() => handleAction(() => onSelectTab('watermark'))}
-                  className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-accent hover:text-[#00363d] font-medium transition-colors text-left"
-                >
-                  <Stamp className="h-3.5 w-3.5" /> Watermark
-                </button>
-                <button
-                  onClick={() => handleAction(() => onSelectTab('protect'))}
-                  className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-accent hover:text-[#00363d] font-medium transition-colors text-left"
-                >
-                  <Lock className="h-3.5 w-3.5" /> Protect & Unlock
-                </button>
-              </>
-            )}
-
-            <div className="my-1 border-t border-border" />
-
-            {onReturnToCover && (
-              <button
-                onClick={() => handleAction(onReturnToCover)}
-                className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-accent hover:text-[#00363d] font-medium transition-colors text-left"
-              >
-                <span>Presentation Cover</span>
-                <span className="text-[9px] font-mono opacity-60">⌘Enter</span>
-              </button>
-            )}
-
-            <button
-              onClick={() => handleAction(handleClose)}
-              className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-rose-500 hover:text-white transition-colors text-left text-rose-500"
+          {activeMenu === 'file' && (
+            <div
+              className="absolute top-full left-0 mt-1 w-56 rounded-2xl caelestia-glass shadow-2xl py-1.5 z-50 text-[11px] flex flex-col ring-1 ring-white/10"
+              onClick={(e) => e.stopPropagation()}
             >
-              <span>Exit Ink Vault</span>
-              <span className="text-[9px] font-mono opacity-60">⌘Q</span>
-            </button>
-          </FloatingAnchor>
+              {onOpenDocument && (
+                <>
+                  <button
+                    onClick={() => handleAction(onOpenDocument)}
+                    className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-accent hover:text-accent-on font-medium transition-colors text-left"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Plus className="h-3.5 w-3.5" /> New Tab...
+                    </span>
+                    <span className="text-[9px] font-mono opacity-60">⌘T</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleAction(onOpenDocument)}
+                    className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-accent hover:text-accent-on font-medium transition-colors text-left"
+                  >
+                    <span className="flex items-center gap-2">
+                      <FolderOpen className="h-3.5 w-3.5" /> Open Document...
+                    </span>
+                    <span className="text-[9px] font-mono opacity-60">⌘O</span>
+                  </button>
+                </>
+              )}
+
+              {onSelectTab && (
+                <button
+                  onClick={() => handleAction(() => onSelectTab('recent'))}
+                  className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-accent hover:text-accent-on font-medium transition-colors text-left"
+                >
+                  <span className="flex items-center gap-2">
+                    <Layers className="h-3.5 w-3.5" /> Recent Documents
+                  </span>
+                </button>
+              )}
+
+              {currentMode === 'editor' && onSelectTab && (
+                <>
+                  <div className="my-1 border-t border-border" />
+                  <button
+                    onClick={() => handleAction(() => onSelectTab('organize'))}
+                    className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-accent hover:text-accent-on font-medium transition-colors text-left"
+                  >
+                    <LayoutGrid className="h-3.5 w-3.5" /> Organize Pages
+                  </button>
+                  <button
+                    onClick={() => handleAction(() => onSelectTab('merge'))}
+                    className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-accent hover:text-accent-on font-medium transition-colors text-left"
+                  >
+                    <Combine className="h-3.5 w-3.5" /> Merge PDF
+                  </button>
+                  <button
+                    onClick={() => handleAction(() => onSelectTab('split'))}
+                    className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-accent hover:text-accent-on font-medium transition-colors text-left"
+                  >
+                    <Scissors className="h-3.5 w-3.5" /> Split & Extract
+                  </button>
+                  <button
+                    onClick={() => handleAction(() => onSelectTab('compress'))}
+                    className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-accent hover:text-accent-on font-medium transition-colors text-left"
+                  >
+                    <Minimize2 className="h-3.5 w-3.5" /> Compress PDF
+                  </button>
+                  <button
+                    onClick={() => handleAction(() => onSelectTab('watermark'))}
+                    className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-accent hover:text-accent-on font-medium transition-colors text-left"
+                  >
+                    <Stamp className="h-3.5 w-3.5" /> Watermark
+                  </button>
+                  <button
+                    onClick={() => handleAction(() => onSelectTab('protect'))}
+                    className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-accent hover:text-accent-on font-medium transition-colors text-left"
+                  >
+                    <Lock className="h-3.5 w-3.5" /> Protect & Unlock
+                  </button>
+                  <button
+                    onClick={() => handleAction(() => onSelectTab('sign'))}
+                    className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-accent hover:text-accent-on font-medium transition-colors text-left"
+                  >
+                    <Award className="h-3.5 w-3.5" /> Digital Sign
+                  </button>
+                  <button
+                    onClick={() => handleAction(() => onSelectTab('forms'))}
+                    className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-accent hover:text-accent-on font-medium transition-colors text-left"
+                  >
+                    <FormInput className="h-3.5 w-3.5" /> Prepare Form
+                  </button>
+                </>
+              )}
+
+              <div className="my-1 border-t border-border" />
+
+              {onReturnToCover && (
+                <button
+                  onClick={() => handleAction(onReturnToCover)}
+                  className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-accent hover:text-accent-on font-medium transition-colors text-left"
+                >
+                  <span>Presentation Cover</span>
+                  <span className="text-[9px] font-mono opacity-60">⌘Enter</span>
+                </button>
+              )}
+
+              <button
+                onClick={() => handleAction(handleClose)}
+                className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-rose-500 hover:text-white transition-colors text-left text-rose-500"
+              >
+                <span>Exit Ink Vault</span>
+                <span className="text-[9px] font-mono opacity-60">⌘Q</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Menu 2: Edit */}
         <div className="relative">
           <button
-            ref={editBtnRef}
             onClick={() => toggleMenu('edit')}
             onMouseEnter={() => handleMenuHover('edit')}
-            className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
+            className={`px-2 py-0.5 rounded text-[11px] font-medium outline-none focus:outline-none select-none transition-colors ${
               activeMenu === 'edit' 
-                ? 'bg-zinc-200/80 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-semibold' 
-                : 'hover:bg-zinc-200/60 dark:hover:bg-zinc-800/60 text-zinc-700 dark:text-zinc-300'
+                ? 'bg-surface-container text-on-surface font-semibold' 
+                : 'hover:bg-surface-container/60 text-on-surface-variant'
             }`}
           >
             Edit
           </button>
 
-          <FloatingAnchor
-            isOpen={activeMenu === 'edit'}
-            onClose={() => setActiveMenu(null)}
-            anchorRef={editBtnRef}
-            placement="bottom-start"
-            className="w-52 rounded-2xl caelestia-glass shadow-2xl py-1.5 z-50 text-[11px] flex flex-col ring-1 ring-white/10"
-          >
-            <button
-              onClick={() => handleAction(() => {
-                window.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', ctrlKey: true, metaKey: true }));
-              })}
-              className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-accent hover:text-[#00363d] font-medium transition-colors text-left"
+          {activeMenu === 'edit' && (
+            <div
+              className="absolute top-full left-0 mt-1 w-52 rounded-2xl caelestia-glass shadow-2xl py-1.5 z-50 text-[11px] flex flex-col ring-1 ring-white/10"
+              onClick={(e) => e.stopPropagation()}
             >
-              <span>Select All Pages</span>
-              <span className="text-[9px] font-mono opacity-60">⌘A</span>
-            </button>
-          </FloatingAnchor>
+              <button
+                onClick={() => handleAction(() => {
+                  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', ctrlKey: true, metaKey: true }));
+                })}
+                className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-accent hover:text-accent-on font-medium transition-colors text-left"
+              >
+                <span>Select All Pages</span>
+                <span className="text-[9px] font-mono opacity-60">⌘A</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Menu 3: View */}
         <div className="relative">
           <button
-            ref={viewBtnRef}
             onClick={() => toggleMenu('view')}
             onMouseEnter={() => handleMenuHover('view')}
-            className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
+            className={`px-2 py-0.5 rounded text-[11px] font-medium outline-none focus:outline-none select-none transition-colors ${
               activeMenu === 'view' 
-                ? 'bg-zinc-200/80 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-semibold' 
-                : 'hover:bg-zinc-200/60 dark:hover:bg-zinc-800/60 text-zinc-700 dark:text-zinc-300'
+                ? 'bg-surface-container text-on-surface font-semibold' 
+                : 'hover:bg-surface-container/60 text-on-surface-variant'
             }`}
           >
             View
           </button>
 
-          <FloatingAnchor
-            isOpen={activeMenu === 'view'}
-            onClose={() => setActiveMenu(null)}
-            anchorRef={viewBtnRef}
-            placement="bottom-start"
-            className="w-52 rounded-2xl caelestia-glass shadow-2xl py-1.5 z-50 text-[11px] flex flex-col ring-1 ring-white/10"
-          >
-            <button
-              onClick={() => handleAction(onToggleDarkMode)}
-              className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-accent hover:text-[#00363d] font-medium transition-colors text-left"
+          {activeMenu === 'view' && (
+            <div
+              className="absolute top-full left-0 mt-1 w-52 rounded-2xl caelestia-glass shadow-2xl py-1.5 z-50 text-[11px] flex flex-col ring-1 ring-white/10"
+              onClick={(e) => e.stopPropagation()}
             >
-              <span className="flex items-center gap-2">
-                {darkMode ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
-                <span>{darkMode ? 'Light Theme' : 'Dark Theme'}</span>
-              </span>
-              <span className="text-[9px] font-mono opacity-60">⌘T</span>
-            </button>
-
-            {onSelectTab && (
               <button
-                onClick={() => handleAction(() => onSelectTab('viewer'))}
-                className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-accent hover:text-[#00363d] font-medium transition-colors text-left"
+                onClick={() => handleAction(onToggleDarkMode)}
+                className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-accent hover:text-accent-on font-medium transition-colors text-left"
               >
-                <FileText className="h-3.5 w-3.5" /> PDF Viewer
+                <span className="flex items-center gap-2">
+                  {darkMode ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+                  <span>{darkMode ? 'Light Theme' : 'Dark Theme'}</span>
+                </span>
+                <span className="text-[9px] font-mono opacity-60">⌘T</span>
               </button>
-            )}
 
-            <div className="my-1 border-t border-border" />
+              {onSelectTab && (
+                <button
+                  onClick={() => handleAction(() => onSelectTab('viewer'))}
+                  className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-accent hover:text-accent-on font-medium transition-colors text-left"
+                >
+                  <FileText className="h-3.5 w-3.5" /> PDF Viewer
+                </button>
+              )}
 
-            <div className="px-3 py-1 text-[9px] font-mono uppercase tracking-wider text-zinc-400 font-semibold">
-              Workflow Mode
+              <div className="my-1 border-t border-border" />
+
+              <div className="px-3 py-1 text-[9px] font-mono uppercase tracking-wider text-zinc-400 font-semibold">
+                Workflow Mode
+              </div>
+              <button
+                onClick={() => handleAction(() => onSelectMode && onSelectMode('editor'))}
+                className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-accent hover:text-accent-on font-medium transition-colors text-left"
+              >
+                <span className="flex items-center gap-2">
+                  <Layers className="h-3.5 w-3.5" />
+                  <span>{currentMode === 'editor' ? '✓ Studio Editor' : '  Studio Editor'}</span>
+                </span>
+                <span className="text-[9px] font-mono opacity-60">⌘1</span>
+              </button>
+              <button
+                onClick={() => handleAction(() => onSelectMode && onSelectMode('study'))}
+                className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-accent hover:text-accent-on font-medium transition-colors text-left"
+              >
+                <span className="flex items-center gap-2">
+                  <GraduationCap className="h-3.5 w-3.5" />
+                  <span>{currentMode === 'study' ? '✓ Study Mode' : '  Study Mode'}</span>
+                </span>
+                <span className="text-[9px] font-mono opacity-60">⌘2</span>
+              </button>
+              <button
+                onClick={() => handleAction(() => onSelectMode && onSelectMode('reader'))}
+                className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-accent hover:text-accent-on font-medium transition-colors text-left"
+              >
+                <span className="flex items-center gap-2">
+                  <BookOpen className="h-3.5 w-3.5" />
+                  <span>{currentMode === 'reader' ? '✓ Books & Comics' : '  Books & Comics'}</span>
+                </span>
+                <span className="text-[9px] font-mono opacity-60">⌘3</span>
+              </button>
+
+              <div className="my-1 border-t border-border" />
+
+              <button
+                onClick={() => handleAction(handleMaximize)}
+                className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-accent hover:text-accent-on font-medium transition-colors text-left"
+              >
+                <span>Toggle Fullscreen</span>
+                <span className="text-[9px] font-mono opacity-60">F11</span>
+              </button>
             </div>
-            <button
-              onClick={() => handleAction(() => onSelectMode && onSelectMode('editor'))}
-              className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-accent hover:text-[#00363d] font-medium transition-colors text-left"
-            >
-              <span className="flex items-center gap-2">
-                <Layers className="h-3.5 w-3.5" />
-                <span>{currentMode === 'editor' ? '✓ Studio Editor' : '  Studio Editor'}</span>
-              </span>
-              <span className="text-[9px] font-mono opacity-60">⌘1</span>
-            </button>
-            <button
-              onClick={() => handleAction(() => onSelectMode && onSelectMode('study'))}
-              className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-accent hover:text-[#00363d] font-medium transition-colors text-left"
-            >
-              <span className="flex items-center gap-2">
-                <GraduationCap className="h-3.5 w-3.5" />
-                <span>{currentMode === 'study' ? '✓ Study Mode' : '  Study Mode'}</span>
-              </span>
-              <span className="text-[9px] font-mono opacity-60">⌘2</span>
-            </button>
-            <button
-              onClick={() => handleAction(() => onSelectMode && onSelectMode('reader'))}
-              className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-accent hover:text-[#00363d] font-medium transition-colors text-left"
-            >
-              <span className="flex items-center gap-2">
-                <BookOpen className="h-3.5 w-3.5" />
-                <span>{currentMode === 'reader' ? '✓ Books & Comics' : '  Books & Comics'}</span>
-              </span>
-              <span className="text-[9px] font-mono opacity-60">⌘3</span>
-            </button>
-
-            <div className="my-1 border-t border-border" />
-
-            <button
-              onClick={() => handleAction(handleMaximize)}
-              className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-accent hover:text-[#00363d] font-medium transition-colors text-left"
-            >
-              <span>Toggle Fullscreen</span>
-              <span className="text-[9px] font-mono opacity-60">F11</span>
-            </button>
-          </FloatingAnchor>
+          )}
         </div>
 
         {/* Menu 4: Window */}
         <div className="relative">
           <button
-            ref={windowBtnRef}
             onClick={() => toggleMenu('window')}
             onMouseEnter={() => handleMenuHover('window')}
-            className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
+            className={`px-2 py-0.5 rounded text-[11px] font-medium outline-none focus:outline-none select-none transition-colors ${
               activeMenu === 'window' 
-                ? 'bg-zinc-200/80 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-semibold' 
-                : 'hover:bg-zinc-200/60 dark:hover:bg-zinc-800/60 text-zinc-700 dark:text-zinc-300'
+                ? 'bg-surface-container text-on-surface font-semibold' 
+                : 'hover:bg-surface-container/60 text-on-surface-variant'
             }`}
           >
             Window
           </button>
 
-          <FloatingAnchor
-            isOpen={activeMenu === 'window'}
-            onClose={() => setActiveMenu(null)}
-            anchorRef={windowBtnRef}
-            placement="bottom-start"
-            className="w-48 rounded-2xl caelestia-glass shadow-2xl py-1.5 z-50 text-[11px] flex flex-col ring-1 ring-white/10"
-          >
-            <button
-              onClick={() => handleAction(handleMinimize)}
-              className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-accent hover:text-[#00363d] font-medium transition-colors text-left"
+          {activeMenu === 'window' && (
+            <div
+              className="absolute top-full left-0 mt-1 w-48 rounded-2xl caelestia-glass shadow-2xl py-1.5 z-50 text-[11px] flex flex-col ring-1 ring-white/10"
+              onClick={(e) => e.stopPropagation()}
             >
-              <span>Minimize</span>
-              <span className="text-[9px] font-mono opacity-60">⌘M</span>
-            </button>
+              <button
+                onClick={() => handleAction(handleMinimize)}
+                className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-accent hover:text-accent-on font-medium transition-colors text-left"
+              >
+                <span>Minimize</span>
+                <span className="text-[9px] font-mono opacity-60">⌘M</span>
+              </button>
 
-            <button
-              onClick={() => handleAction(handleMaximize)}
-              className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-accent hover:text-[#00363d] font-medium transition-colors text-left"
-            >
-              <span>{isMaximized ? 'Restore' : 'Maximize'}</span>
-            </button>
+              <button
+                onClick={() => handleAction(handleMaximize)}
+                className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-accent hover:text-accent-on font-medium transition-colors text-left"
+              >
+                <span>{isMaximized ? 'Restore' : 'Maximize'}</span>
+              </button>
 
-            <div className="my-1 border-t border-border" />
+              <div className="my-1 border-t border-border" />
 
-            <button
-              onClick={() => handleAction(handleClose)}
-              className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-rose-500 hover:text-white transition-colors text-left text-rose-500"
-            >
-              <span>Close Window</span>
-              <span className="text-[9px] font-mono opacity-60">⌘W</span>
-            </button>
-          </FloatingAnchor>
+              <button
+                onClick={() => handleAction(handleClose)}
+                className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-red-500 hover:text-white transition-colors text-left text-red-500"
+              >
+                <span>Close Window</span>
+                <span className="text-[9px] font-mono opacity-60">⌘W</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Menu 5: Help */}
         <div className="relative">
           <button
-            ref={helpBtnRef}
             onClick={() => toggleMenu('help')}
             onMouseEnter={() => handleMenuHover('help')}
-            className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
+            className={`px-2 py-0.5 rounded text-[11px] font-medium outline-none focus:outline-none select-none transition-colors ${
               activeMenu === 'help' 
-                ? 'bg-zinc-200/80 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-semibold' 
-                : 'hover:bg-zinc-200/60 dark:hover:bg-zinc-800/60 text-zinc-700 dark:text-zinc-300'
+                ? 'bg-surface-container text-on-surface font-semibold' 
+                : 'hover:bg-surface-container/60 text-on-surface-variant'
             }`}
           >
             Help
           </button>
 
-          <FloatingAnchor
-            isOpen={activeMenu === 'help'}
-            onClose={() => setActiveMenu(null)}
-            anchorRef={helpBtnRef}
-            placement="bottom-start"
-            className="w-64 rounded-2xl caelestia-glass shadow-2xl py-1.5 z-50 text-[11px] flex flex-col ring-1 ring-white/10"
-          >
-            <div className="px-3.5 py-2 border-b border-border flex items-center justify-between">
-              <span className="font-bold text-xs text-zinc-900 dark:text-zinc-50">Ink Vault</span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-accent/15 text-accent border border-accent/25">v2.0 Core</span>
-            </div>
-            <div className="px-3.5 py-2.5 flex flex-col gap-2 font-mono text-[11px] text-zinc-700 dark:text-zinc-200">
-              <div className="flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-accent flex-shrink-0 animate-pulse" />
-                <span>100% In-Memory Processing</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-secondary flex-shrink-0" />
-                <span>Hardware Vector Engine</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-tertiary flex-shrink-0" />
-                <span>Zero Cloud Telemetry</span>
-              </div>
-            </div>
-            <div className="my-1 border-t border-border" />
-            <button
-              onClick={() => handleAction(onReturnToCover || (() => {}))}
-              className="w-full flex items-center justify-between px-3.5 py-1.5 hover:bg-accent hover:text-[#00363d] font-medium text-zinc-700 dark:text-zinc-300 transition-colors text-left font-sans"
+          {activeMenu === 'help' && (
+            <div
+              className="absolute top-full left-0 mt-1 w-64 rounded-2xl caelestia-glass shadow-2xl py-1.5 z-50 text-[11px] flex flex-col ring-1 ring-white/10"
+              onClick={(e) => e.stopPropagation()}
             >
-              <span>Documentation & Cover</span>
-              <span className="text-[10px] font-mono opacity-60">⌘↵</span>
-            </button>
-          </FloatingAnchor>
+              <div className="px-3.5 py-2 border-b border-border flex items-center justify-between">
+                <span className="font-bold text-xs text-zinc-900 dark:text-zinc-50">Ink Vault</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-accent/15 text-accent border border-accent/25">v2.0 Core</span>
+              </div>
+              <div className="px-3.5 py-2.5 flex flex-col gap-2 font-mono text-[11px] text-zinc-700 dark:text-zinc-200">
+                <div className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-accent flex-shrink-0 animate-pulse" />
+                  <span>100% In-Memory Processing</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-secondary flex-shrink-0" />
+                  <span>Hardware Vector Engine</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-tertiary flex-shrink-0" />
+                  <span>Zero Cloud Telemetry</span>
+                </div>
+              </div>
+              <div className="my-1 border-t border-border" />
+              <button
+                onClick={() => handleAction(onReturnToCover || (() => {}))}
+                className="w-full flex items-center justify-between px-3.5 py-1.5 hover:bg-accent hover:text-accent-on font-medium text-zinc-700 dark:text-zinc-300 transition-colors text-left font-sans"
+              >
+                <span>Documentation & Cover</span>
+                <span className="text-[10px] font-mono opacity-60">⌘↵</span>
+              </button>
+            </div>
+          )}
         </div>
 
       </div>
@@ -511,7 +515,7 @@ export default function TitleBar({
         <span 
           className="text-[11px] font-mono text-zinc-500 dark:text-zinc-400 truncate max-w-xs lg:max-w-md font-medium"
         >
-          {activeDocName ? `${title} — ${activeDocName}` : `${title} · 100% Offline`}
+          {activeDocName ? `${title} — ${activeDocName}` : title}
         </span>
       </div>
 
@@ -526,7 +530,7 @@ export default function TitleBar({
               title="Studio Editor (⌘1)"
               className={`flex items-center gap-1 px-2.5 py-0.5 rounded-full transition-all ${
                 currentMode === 'editor'
-                  ? 'bg-accent text-[#00363d] font-bold shadow-2xs'
+                  ? 'bg-accent text-accent-on font-bold shadow-2xs'
                   : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
               }`}
             >
@@ -538,7 +542,7 @@ export default function TitleBar({
               title="Study Mode (⌘2)"
               className={`flex items-center gap-1 px-2.5 py-0.5 rounded-full transition-all ${
                 currentMode === 'study'
-                  ? 'bg-accent text-[#00363d] font-bold shadow-2xs'
+                  ? 'bg-accent text-accent-on font-bold shadow-2xs'
                   : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
               }`}
             >
@@ -550,7 +554,7 @@ export default function TitleBar({
               title="Books & Comics (⌘3)"
               className={`flex items-center gap-1 px-2.5 py-0.5 rounded-full transition-all ${
                 currentMode === 'reader'
-                  ? 'bg-tertiary text-[#00363d] font-bold shadow-2xs'
+                  ? 'bg-accent text-accent-on font-bold shadow-2xs'
                   : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
               }`}
             >

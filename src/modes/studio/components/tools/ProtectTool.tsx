@@ -184,8 +184,8 @@ export default function ProtectTool({ initialDoc, onOpenProtectedDoc }: ProtectT
         {!doc ? (
           <EmptyState
             icon={Lock}
-            title="Select a PDF to Protect or Unlock"
-            description="Secure confidential documents with password protection and access permissions."
+            title="Protect or Unlock PDF"
+            description="Secure confidential documents with password protection."
             actionLabel="Browse PDF"
             onAction={() => fileInputRef.current?.click()}
           />

@@ -42,10 +42,10 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
       return { label: 'EPUB', className: 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' };
     }
     if (lower.endsWith('.pdf')) {
-      return { label: 'PDF', className: 'bg-rose-500/10 text-rose-500 border border-rose-500/20' };
+      return { label: 'PDF', className: 'bg-accent/15 text-accent border border-accent/25' };
     }
     const ext = doc.name.split('.').pop()?.toUpperCase();
-    return { label: ext && ext.length <= 4 ? ext : 'BOOK', className: 'bg-zinc-500/10 text-zinc-500 border border-zinc-500/20' };
+    return { label: ext && ext.length <= 4 ? ext : 'BOOK', className: 'bg-surface-container text-on-surface-variant border border-border' };
   };
 
   return (
@@ -54,7 +54,7 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
       <button
         type="button"
         onClick={onTriggerOpenFile}
-        className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-white text-xs font-semibold bg-rose-600 hover:bg-rose-500 shadow-sm group active:scale-[0.98] transition-all"
+        className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-accent-on text-xs font-semibold bg-accent hover:bg-accent-hover shadow-sm group active:scale-[0.98] transition-all"
       >
         <span className="flex items-center gap-2">
           <Plus className="h-4 w-4" />
@@ -67,7 +67,7 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
 
       {/* Bookshelf Navigation */}
       <div className="flex flex-col gap-1">
-        <span className="px-2 text-[10px] font-mono uppercase tracking-wider text-zinc-400 font-semibold mb-1">
+        <span className="px-2 text-[10px] font-mono uppercase tracking-wider text-on-surface-variant font-semibold mb-1">
           Bookshelf
         </span>
 
@@ -75,10 +75,10 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
         <button
           type="button"
           onClick={() => onSelectTab('recent')}
-          className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+          className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium outline-none focus:outline-none select-none transition-colors duration-75 ${
             activeTab === 'recent'
-              ? 'bg-rose-500/15 text-rose-400 border border-rose-500/30 font-semibold shadow-2xs'
-              : 'text-zinc-600 dark:text-zinc-400 hover:bg-card hover:text-zinc-900 dark:hover:text-zinc-100 border border-transparent'
+              ? 'bg-accent/15 text-accent border border-accent/30 font-semibold shadow-2xs'
+              : 'text-on-surface-variant hover:bg-card/70 hover:text-on-surface border border-transparent'
           }`}
         >
           <span className="flex items-center gap-2.5">
@@ -86,7 +86,7 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
             <span>Books & Comics</span>
           </span>
           {totalCount > 0 && (
-            <span className="text-[10px] font-mono bg-zinc-200/80 dark:bg-surface px-1.5 py-0.5 rounded text-zinc-600 dark:text-zinc-300">
+            <span className="text-[10px] font-mono bg-surface-container px-1.5 py-0.5 rounded text-on-surface-variant">
               {totalCount}
             </span>
           )}
@@ -96,14 +96,14 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
       {/* Books & Comics List */}
       <div className="flex flex-col gap-1.5 pt-3 border-t border-border">
         <div className="flex items-center justify-between px-2 mb-0.5">
-          <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 font-semibold flex items-center gap-1.5">
-            <BookOpen className="h-3 w-3 text-rose-500" /> Books ({docs.length})
+          <span className="text-[10px] font-mono uppercase tracking-wider text-on-surface-variant font-semibold flex items-center gap-1.5">
+            <BookOpen className="h-3 w-3 text-accent" /> Books ({docs.length})
           </span>
         </div>
 
         {docs.length === 0 ? (
           <div className="px-2 py-3 rounded-lg border border-dashed border-border bg-card/40 text-center">
-            <p className="text-[11px] text-zinc-400">
+            <p className="text-[11px] text-on-surface-variant/80">
               No books yet. Click Add Book or drag & drop files.
             </p>
           </div>
@@ -131,8 +131,8 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
                   onClick={() => onSelectDoc?.(doc)}
                   className={`group/doc relative flex flex-col gap-1 p-2 rounded-lg cursor-pointer transition-all ${
                     isActive
-                      ? 'bg-rose-500/10 text-zinc-900 dark:text-zinc-100 border border-rose-500/30 shadow-2xs'
-                      : 'text-zinc-700 dark:text-zinc-300 hover:bg-card hover:text-zinc-900 dark:hover:text-zinc-100 border border-transparent'
+                      ? 'bg-accent/10 text-on-surface border border-accent/30 shadow-2xs'
+                      : 'text-on-surface-variant hover:bg-card hover:text-on-surface border border-transparent'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-1.5 min-w-0">
@@ -152,7 +152,7 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
                           onRemoveDoc(doc.id, e);
                         }}
                         title={`Remove ${doc.name}`}
-                        className="opacity-0 group-hover/doc:opacity-100 hover:text-rose-500 text-zinc-400 transition-opacity p-0.5 rounded shrink-0"
+                        className="opacity-0 group-hover/doc:opacity-100 hover:text-red-500 text-outline transition-opacity p-0.5 rounded shrink-0"
                       >
                         <Trash2 className="h-3 w-3" />
                       </button>
@@ -160,7 +160,7 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
                   </div>
 
                   {/* Progress Indicator */}
-                  <div className="flex items-center justify-between text-[10px] text-zinc-400 font-mono mt-0.5">
+                  <div className="flex items-center justify-between text-[10px] text-on-surface-variant font-mono mt-0.5">
                     {isFinished ? (
                       <span className="text-emerald-500 dark:text-emerald-400 font-medium flex items-center gap-1">
                         <CheckCircle2 className="h-2.5 w-2.5" /> Finished
@@ -174,9 +174,9 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
 
                   {/* Mini progress bar if in progress */}
                   {!isFinished && progressPercent > 0 && (
-                    <div className="w-full h-1 bg-zinc-200 dark:bg-zinc-700/50 rounded-full overflow-hidden mt-0.5">
+                    <div className="w-full h-1 bg-surface-container-high rounded-full overflow-hidden mt-0.5">
                       <div 
-                        className="h-full bg-rose-500 rounded-full transition-all duration-300"
+                        className="h-full bg-accent rounded-full transition-all duration-300"
                         style={{ width: `${progressPercent}%` }}
                       />
                     </div>

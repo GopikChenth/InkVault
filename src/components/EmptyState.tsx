@@ -1,4 +1,4 @@
-import { LucideIcon, Plus } from 'lucide-react';
+import { LucideIcon, Plus, UploadCloud } from 'lucide-react';
 
 interface EmptyStateProps {
   icon: LucideIcon;
@@ -7,6 +7,9 @@ interface EmptyStateProps {
   actionLabel?: string;
   onAction?: () => void;
   hint?: string;
+  hintIcon?: LucideIcon;
+  actionIcon?: LucideIcon;
+  shortcut?: string;
 }
 
 export default function EmptyState({
@@ -15,47 +18,53 @@ export default function EmptyState({
   description,
   actionLabel = 'Browse Local Files',
   onAction,
-  hint = 'or drag and drop PDF anywhere',
+  hint = 'Or drag & drop files here',
+  hintIcon: HintIcon = UploadCloud,
+  actionIcon: ActionIcon = Plus,
+  shortcut,
 }: EmptyStateProps) {
   return (
     <div className="flex-1 w-full h-full flex items-center justify-center p-6 sm:p-8">
-      <div
-        onClick={onAction}
-        className="max-w-lg w-full p-10 sm:p-12 rounded-2xl border-2 border-dashed border-border bg-card hover:border-accent/60 transition-all cursor-pointer group shadow-sm flex flex-col items-center justify-center text-center select-none"
-      >
+      <div className="max-w-md w-full p-8 sm:p-10 rounded-2xl border border-border bg-card shadow-sm flex flex-col items-center text-center select-none animate-in fade-in zoom-in-95 duration-200">
         {/* Uniform Icon Box */}
-        <div className="h-16 w-16 rounded-2xl bg-surface border border-border/50 flex items-center justify-center mb-4 text-zinc-500 group-hover:text-accent group-hover:scale-105 transition-all shadow-xs">
-          <Icon className="h-7 w-7 transition-colors" />
+        <div className="h-16 w-16 rounded-2xl bg-accent/10 border border-accent/20 text-accent flex items-center justify-center mb-4 shadow-2xs">
+          <Icon className="h-8 w-8" />
         </div>
 
         {/* Uniform Title */}
-        <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
+        <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
           {title}
         </h3>
 
         {/* Uniform Description */}
-        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1.5 max-w-sm leading-relaxed">
+        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2 max-w-xs leading-relaxed">
           {description}
         </p>
 
         {/* Uniform Action Button */}
         {actionLabel && onAction && (
-          <div className="mt-6 flex flex-col items-center gap-2">
+          <div className="mt-6 w-full flex justify-center">
             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onAction();
-              }}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-zinc-900 dark:bg-zinc-100 text-zinc-100 dark:text-zinc-900 text-xs font-semibold group-hover:bg-accent group-hover:text-white transition-all shadow-sm active:scale-95"
+              type="button"
+              onClick={onAction}
+              className="flex items-center gap-2.5 px-6 py-3 rounded-xl bg-accent hover:bg-accent-hover text-white dark:text-zinc-900 text-xs font-semibold shadow-md active:scale-95 transition-all group"
             >
-              <Plus className="h-3.5 w-3.5" />
+              <ActionIcon className="h-4 w-4 group-hover:scale-110 transition-transform" />
               <span>{actionLabel}</span>
+              {shortcut && (
+                <span className="text-[10px] font-mono opacity-70 bg-black/20 dark:bg-black/10 px-1.5 py-0.5 rounded ml-0.5">
+                  {shortcut}
+                </span>
+              )}
             </button>
-            {hint && (
-              <span className="text-[10px] font-mono text-zinc-400">
-                {hint}
-              </span>
-            )}
+          </div>
+        )}
+
+        {/* Divider & Drag and Drop Hint */}
+        {hint && (
+          <div className="mt-6 pt-4 border-t border-border w-full flex items-center justify-center gap-1.5 text-[11px] text-zinc-400 font-mono">
+            <HintIcon className="h-3.5 w-3.5 text-accent" />
+            <span>{hint}</span>
           </div>
         )}
       </div>

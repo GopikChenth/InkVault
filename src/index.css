@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ==========================================================================
+   GLOBAL THEME TOKENS & MODE SPECIALIZATION
+   ========================================================================== */
 :root {
   --background: #f4fafb;
   --surface: #ebf4f6;
@@ -30,18 +33,18 @@
 }
 
 .dark {
-  --background: #101415;
-  --surface: #101415;
-  --surface-dim: #101415;
-  --surface-bright: #363a3b;
-  --surface-container-lowest: #0b0f10;
-  --surface-container-low: #181c1d;
-  --surface-container: #1c2021;
-  --surface-container-high: #272b2b;
-  --surface-container-highest: #313536;
-  --card: #181c1d;
-  --border: rgba(136, 147, 148, 0.16);
-  --border-active: rgba(129, 211, 224, 0.40);
+  --background: #0e1417;
+  --surface: #10171a;
+  --surface-dim: #0b1012;
+  --surface-bright: #363e42;
+  --surface-container-lowest: #080d0f;
+  --surface-container-low: #141c20;
+  --surface-container: #182226;
+  --surface-container-high: #212c31;
+  --surface-container-highest: #2b373d;
+  --card: #141c20;
+  --border: rgba(129, 211, 224, 0.14);
+  --border-active: rgba(129, 211, 224, 0.45);
   --accent: #81d3e0;
   --accent-hover: #9eeffd;
   --accent-container: #28828e;
@@ -56,8 +59,185 @@
   --outline-variant: #3e494a;
 }
 
+/* ==========================================================================
+   MODE 1: STUDIO / EDITOR (Blueprint Cyan — Architectural Precision)
+   ========================================================================== */
+[data-mode="editor"] {
+  --background: #f4fafb;
+  --surface: #ebf4f6;
+  --surface-dim: #d5e0e2;
+  --surface-bright: #f4fafb;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #e8f2f4;
+  --surface-container: #e0ecee;
+  --surface-container-high: #d8e6e8;
+  --surface-container-highest: #d0dfe1;
+  --card: #ffffff;
+  --border: rgba(62, 73, 74, 0.14);
+  --border-active: rgba(0, 104, 116, 0.35);
+  --accent: #006874;
+  --accent-hover: #008291;
+  --accent-container: #9eeffd;
+  --on-accent: #ffffff;
+  --secondary: #4a6267;
+  --secondary-container: #cde7ec;
+  --tertiary: #6e5188;
+  --tertiary-container: #f5d9ff;
+  --on-surface: #161c1d;
+  --on-surface-variant: #3e494a;
+  --outline: #6e797a;
+  --outline-variant: #bec8ca;
+}
+
+.dark[data-mode="editor"],
+.dark [data-mode="editor"],
+[data-mode="editor"].dark {
+  --background: #0e1417;
+  --surface: #10171a;
+  --surface-dim: #0b1012;
+  --surface-bright: #363e42;
+  --surface-container-lowest: #080d0f;
+  --surface-container-low: #141c20;
+  --surface-container: #182226;
+  --surface-container-high: #212c31;
+  --surface-container-highest: #2b373d;
+  --card: #141c20;
+  --border: rgba(129, 211, 224, 0.14);
+  --border-active: rgba(129, 211, 224, 0.45);
+  --accent: #81d3e0;
+  --accent-hover: #9eeffd;
+  --accent-container: #28828e;
+  --on-accent: #00363d;
+  --secondary: #adccd1;
+  --secondary-container: #2f4b50;
+  --tertiary: #ddb9f7;
+  --tertiary-container: #a584bf;
+  --on-surface: #e0e3e4;
+  --on-surface-variant: #bec8ca;
+  --outline: #889394;
+  --outline-variant: #3e494a;
+}
+
+/* ==========================================================================
+   MODE 2: STUDY MODE (Botanical Sage / Matcha — Calm Restorative Ergonomics)
+   ========================================================================== */
+[data-mode="study"] {
+  --background: #f3f8f5;
+  --surface: #e9f3ec;
+  --surface-dim: #d4e3d8;
+  --surface-bright: #f3f8f5;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #e5f0e8;
+  --surface-container: #dcece1;
+  --surface-container-high: #d2e4d7;
+  --surface-container-highest: #c8dcce;
+  --card: #ffffff;
+  --border: rgba(55, 75, 62, 0.14);
+  --border-active: rgba(61, 114, 83, 0.40);
+  --accent: #3d7253;
+  --accent-hover: #4e8765;
+  --accent-container: #c4ebd4;
+  --on-accent: #ffffff;
+  --secondary: #4d6657;
+  --secondary-container: #d0e7d9;
+  --tertiary: #50677c;
+  --tertiary-container: #d7e4f3;
+  --on-surface: #141c17;
+  --on-surface-variant: #3c4941;
+  --outline: #6b7a70;
+  --outline-variant: #bccac0;
+}
+
+.dark[data-mode="study"],
+.dark [data-mode="study"],
+[data-mode="study"].dark {
+  --background: #0d1612;
+  --surface: #101a15;
+  --surface-dim: #0a110e;
+  --surface-bright: #344038;
+  --surface-container-lowest: #070d0a;
+  --surface-container-low: #14201a;
+  --surface-container: #182720;
+  --surface-container-high: #21322a;
+  --surface-container-highest: #2b3e34;
+  --card: #14201a;
+  --border: rgba(141, 219, 176, 0.15);
+  --border-active: rgba(141, 219, 176, 0.45);
+  --accent: #8ddbb0;
+  --accent-hover: #a9e8c5;
+  --accent-container: #1e5a39;
+  --on-accent: #072a18;
+  --secondary: #b5d5c3;
+  --secondary-container: #334d40;
+  --tertiary: #b9d1e8;
+  --tertiary-container: #3b5063;
+  --on-surface: #dfede5;
+  --on-surface-variant: #becdc4;
+  --outline: #889a90;
+  --outline-variant: #3d4a42;
+}
+
+/* ==========================================================================
+   MODE 3: READER MODE (Bibliophile Amber & Nordic Vellum — Timeless Literary Ergonomics)
+   ========================================================================== */
+[data-mode="reader"] {
+  --background: #faf5ee;
+  --surface: #f3ebe0;
+  --surface-dim: #e4dad0;
+  --surface-bright: #faf5ee;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #f0e6da;
+  --surface-container: #ece1d4;
+  --surface-container-high: #e5d8cb;
+  --surface-container-highest: #dccec0;
+  --card: #ffffff;
+  --border: rgba(84, 72, 62, 0.14);
+  --border-active: rgba(168, 90, 20, 0.38);
+  --accent: #a85a14;
+  --accent-hover: #c26700;
+  --accent-container: #fee5c4;
+  --on-accent: #ffffff;
+  --secondary: #6e5845;
+  --secondary-container: #f7ddc6;
+  --tertiary: #5e6175;
+  --tertiary-container: #e2e4fa;
+  --on-surface: #211c18;
+  --on-surface-variant: #54483e;
+  --outline: #867667;
+  --outline-variant: #d5c7b8;
+}
+
+.dark[data-mode="reader"],
+.dark [data-mode="reader"],
+[data-mode="reader"].dark {
+  --background: #13110f;
+  --surface: #181512;
+  --surface-dim: #0e0c0a;
+  --surface-bright: #3c342d;
+  --surface-container-lowest: #0a0907;
+  --surface-container-low: #1c1815;
+  --surface-container: #211c18;
+  --surface-container-high: #2b2520;
+  --surface-container-highest: #362f29;
+  --card: #1c1815;
+  --border: rgba(234, 165, 88, 0.14);
+  --border-active: rgba(234, 165, 88, 0.45);
+  --accent: #eaa558;
+  --accent-hover: #f3b875;
+  --accent-container: #723b06;
+  --on-accent: #291402;
+  --secondary: #dac3ad;
+  --secondary-container: #544131;
+  --tertiary: #c4c6dc;
+  --tertiary-container: #46485b;
+  --on-surface: #eae3db;
+  --on-surface-variant: #cfbfb2;
+  --outline: #98877a;
+  --outline-variant: #4e443b;
+}
+
 ::selection {
-  background: rgba(129, 211, 224, 0.35);
+  background: color-mix(in srgb, var(--accent) 35%, transparent);
   color: inherit;
 }
 
@@ -85,6 +265,14 @@ html, body, #root {
   overflow-x: hidden;
   background-color: var(--background);
   color: var(--on-surface);
+  transition: background-color 220ms cubic-bezier(0.05, 0.7, 0.1, 1),
+              color 220ms cubic-bezier(0.05, 0.7, 0.1, 1);
+}
+
+button:focus:not(:focus-visible),
+input:focus:not(:focus-visible),
+select:focus:not(:focus-visible) {
+  outline: none;
 }
 
 @layer utilities {
@@ -109,7 +297,10 @@ html, body, #root {
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
   }
   .caelestia-glow {
-    box-shadow: 0 0 24px -2px rgba(129, 211, 224, 0.28);
+    box-shadow: 0 0 24px -2px color-mix(in srgb, var(--accent) 30%, transparent);
+  }
+  .text-on-accent {
+    color: var(--on-accent);
   }
   .no-scrollbar::-webkit-scrollbar {
     display: none !important;
@@ -119,6 +310,37 @@ html, body, #root {
   .no-scrollbar {
     -ms-overflow-style: none !important;
     scrollbar-width: none !important;
+  }
+
+  @keyframes floating-menu-expand {
+    0% {
+      opacity: 0;
+      transform: scale(0.95) translateY(-4px);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+
+  @keyframes floating-menu-expand-up {
+    0% {
+      opacity: 0;
+      transform: scale(0.95) translateY(4px);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+
+  .floating-menu-enter {
+    animation: floating-menu-expand 130ms cubic-bezier(0.05, 0.7, 0.1, 1) forwards;
+    will-change: transform, opacity;
+  }
+
+  .floating-menu-enter[data-placement="top"] {
+    animation-name: floating-menu-expand-up;
   }
 }
 

@@ -530,7 +530,7 @@ export default function StickyNoteModal({
             <button
               type="submit"
               disabled={!newCommentText.trim()}
-              className="h-9 px-4 rounded-full bg-accent text-[#00363d] hover:bg-accent/90 text-xs font-bold flex items-center gap-1.5 disabled:opacity-30 transition-all duration-200 ease-caelestia-decel shadow-xs flex-shrink-0"
+              className="h-9 px-4 rounded-full bg-accent text-accent-on hover:bg-accent-hover text-xs font-bold flex items-center gap-1.5 disabled:opacity-30 transition-all duration-200 ease-caelestia-decel shadow-xs flex-shrink-0"
             >
               <Send className="h-3.5 w-3.5" />
               <span>Post</span>

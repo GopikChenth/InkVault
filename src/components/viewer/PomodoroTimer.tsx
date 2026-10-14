@@ -97,8 +97,8 @@ function PomodoroTimer({ className = '' }: PomodoroTimerProps) {
         className={`h-7 px-2.5 rounded-full border flex items-center gap-1.5 transition-all duration-200 ease-caelestia-decel cursor-pointer shadow-xs ${
           isRunning
             ? phase === 'focus'
-              ? 'bg-rose-500/15 border-rose-500/40 text-rose-300 ring-1 ring-rose-500/20'
-              : 'bg-accent/15 border-accent/40 text-accent ring-1 ring-accent/20'
+              ? 'bg-accent/15 border-accent/40 text-accent ring-1 ring-accent/20'
+              : 'bg-secondary/15 border-secondary/40 text-secondary ring-1 ring-secondary/20'
             : 'bg-surface-container border-outline/20 text-on-surface hover:border-outline/40 hover:bg-surface-high'
         }`}
         onClick={() => setShowPopover((prev) => !prev)}
@@ -108,11 +108,11 @@ function PomodoroTimer({ className = '' }: PomodoroTimerProps) {
         <span className="relative flex h-2 w-2">
           {isRunning && (
             <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
-              phase === 'focus' ? 'bg-rose-400' : 'bg-accent'
+              phase === 'focus' ? 'bg-accent' : 'bg-secondary'
             }`} />
           )}
           <span className={`relative inline-flex rounded-full h-2 w-2 ${
-            phase === 'focus' ? 'bg-rose-500' : 'bg-accent'
+            phase === 'focus' ? 'bg-accent' : 'bg-secondary'
           }`} />
         </span>
 
@@ -137,7 +137,7 @@ function PomodoroTimer({ className = '' }: PomodoroTimerProps) {
         title={isRunning ? "Pause Timer" : "Start Pomodoro Timer"}
         className={`h-6 w-6 ml-1 rounded-full flex items-center justify-center transition-all duration-200 ease-caelestia-decel ${
           isRunning 
-            ? 'bg-rose-500/20 text-rose-300 hover:bg-rose-500/30' 
+            ? 'bg-accent/20 text-accent hover:bg-accent/30' 
             : 'bg-surface-container text-on-surface hover:bg-surface-high border border-outline/20'
         }`}
       >
@@ -176,7 +176,7 @@ function PomodoroTimer({ className = '' }: PomodoroTimerProps) {
                 title="Configure Custom Intervals (Work & Breaks)"
                 className={`h-6 px-2 rounded-full flex items-center gap-1 text-[11px] font-medium transition-colors ${
                   showSettingsTab 
-                    ? 'text-[#00363d] bg-accent font-semibold shadow-xs' 
+                    ? 'text-accent-on bg-accent font-semibold shadow-xs' 
                     : 'text-zinc-400 hover:text-on-surface hover:bg-surface-high'
                 }`}
               >
@@ -206,7 +206,7 @@ function PomodoroTimer({ className = '' }: PomodoroTimerProps) {
                   onClick={() => switchPhase('focus')}
                   className={`py-1.5 rounded-xl text-[11px] font-semibold transition-all duration-200 ease-caelestia-decel flex flex-col items-center justify-center gap-0.5 ${
                     phase === 'focus'
-                      ? 'bg-rose-500 text-white shadow-xs font-bold'
+                      ? 'bg-accent text-accent-on shadow-xs font-bold'
                       : 'text-zinc-400 hover:text-on-surface'
                   }`}
                 >
@@ -219,7 +219,7 @@ function PomodoroTimer({ className = '' }: PomodoroTimerProps) {
                   onClick={() => switchPhase('shortBreak')}
                   className={`py-1.5 rounded-xl text-[11px] font-semibold transition-all duration-200 ease-caelestia-decel flex flex-col items-center justify-center gap-0.5 ${
                     phase === 'shortBreak'
-                      ? 'bg-accent text-[#00363d] shadow-xs font-bold'
+                      ? 'bg-secondary text-white shadow-xs font-bold'
                       : 'text-zinc-400 hover:text-on-surface'
                   }`}
                 >
@@ -232,7 +232,7 @@ function PomodoroTimer({ className = '' }: PomodoroTimerProps) {
                   onClick={() => switchPhase('longBreak')}
                   className={`py-1.5 rounded-xl text-[11px] font-semibold transition-all duration-200 ease-caelestia-decel flex flex-col items-center justify-center gap-0.5 ${
                     phase === 'longBreak'
-                      ? 'bg-tertiary text-[#381e72] shadow-xs font-bold'
+                      ? 'bg-tertiary text-white shadow-xs font-bold'
                       : 'text-zinc-400 hover:text-on-surface'
                   }`}
                 >
@@ -251,7 +251,7 @@ function PomodoroTimer({ className = '' }: PomodoroTimerProps) {
                 <div className="w-full bg-surface-lowest h-1.5 rounded-full mt-3 overflow-hidden border border-outline/20">
                   <div 
                     className={`h-full transition-all duration-300 ease-caelestia-decel ${
-                      phase === 'focus' ? 'bg-rose-500' : 'bg-accent'
+                      phase === 'focus' ? 'bg-accent' : phase === 'shortBreak' ? 'bg-secondary' : 'bg-tertiary'
                     }`}
                     style={{ width: `${progressPercent}%` }}
                   />
@@ -276,8 +276,8 @@ function PomodoroTimer({ className = '' }: PomodoroTimerProps) {
                     isRunning 
                       ? 'bg-surface-highest text-on-surface hover:bg-surface-high' 
                       : phase === 'focus'
-                        ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-rose-950/40'
-                        : 'bg-accent text-[#00363d] hover:bg-accent/90 shadow-cyan-950/40'
+                        ? 'bg-accent hover:bg-accent-hover text-accent-on shadow-accent/25'
+                        : 'bg-secondary hover:bg-secondary/90 text-white shadow-secondary/25'
                   }`}
                 >
                   {isRunning ? (
@@ -467,7 +467,7 @@ function PomodoroTimer({ className = '' }: PomodoroTimerProps) {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2 rounded-full bg-accent text-[#00363d] hover:bg-accent/90 text-xs font-bold transition-all duration-200 ease-caelestia-decel shadow-xs"
+                  className="flex-1 py-2 rounded-full bg-accent text-accent-on hover:bg-accent-hover text-xs font-bold transition-all duration-200 ease-caelestia-decel shadow-xs"
                 >
                   Save & Apply
                 </button>

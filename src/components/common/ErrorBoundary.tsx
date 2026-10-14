@@ -64,7 +64,7 @@ export default class ErrorBoundary extends Component<Props, State> {
             <div className="flex items-center gap-2.5 w-full pt-2">
               <button
                 onClick={this.handleReset}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-accent text-[#00363d] font-bold text-xs hover:bg-accent-hover transition-colors shadow-sm"
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-accent text-accent-on font-bold text-xs hover:bg-accent-hover transition-colors shadow-sm"
               >
                 <RefreshCw className="h-3.5 w-3.5" />
                 <span>Reload View</span>

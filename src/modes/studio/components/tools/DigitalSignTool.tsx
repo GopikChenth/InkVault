@@ -182,8 +182,8 @@ export default function DigitalSignTool({ initialDoc, onOpenSignedDoc }: Digital
         {!doc ? (
           <EmptyState
             icon={Award}
-            title="Select a PDF to Digitally Sign"
-            description="Apply legally compliant PAdES B-B digital signatures using private keys and digital certificates."
+            title="Digitally Sign PDF"
+            description="Apply compliant digital signatures using certificates."
             actionLabel="Browse PDF"
             onAction={() => fileInputRef.current?.click()}
           />

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { 
   Search, 
   HelpCircle, 
@@ -6,13 +6,23 @@ import {
   MoreVertical, 
   Plus, 
   Star, 
-  ArrowUpDown
+  ArrowUpDown,
+  CheckCircle,
+  RotateCcw,
+  Trash2,
+  ChevronDown,
+  Check,
+  Flame
 } from 'lucide-react';
 import { LoadedPDF } from '../../../types';
+import FloatingAnchor from '../../../components/common/FloatingAnchor';
+import EmptyState from '../../../components/EmptyState';
+import CircularProgress from './CircularProgress';
 import { 
   getBookRating, 
   saveBookRating, 
-  formatRelativeTime 
+  formatRelativeTime,
+  getReadingStats 
 } from '../utils/readingStats';
 
 interface BookComicHubProps {
@@ -26,10 +36,17 @@ interface BookComicHubProps {
 
 type SortOption = 'lastRead' | 'title' | 'progress' | 'recentAdded';
 
+const SORT_OPTIONS: { id: SortOption; label: string }[] = [
+  { id: 'lastRead', label: 'Recently Read' },
+  { id: 'recentAdded', label: 'Recently Added' },
+  { id: 'progress', label: 'Reading Progress' },
+  { id: 'title', label: 'Title (A-Z)' },
+];
+
 interface BookCardProps {
   doc: any;
   isOpenMenu: boolean;
-  onToggleMenu: (id: string, e: React.MouseEvent) => void;
+  onToggleMenu: (id: string, e?: React.MouseEvent) => void;
   onOpenDoc: (doc: LoadedPDF) => void;
   onMarkFinished: (doc: any, e: React.MouseEvent) => void;
   onResetProgress: (doc: any, e: React.MouseEvent) => void;
@@ -47,6 +64,7 @@ const BookCard = React.memo(function BookCard({
   onRatingChange,
   onRemoveDoc,
 }: BookCardProps) {
+  const moreBtnRef = useRef<HTMLButtonElement>(null);
   const formattedTime = doc.lastReadAt 
     ? formatRelativeTime(doc.lastReadAt) 
     : formatRelativeTime(doc.loadedAt);
@@ -57,7 +75,7 @@ const BookCard = React.memo(function BookCard({
       className="group flex flex-col cursor-pointer select-none"
     >
       {/* Book Cover Container with ~2:3 PC Book Proportion */}
-      <div className="relative aspect-[2/3] w-full rounded-xl overflow-hidden bg-[#161622] border border-zinc-800 shadow-md group-hover:border-rose-500/50">
+      <div className="relative aspect-[2/3] w-full rounded-xl overflow-hidden bg-card border border-border shadow-md group-hover:border-accent/50 transition-colors">
         
         {/* Cover Art / Vector Spine */}
         {doc.coverDataUrl ? (
@@ -68,17 +86,17 @@ const BookCard = React.memo(function BookCard({
             loading="lazy"
           />
         ) : (
-          <div className="w-full h-full flex flex-col justify-between p-4 bg-gradient-to-br from-zinc-800 via-[#1c1c2b] to-[#12121a]">
+          <div className="w-full h-full flex flex-col justify-between p-4 bg-gradient-to-br from-surface-container-high via-surface-container to-surface">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-mono font-bold text-zinc-500 uppercase">
+              <span className="text-[10px] font-mono font-bold text-on-surface-variant uppercase">
                 {doc.isComic ? 'Comic' : doc.isEpub ? 'E-Book' : 'Document'}
               </span>
-              <BookOpen className="h-4 w-4 text-zinc-600" />
+              <BookOpen className="h-4 w-4 text-on-surface-variant/60" />
             </div>
-            <p className="text-xs font-bold text-zinc-200 line-clamp-4 leading-snug drop-shadow-sm">
+            <p className="text-xs font-bold text-on-surface line-clamp-4 leading-snug drop-shadow-xs">
               {doc.name.replace(/\.[^/.]+$/, '')}
             </p>
-            <div className="text-[10px] font-mono text-zinc-500 truncate">
+            <div className="text-[10px] font-mono text-on-surface-variant truncate">
               {doc.size}
             </div>
           </div>
@@ -86,7 +104,7 @@ const BookCard = React.memo(function BookCard({
 
         {/* Format Badge (Top-Right) */}
         <div className="absolute top-2 right-2">
-          <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold uppercase tracking-wider backdrop-blur-md bg-black/60 text-zinc-200 border border-white/10 shadow-xs">
+          <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold uppercase tracking-wider backdrop-blur-md bg-black/60 text-zinc-100 border border-white/10 shadow-xs">
             {doc.isComic ? 'CBZ' : doc.isEpub ? 'EPUB' : 'PDF'}
           </span>
         </div>
@@ -96,8 +114,8 @@ const BookCard = React.memo(function BookCard({
           <div className="absolute top-2 left-2">
             <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-bold tracking-wider backdrop-blur-md shadow-xs ${
               doc.isFinished
-                ? 'bg-emerald-500/80 text-white'
-                : 'bg-rose-600/80 text-white'
+                ? 'bg-emerald-500/90 text-white'
+                : 'bg-accent/90 text-on-accent'
             }`}>
               {doc.isFinished ? 'Finished' : `${doc.progressPercent}%`}
             </span>
@@ -105,69 +123,79 @@ const BookCard = React.memo(function BookCard({
         )}
 
         {/* Hover Overlay with Read Button and 3-Dots Menu */}
-        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex flex-col justify-between p-3 pointer-events-none group-hover:pointer-events-auto">
+        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex flex-col justify-between p-3 pointer-events-none group-hover:pointer-events-auto transition-opacity">
           
           {/* Top right menu button */}
           <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
             <button
+              ref={moreBtnRef}
               type="button"
               onClick={(e) => onToggleMenu(doc.id, e)}
-              className="h-7 w-7 rounded-lg bg-black/60 hover:bg-black/90 text-zinc-200 flex items-center justify-center backdrop-blur-md"
+              className="h-7 w-7 rounded-lg bg-black/60 hover:bg-black/90 text-zinc-200 flex items-center justify-center backdrop-blur-md transition-colors"
               title="Options"
             >
               <MoreVertical className="h-3.5 w-3.5" />
             </button>
 
-            {isOpenMenu && (
-              <div className="absolute right-3 top-10 w-44 rounded-xl bg-[#1c1c28] border border-zinc-700 shadow-2xl py-1 z-30 text-xs flex flex-col">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onOpenDoc(doc);
-                  }}
-                  className="px-3 py-1.5 text-left text-zinc-200 hover:bg-rose-600 hover:text-white"
-                >
-                  Open in Reader
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => onMarkFinished(doc, e)}
-                  className="px-3 py-1.5 text-left text-zinc-200 hover:bg-rose-600 hover:text-white"
-                >
-                  Mark Finished (100%)
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => onResetProgress(doc, e)}
-                  className="px-3 py-1.5 text-left text-zinc-200 hover:bg-rose-600 hover:text-white"
-                >
-                  Reset Progress
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onRemoveDoc(doc.id);
-                  }}
-                  className="px-3 py-1.5 text-left text-rose-400 hover:bg-rose-600 hover:text-white"
-                >
-                  Remove from Shelf
-                </button>
-              </div>
-            )}
+            <FloatingAnchor
+              isOpen={isOpenMenu}
+              onClose={() => onToggleMenu('')}
+              anchorRef={moreBtnRef}
+              placement="bottom-end"
+              className="w-48 rounded-xl caelestia-glass border border-border shadow-2xl py-1.5 z-50 text-xs flex flex-col ring-1 ring-white/10"
+            >
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenDoc(doc);
+                }}
+                className="w-full px-3 py-1.5 text-left text-on-surface hover:bg-accent hover:text-on-accent transition-colors flex items-center gap-2"
+              >
+                <BookOpen className="h-3.5 w-3.5 text-accent" />
+                <span>Open in Reader</span>
+              </button>
+              <button
+                type="button"
+                onClick={(e) => onMarkFinished(doc, e)}
+                className="w-full px-3 py-1.5 text-left text-on-surface hover:bg-accent hover:text-on-accent transition-colors flex items-center gap-2"
+              >
+                <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />
+                <span>Mark Finished (100%)</span>
+              </button>
+              <button
+                type="button"
+                onClick={(e) => onResetProgress(doc, e)}
+                className="w-full px-3 py-1.5 text-left text-on-surface hover:bg-accent hover:text-on-accent transition-colors flex items-center gap-2"
+              >
+                <RotateCcw className="h-3.5 w-3.5 text-amber-500" />
+                <span>Reset Progress</span>
+              </button>
+              <div className="my-1 border-t border-border" />
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemoveDoc(doc.id);
+                }}
+                className="w-full px-3 py-1.5 text-left text-red-500 hover:bg-red-500 hover:text-white transition-colors flex items-center gap-2"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                <span>Remove from Shelf</span>
+              </button>
+            </FloatingAnchor>
           </div>
 
           {/* Center Action */}
           <div className="flex items-center justify-center">
-            <span className="px-3.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs shadow-lg flex items-center gap-1.5">
+            <span className="px-3.5 py-1.5 rounded-lg bg-accent hover:bg-accent-hover text-on-accent font-semibold text-xs shadow-lg flex items-center gap-1.5 transition-all active:scale-95">
               <BookOpen className="h-3.5 w-3.5" />
               <span>Read</span>
             </span>
           </div>
 
           {/* Bottom info on hover */}
-          <div className="text-[11px] font-mono text-zinc-300 bg-black/60 backdrop-blur-md rounded-md px-2 py-0.5 text-center">
+          <div className="text-[11px] font-mono text-zinc-200 bg-black/60 backdrop-blur-md rounded-md px-2 py-0.5 text-center">
             {doc.pageCount && doc.pageCount > 1
               ? `${doc.currentPage} / ${doc.pageCount} pages`
               : `Page ${doc.currentPage}`}
@@ -175,10 +203,10 @@ const BookCard = React.memo(function BookCard({
         </div>
 
         {/* Progress Bar Indicator at bottom edge */}
-        <div className="absolute bottom-0 inset-x-0 h-1.5 bg-zinc-800/80">
+        <div className="absolute bottom-0 inset-x-0 h-1.5 bg-surface-container-high/60">
           <div
             className={`h-full ${
-              doc.isFinished ? 'bg-emerald-500' : 'bg-rose-500'
+              doc.isFinished ? 'bg-emerald-500' : 'bg-accent'
             }`}
             style={{ width: `${doc.isFinished ? 100 : Math.max(3, doc.progressPercent)}%` }}
           />
@@ -189,14 +217,14 @@ const BookCard = React.memo(function BookCard({
       {/* Desktop Metadata Underneath Cover */}
       <div className="pt-2.5 px-0.5 flex flex-col gap-1">
         <h3 
-          className="text-xs font-semibold text-zinc-200 group-hover:text-rose-400 line-clamp-2 leading-snug"
+          className="text-xs font-semibold text-on-surface group-hover:text-accent line-clamp-2 leading-snug transition-colors"
           title={doc.name}
         >
           {doc.name.replace(/\.[^/.]+$/, '')}
         </h3>
 
         {/* Star Rating & Last Read */}
-        <div className="flex items-center justify-between gap-1 text-[11px] text-zinc-400 pt-0.5">
+        <div className="flex items-center justify-between gap-1 text-[11px] text-on-surface-variant pt-0.5">
           {/* Interactive 5-Star Rating */}
           <div 
             className="flex items-center gap-0.5" 
@@ -208,20 +236,20 @@ const BookCard = React.memo(function BookCard({
                 key={star}
                 type="button"
                 onClick={(e) => onRatingChange(doc.id, star, e)}
-                className="p-0.5"
+                className="p-0.5 transition-transform hover:scale-110"
               >
                 <Star
                   className={`h-3 w-3 ${
                     star <= (doc.rating || 0)
-                        ? 'text-amber-400 fill-amber-400'
-                        : 'text-zinc-600 hover:text-amber-300'
+                      ? 'text-amber-400 fill-amber-400'
+                      : 'text-outline/40 hover:text-amber-300'
                   }`}
                 />
               </button>
             ))}
           </div>
 
-          <span className="text-[10px] font-mono text-zinc-500 truncate">
+          <span className="text-[10px] font-mono text-on-surface-variant truncate">
             {formattedTime}
           </span>
         </div>
@@ -243,6 +271,8 @@ function BookComicHub({
   const [sortBy, setSortBy] = useState<SortOption>('lastRead');
   const [openMenuDocId, setOpenMenuDocId] = useState<string | null>(null);
   const [showHelpModal, setShowHelpModal] = useState(false);
+  const [showSortMenu, setShowSortMenu] = useState(false);
+  const sortBtnRef = useRef<HTMLButtonElement>(null);
 
   // Determine if a document is a comic or an epub/book with progress calculations
   const enrichedDocs = useMemo(() => {
@@ -327,6 +357,14 @@ function BookComicHub({
     return result;
   }, [enrichedDocs, searchQuery, activeFilter, sortBy]);
 
+  const readingStats = useMemo(() => getReadingStats(), [docs]);
+
+  const averageProgress = useMemo(() => {
+    if (enrichedDocs.length === 0) return 0;
+    const total = enrichedDocs.reduce((acc, d) => acc + (d.isFinished ? 100 : (d.progressPercent || 0)), 0);
+    return Math.round(total / enrichedDocs.length);
+  }, [enrichedDocs]);
+
   const handleRatingChange = useCallback((docId: string, star: number, e: React.MouseEvent) => {
     e.stopPropagation();
     saveBookRating(docId, star);
@@ -349,93 +387,90 @@ function BookComicHub({
     onUpdateDocProgress?.(doc.id, 1, false);
   }, [onUpdateDocProgress]);
 
-  const handleToggleMenu = useCallback((id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleToggleMenu = useCallback((id: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
     setOpenMenuDocId((prev) => (prev === id ? null : id));
   }, []);
 
   return (
-    <div className="flex-1 w-full h-full overflow-hidden bg-[#0c0c12] text-zinc-100 flex flex-col select-none">
+    <div className="flex-1 w-full h-full overflow-hidden bg-background text-on-surface flex flex-col select-none">
       
-      {/* 1. Responsive Header Bar */}
-      <header className="px-4 sm:px-6 md:px-8 py-3 border-b border-zinc-800/80 bg-[#111119] flex flex-col md:flex-row md:items-center justify-between gap-3 flex-shrink-0 z-20">
+      {/* 1. Constraint-Aligned Responsive Header Bar */}
+      <header className="px-4 sm:px-6 md:px-8 h-12 border-b border-border bg-surface flex items-center justify-between gap-3 sm:gap-4 flex-shrink-0 z-20">
         
-        {/* Top/Left: Library Title & Actions on small screens */}
-        <div className="flex items-center justify-between gap-3 min-w-0">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl bg-rose-600/15 border border-rose-500/30 text-rose-500 flex items-center justify-center shadow-xs flex-shrink-0">
-              <BookOpen className="h-4 w-4" />
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 min-w-0">
-                <h1 className="text-sm sm:text-base font-bold text-zinc-100 tracking-tight whitespace-nowrap truncate">
-                  My Books & Comics
-                </h1>
-                <span className="text-[10px] sm:text-[11px] font-mono px-2 py-0.5 rounded-full bg-zinc-800/80 border border-zinc-700/60 text-zinc-400 font-semibold flex-shrink-0">
-                  {enrichedDocs.length}
-                </span>
-              </div>
-            </div>
+        {/* Left: Library Title & Count Badge */}
+        <div className="flex items-center gap-2.5 min-w-0 flex-shrink-0">
+          <div className="h-7 w-7 rounded-xl bg-accent/15 border border-accent/30 text-accent flex items-center justify-center shadow-2xs flex-shrink-0">
+            <BookOpen className="h-3.5 w-3.5" />
           </div>
-
-          {/* Quick Action Buttons for small screens, also rendered in flex row on desktop */}
-          <div className="flex items-center gap-2 flex-shrink-0 md:order-3">
-            <button
-              onClick={() => setShowHelpModal(true)}
-              className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl bg-[#171722] border border-zinc-800 flex items-center justify-center text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
-              title="Shortcuts & Format Guide"
-            >
-              <HelpCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-            </button>
-
-            {/* Add Book / Comic Button */}
-            <button
-              onClick={onImportBook}
-              className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold shadow-sm transition-all"
-              title="Import Comic (.cbz, .cbr), Book (.epub), or PDF"
-            >
-              <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              <span>Add <span className="hidden sm:inline">Book / Comic</span></span>
-              <span className="text-[10px] font-mono opacity-70 bg-black/25 px-1 py-0.5 rounded ml-0.5 hidden sm:inline">
-                ⌘O
-              </span>
-            </button>
+          <div className="flex items-center gap-2 min-w-0">
+            <h1 className="text-xs sm:text-sm font-bold text-on-surface tracking-tight whitespace-nowrap">
+              Books & Comics
+            </h1>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-surface-container border border-border text-on-surface-variant font-semibold flex-shrink-0">
+              {enrichedDocs.length}
+            </span>
           </div>
         </div>
 
-        {/* Center/Bottom: Search Box */}
-        <div className="w-full md:max-w-xs lg:max-w-md relative flex items-center md:order-2">
-          <Search className="absolute left-3 h-3.5 w-3.5 text-zinc-500 pointer-events-none" />
+        {/* Center: Constrained Search Input */}
+        <div className="flex-1 max-w-xs sm:max-w-sm md:max-w-md min-w-[120px] relative flex items-center">
+          <Search className="absolute left-3 h-3.5 w-3.5 text-on-surface-variant/60 pointer-events-none" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search title, subject, format..."
-            className="w-full bg-[#171722] border border-zinc-800 rounded-xl pl-9 pr-8 py-1.5 text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-rose-500 focus:border-rose-500 transition-colors"
+            className="w-full bg-surface-container border border-border rounded-xl pl-9 pr-8 py-1.5 text-xs text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:ring-1 focus:ring-accent focus:border-accent transition-colors shadow-2xs"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
-              className="absolute right-2.5 text-[10px] font-mono text-zinc-500 hover:text-zinc-200"
+              className="absolute right-2.5 text-[10px] font-mono text-on-surface-variant hover:text-on-surface"
             >
               ✕
             </button>
           )}
         </div>
 
+        {/* Right: Quick Action Buttons */}
+        <div className="flex items-center gap-2 flex-shrink-0 justify-end">
+          <button
+            onClick={() => setShowHelpModal(true)}
+            className="h-8 w-8 rounded-xl bg-surface-container border border-border flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-high transition-colors shadow-2xs"
+            title="Shortcuts & Format Guide"
+            aria-label="Shortcuts & Format Guide"
+          >
+            <HelpCircle className="h-3.5 w-3.5" />
+          </button>
+
+          {/* Add Book / Comic Button */}
+          <button
+            onClick={onImportBook}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-accent hover:bg-accent-hover text-accent-on text-xs font-semibold shadow-xs transition-all active:scale-95"
+            title="Import Comic (.cbz, .cbr), Book (.epub), or PDF (⌘O)"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            <span>Add <span className="hidden md:inline">Book / Comic</span></span>
+            <span className="text-[10px] font-mono opacity-70 bg-black/20 px-1 py-0.5 rounded ml-0.5 hidden sm:inline">
+              ⌘O
+            </span>
+          </button>
+        </div>
+
       </header>
 
       {/* 2. Responsive Filters & Sorting Bar */}
-      <div className="px-4 sm:px-6 md:px-8 py-2 border-b border-zinc-800/60 bg-[#0f0f16] flex items-center justify-between gap-3 flex-shrink-0 text-xs">
+      <div className="px-4 sm:px-6 md:px-8 py-2 border-b border-border bg-surface/60 flex items-center justify-between gap-3 flex-shrink-0 text-xs">
         
-        {/* Left: Scrollable Filter Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 min-w-0 flex-1">
+        {/* Left: Scrollable Filter Pills with responsive labels to avoid clipping */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 min-w-0 flex-1 pr-2">
           {[
-            { id: 'all', label: 'All Books' },
-            { id: 'in-progress', label: 'In Progress' },
-            { id: 'comics', label: 'Comics & Manga' },
-            { id: 'books', label: 'E-Books' },
-            { id: 'completed', label: 'Completed' },
+            { id: 'all', label: 'All Books', shortLabel: 'All' },
+            { id: 'in-progress', label: 'In Progress', shortLabel: 'Reading' },
+            { id: 'comics', label: 'Comics & Manga', shortLabel: 'Comics' },
+            { id: 'books', label: 'E-Books', shortLabel: 'E-Books' },
+            { id: 'completed', label: 'Completed', shortLabel: 'Finished' },
           ].map((tab) => {
             const isSelected = activeFilter === tab.id;
             return (
@@ -445,38 +480,118 @@ function BookComicHub({
                 onClick={() => setActiveFilter(tab.id as any)}
                 className={`px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg font-medium whitespace-nowrap text-[11px] sm:text-xs transition-colors flex-shrink-0 ${
                   isSelected
-                    ? 'bg-rose-600 text-white font-semibold shadow-xs'
-                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60'
+                    ? 'bg-accent text-accent-on font-semibold shadow-xs'
+                    : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container'
                 }`}
               >
-                {tab.label}
+                <span className="hidden sm:inline">{tab.label}</span>
+                <span className="sm:hidden">{tab.shortLabel}</span>
               </button>
             );
           })}
         </div>
 
-        {/* Right: Sort Dropdown */}
-        <div className="flex items-center gap-1.5 text-zinc-400 font-mono text-xs flex-shrink-0">
-          <ArrowUpDown className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-zinc-500" />
-          <span className="hidden sm:inline text-zinc-500">Sort:</span>
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as SortOption)}
-            className="bg-[#171722] border border-zinc-800 rounded-lg px-2 py-1 text-[11px] sm:text-xs text-zinc-300 focus:outline-none focus:border-rose-500 cursor-pointer"
+        {/* Right: FloatingAnchor Sort Menu (no native OS select box) */}
+        <div className="relative flex items-center flex-shrink-0 border-l border-border pl-3">
+          <button
+            ref={sortBtnRef}
+            type="button"
+            onClick={() => setShowSortMenu((prev) => !prev)}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-container border border-border text-on-surface hover:bg-surface-high text-[11px] sm:text-xs font-medium transition-colors shadow-2xs"
+            title="Sort bookshelf"
           >
-            <option value="lastRead">Recently Read</option>
-            <option value="recentAdded">Recently Added</option>
-            <option value="progress">Reading Progress</option>
-            <option value="title">Title (A-Z)</option>
-          </select>
+            <ArrowUpDown className="h-3 w-3 text-on-surface-variant" />
+            <span className="hidden sm:inline text-on-surface-variant font-mono">Sort:</span>
+            <span className="font-medium text-on-surface">
+              {SORT_OPTIONS.find((s) => s.id === sortBy)?.label || 'Sort'}
+            </span>
+            <ChevronDown className="h-3 w-3 text-on-surface-variant opacity-70" />
+          </button>
+
+          <FloatingAnchor
+            isOpen={showSortMenu}
+            onClose={() => setShowSortMenu(false)}
+            anchorRef={sortBtnRef}
+            placement="bottom-end"
+            className="w-44 p-1.5 rounded-xl bg-surface border border-border shadow-xl flex flex-col gap-0.5 text-xs z-50 ring-1 ring-black/5"
+          >
+            {SORT_OPTIONS.map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => {
+                  setSortBy(opt.id);
+                  setShowSortMenu(false);
+                }}
+                className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left text-xs transition-colors ${
+                  sortBy === opt.id
+                    ? 'bg-accent text-accent-on font-semibold shadow-2xs'
+                    : 'text-on-surface hover:bg-surface-container'
+                }`}
+              >
+                <span>{opt.label}</span>
+                {sortBy === opt.id && <Check className="h-3.5 w-3.5" />}
+              </button>
+            ))}
+          </FloatingAnchor>
         </div>
 
       </div>
 
       {/* 3. Main Bookshelf Canvas across entire page */}
-      <main className="flex-1 overflow-y-auto p-6 sm:p-8 w-full">
+      <main className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 w-full">
+        {/* Reading Streak & Weekly Momentum Showcase (Bibliophile Amber & Nordic Vellum) */}
+        {enrichedDocs.length > 0 && !searchQuery && activeFilter === 'all' && (
+          <div className="mb-6 p-4 rounded-2xl bg-card border border-border shadow-xs flex flex-wrap items-center justify-between gap-4 transition-colors">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="h-10 w-10 rounded-xl bg-accent/15 border border-accent/30 text-accent flex items-center justify-center shadow-2xs flex-shrink-0">
+                <Flame className="h-5 w-5 fill-accent/20" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-on-surface">
+                    {readingStats.dayStreak > 0 ? `${readingStats.dayStreak}-Day Reading Streak` : 'Start Your Reading Streak'}
+                  </span>
+                  {readingStats.dayStreak > 0 && (
+                    <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-accent/15 text-accent border border-accent/20">
+                      Active
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-on-surface-variant truncate">
+                  {readingStats.pagesThisWeek > 0
+                    ? `${readingStats.pagesThisWeek} pages read this week • ${Math.round(readingStats.timeThisWeekMinutes)}m immersion`
+                    : 'Turn pages in Reader to log your daily reading streak.'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-5 sm:gap-6 flex-shrink-0">
+              <div className="flex items-center gap-2.5">
+                <CircularProgress percentage={averageProgress} size={36} strokeWidth={3.5} />
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-mono text-on-surface-variant uppercase font-semibold">Library</span>
+                  <span className="text-xs font-bold text-on-surface">{averageProgress}% Read</span>
+                </div>
+              </div>
+
+              {readingStats.totalBooksFinished > 0 && (
+                <div className="hidden sm:flex items-center gap-2 pl-4 border-l border-border">
+                  <div className="h-8 w-8 rounded-lg bg-surface-container flex items-center justify-center text-accent">
+                    <CheckCircle className="h-4 w-4 text-emerald-500" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-mono text-on-surface-variant uppercase font-semibold">Finished</span>
+                    <span className="text-xs font-bold text-on-surface">{readingStats.totalBooksFinished} {readingStats.totalBooksFinished === 1 ? 'Book' : 'Books'}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {filteredAndSortedDocs.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-5 sm:gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4 sm:gap-6">
             {filteredAndSortedDocs.map((doc) => (
               <BookCard
                 key={doc.id}
@@ -493,33 +608,27 @@ function BookComicHub({
           </div>
         ) : searchQuery ? (
           <div className="h-64 flex flex-col items-center justify-center text-center p-8 select-none">
-            <p className="text-xs text-zinc-400">No books found matching "{searchQuery}"</p>
+            <p className="text-xs text-on-surface-variant">No books found matching "{searchQuery}"</p>
             <button
               type="button"
               onClick={() => setSearchQuery('')}
-              className="mt-3 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold"
+              className="mt-3 px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-high border border-border text-on-surface text-xs font-semibold shadow-2xs"
             >
               Clear Search
             </button>
           </div>
         ) : (
-          <div className="h-[55vh] flex flex-col items-center justify-center text-center p-6 select-none max-w-sm mx-auto">
-            <div className="h-12 w-12 rounded-2xl bg-rose-600/15 border border-rose-500/30 text-rose-500 flex items-center justify-center shadow-sm mb-3">
-              <BookOpen className="h-6 w-6" />
-            </div>
-            <h3 className="text-sm font-bold text-zinc-200 mb-1">Your bookshelf is empty</h3>
-            <p className="text-xs text-zinc-400 leading-relaxed mb-4">
-              Add your favorite manga, comics (.cbz, .cbr), or e-books (.epub, .pdf) to start reading.
-            </p>
-            <button
-              type="button"
-              onClick={onImportBook}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold shadow-sm transition-all"
-            >
-              <Plus className="h-4 w-4" />
-              <span>Add Book or Comic</span>
-            </button>
-          </div>
+          <EmptyState
+            icon={BookOpen}
+            title="Your Bookshelf is Empty"
+            description="Add books or comics to start reading."
+            actionLabel="Add Book or Comic"
+            actionIcon={Plus}
+            onAction={onImportBook}
+            shortcut="⌘O"
+            hint="Or drag & drop files here"
+            hintIcon={BookOpen}
+          />
         )}
       </main>
 
@@ -530,42 +639,42 @@ function BookComicHub({
           onClick={() => setShowHelpModal(false)}
         >
           <div 
-            className="bg-[#161622] border border-zinc-700/80 rounded-2xl p-6 max-w-lg w-full shadow-2xl space-y-4"
+            className="bg-surface border border-border rounded-2xl p-6 max-w-lg w-full shadow-2xl space-y-4 text-on-surface"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
               <div className="flex items-center gap-2">
-                <HelpCircle className="h-5 w-5 text-rose-500" />
-                <h3 className="text-sm font-bold text-zinc-100">Books & Comics Reader Guide</h3>
+                <HelpCircle className="h-5 w-5 text-accent" />
+                <h3 className="text-sm font-bold text-on-surface">Books & Comics Reader Guide</h3>
               </div>
               <button
                 type="button"
                 onClick={() => setShowHelpModal(false)}
-                className="text-xs font-mono text-zinc-500 hover:text-zinc-200"
+                className="text-xs font-mono text-on-surface-variant hover:text-on-surface"
               >
                 ✕
               </button>
             </div>
 
-            <div className="space-y-3 text-xs text-zinc-300 leading-relaxed">
-              <div className="p-3 rounded-xl bg-zinc-900/80 border border-zinc-800/80">
-                <strong className="text-zinc-100 block mb-1">Supported Formats:</strong>
-                <ul className="space-y-1 text-[11px] font-mono text-zinc-400">
-                  <li>• <span className="text-rose-400 font-bold">.CBZ / .CBR / .CBN</span> Comic archives (automatic page unpack & cover extraction)</li>
-                  <li>• <span className="text-rose-400 font-bold">.EPUB</span> E-Books with dynamic layout rendering</li>
-                  <li>• <span className="text-rose-400 font-bold">.PDF</span> Graphic novels, manuals, and documents</li>
+            <div className="space-y-3 text-xs text-on-surface-variant leading-relaxed">
+              <div className="p-3 rounded-xl bg-surface-container border border-border">
+                <strong className="text-on-surface block mb-1">Supported Formats:</strong>
+                <ul className="space-y-1 text-[11px] font-mono text-on-surface-variant">
+                  <li>• <span className="text-accent font-bold">.CBZ / .CBR / .CBN</span> Comic archives (automatic page unpack & cover extraction)</li>
+                  <li>• <span className="text-accent font-bold">.EPUB</span> E-Books with dynamic layout rendering</li>
+                  <li>• <span className="text-accent font-bold">.PDF</span> Graphic novels, manuals, and documents</li>
                 </ul>
               </div>
 
-              <div className="p-3 rounded-xl bg-zinc-900/80 border border-zinc-800/80">
-                <strong className="text-zinc-100 block mb-1">Keyboard Shortcuts in Reader:</strong>
-                <div className="grid grid-cols-2 gap-2 text-[11px] font-mono text-zinc-400 pt-1">
-                  <div><kbd className="bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-200">← / →</kbd> Previous / Next Page</div>
-                  <div><kbd className="bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-200">Space</kbd> Next Page</div>
-                  <div><kbd className="bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-200">w</kbd> Fit to Width</div>
-                  <div><kbd className="bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-200">p</kbd> Fit to Page</div>
-                  <div><kbd className="bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-200">F11</kbd> Fullscreen Zen Mode</div>
-                  <div><kbd className="bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-200">⌘ + Wheel</kbd> Zoom In / Out</div>
+              <div className="p-3 rounded-xl bg-surface-container border border-border">
+                <strong className="text-on-surface block mb-1">Keyboard Shortcuts in Reader:</strong>
+                <div className="grid grid-cols-2 gap-2 text-[11px] font-mono text-on-surface-variant pt-1">
+                  <div><kbd className="bg-surface border border-border px-1.5 py-0.5 rounded text-on-surface">← / →</kbd> Previous / Next Page</div>
+                  <div><kbd className="bg-surface border border-border px-1.5 py-0.5 rounded text-on-surface">Space</kbd> Next Page</div>
+                  <div><kbd className="bg-surface border border-border px-1.5 py-0.5 rounded text-on-surface">w</kbd> Fit to Width</div>
+                  <div><kbd className="bg-surface border border-border px-1.5 py-0.5 rounded text-on-surface">p</kbd> Fit to Page</div>
+                  <div><kbd className="bg-surface border border-border px-1.5 py-0.5 rounded text-on-surface">F11</kbd> Fullscreen Zen Mode</div>
+                  <div><kbd className="bg-surface border border-border px-1.5 py-0.5 rounded text-on-surface">⌘ + Wheel</kbd> Zoom In / Out</div>
                 </div>
               </div>
             </div>
@@ -573,7 +682,7 @@ function BookComicHub({
             <button
               type="button"
               onClick={() => setShowHelpModal(false)}
-              className="w-full py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs"
+              className="w-full py-2.5 rounded-xl bg-accent hover:bg-accent-hover text-accent-on font-semibold text-xs transition-colors shadow-xs"
             >
               Got it
             </button>
@@ -581,16 +690,18 @@ function BookComicHub({
         </div>
       )}
 
-      {/* 5. Simple Floating Action Button (+) */}
-      <button
-        type="button"
-        onClick={onImportBook}
-        className="fixed bottom-8 right-8 h-12 w-12 rounded-full bg-rose-600 hover:bg-rose-500 text-white shadow-xl flex items-center justify-center z-40 border border-white/10 cursor-pointer"
-        title="Add Book or Comic (⌘O)"
-        aria-label="Add Book or Comic"
-      >
-        <Plus className="h-6 w-6" />
-      </button>
+      {/* 5. Simple Floating Action Button (+) only when bookshelf has books */}
+      {filteredAndSortedDocs.length > 0 && (
+        <button
+          type="button"
+          onClick={onImportBook}
+          className="fixed bottom-6 right-6 h-12 w-12 rounded-full bg-accent hover:bg-accent-hover text-accent-on shadow-xl flex items-center justify-center z-40 border border-white/20 cursor-pointer transition-transform hover:scale-105 active:scale-95"
+          title="Add Book or Comic (⌘O)"
+          aria-label="Add Book or Comic"
+        >
+          <Plus className="h-5 w-5" />
+        </button>
+      )}
 
     </div>
   );

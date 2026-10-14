@@ -69,7 +69,7 @@ export default function FirstPage({
   const activeModeConfig = WORKFLOW_MODES.find(m => m.id === activeMode) || WORKFLOW_MODES[0];
 
   return (
-    <div className="relative w-full h-full min-h-full overflow-y-auto bg-background text-zinc-800 dark:text-zinc-200 flex flex-col justify-between overflow-x-hidden selection:bg-accent selection:text-white transition-colors duration-300">
+    <div data-mode={activeMode} className="relative w-full h-full min-h-full overflow-y-auto bg-background text-zinc-800 dark:text-zinc-200 flex flex-col justify-between overflow-x-hidden selection:bg-accent selection:text-white transition-colors duration-300">
       
       {/* Background Dot & Subtle Grid Pattern */}
       <div 
@@ -87,7 +87,7 @@ export default function FirstPage({
       <header className="relative z-20 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 flex items-center justify-between overflow-hidden">
         {/* Brand */}
         <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-2xl bg-accent text-[#00363d] flex items-center justify-center font-extrabold text-sm tracking-tight shadow-md">
+          <div className="h-9 w-9 rounded-2xl bg-accent text-accent-on flex items-center justify-center font-extrabold text-sm tracking-tight shadow-md">
             IV
           </div>
           <div>
@@ -106,7 +106,7 @@ export default function FirstPage({
           <button
             type="button"
             onClick={() => onEnterWorkspace(activeMode)}
-            className="flex items-center gap-2 px-4 py-2 rounded-full bg-accent hover:bg-accent-hover text-[#00363d] text-xs font-bold transition-all shadow-md active:scale-95 cursor-pointer group flex-shrink-0"
+            className="flex items-center gap-2 px-4 py-2 rounded-full bg-accent hover:bg-accent-hover text-accent-on text-xs font-bold transition-all shadow-md active:scale-95 cursor-pointer group flex-shrink-0"
           >
             <span>{activeModeConfig.headerLabel}</span>
             <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
@@ -172,7 +172,7 @@ export default function FirstPage({
                     <div className="flex items-center justify-between w-full mb-2">
                       <div className={`h-8 w-8 rounded-xl flex items-center justify-center transition-colors ${
                         isSelected 
-                          ? 'bg-accent text-[#00363d] shadow-sm font-bold' 
+                          ? 'bg-accent text-accent-on shadow-sm font-bold' 
                           : 'bg-surface text-zinc-600 dark:text-zinc-400 group-hover:text-accent'
                       }`}>
                         <Icon className="h-4 w-4" />
@@ -199,7 +199,7 @@ export default function FirstPage({
             <button
               type="button"
               onClick={() => onEnterWorkspace(activeMode)}
-              className="flex items-center gap-2.5 px-6 py-3.5 rounded-full bg-accent hover:bg-accent-hover text-[#00363d] text-sm font-bold transition-all shadow-lg hover:shadow-accent/25 active:scale-[0.98] cursor-pointer group"
+              className="flex items-center gap-2.5 px-6 py-3.5 rounded-full bg-accent hover:bg-accent-hover text-accent-on text-sm font-bold transition-all shadow-lg hover:shadow-accent/25 active:scale-[0.98] cursor-pointer group"
             >
               <FolderOpen className="h-4 w-4" />
               <span>{activeModeConfig.actionLabel}</span>

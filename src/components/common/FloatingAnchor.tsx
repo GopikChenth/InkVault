@@ -31,7 +31,7 @@ export default function FloatingAnchor({
 }: FloatingAnchorProps) {
   const floatingRef = useRef<HTMLDivElement>(null);
 
-  const { style, actualPlacement } = useFloatingConstraints(anchorRef, floatingRef, {
+  const { style, actualPlacement, horizontalAlign, isPositioned } = useFloatingConstraints(anchorRef, floatingRef, {
     placement,
     offset,
     viewportPadding,
@@ -73,12 +73,19 @@ export default function FloatingAnchor({
 
   if (!isOpen || typeof document === 'undefined') return null;
 
+  const transformOrigin = `${actualPlacement === 'top' ? 'bottom' : 'top'} ${
+    horizontalAlign === 'end' ? 'right' : horizontalAlign === 'center' ? 'center' : 'left'
+  }`;
+
   const content = (
     <div
       ref={floatingRef}
-      style={style}
+      style={{
+        ...style,
+        transformOrigin,
+      }}
       data-placement={actualPlacement}
-      className={`z-50 select-none overflow-y-auto animate-in fade-in zoom-in-95 duration-150 ease-caelestia-decel ${className}`}
+      className={`z-50 select-none overflow-y-auto ${isPositioned ? 'floating-menu-enter' : 'opacity-0'} ${className}`}
       onClick={(e) => e.stopPropagation()}
     >
       {children}

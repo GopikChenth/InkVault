@@ -33,9 +33,9 @@ export const VIEWPORT_CONSTRAINTS = {
 
 // 2. Sidebar Geometry Rules
 export const SIDEBAR_CONSTRAINTS = {
-  MIN_WIDTH: 200,
+  MIN_WIDTH: 250,
   MAX_WIDTH: 650,
-  DEFAULT_WIDTH: 280,
+  DEFAULT_WIDTH: 300,
   MAX_VIEWPORT_RATIO: 0.55,
   CONTENT_PADDING: 44,
 } as const;

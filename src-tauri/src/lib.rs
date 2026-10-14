@@ -264,9 +264,25 @@ fn native_create_forms(
     pdf_engine::native_create_form_fields(item, fields)
 }
 
+#[tauri::command]
+fn native_watermark(
+    item: PDFInputPayload,
+    wm: pdf_engine::WatermarkPayload,
+) -> Result<Vec<u8>, String> {
+    pdf_engine::native_watermark_pdf(item, wm)
+}
+
+#[tauri::command]
+fn native_organize(
+    item: PDFInputPayload,
+    actions: Vec<pdf_engine::PageOrganizeAction>,
+) -> Result<Vec<u8>, String> {
+    pdf_engine::native_organize_pdf(item, actions)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    if let Err(err) = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             pick_study_folder,
@@ -279,8 +295,12 @@ pub fn run() {
             native_sanitize,
             native_sign,
             native_redact,
-            native_create_forms
+            native_create_forms,
+            native_watermark,
+            native_organize
         ])
         .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+    {
+        eprintln!("Error while running tauri application: {err}");
+    }
 }

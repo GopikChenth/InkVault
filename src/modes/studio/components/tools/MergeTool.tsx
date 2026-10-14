@@ -274,8 +274,8 @@ export default function MergeTool({ initialDoc, onOpenMergedDoc }: MergeToolProp
           {items.length === 0 ? (
             <EmptyState
               icon={Combine}
-              title="Select or Drop PDF Files to Merge"
-              description="Add 2 or more PDF documents. You can reorder them before merging into a single file."
+              title="Combine PDF Files"
+              description="Add 2 or more documents to merge into a single file."
               actionLabel="Browse Files"
               onAction={() => fileInputRef.current?.click()}
             />

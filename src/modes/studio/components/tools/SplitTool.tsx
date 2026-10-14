@@ -253,8 +253,8 @@ export default function SplitTool({ initialDoc, onOpenExtractedDoc }: SplitToolP
         {!doc ? (
           <EmptyState
             icon={Scissors}
-            title="Select a PDF to Split or Extract"
-            description="Choose specific page ranges or extract individual pages into a separate document."
+            title="Split PDF"
+            description="Extract pages or split into separate documents."
             actionLabel="Browse PDF"
             onAction={() => fileInputRef.current?.click()}
           />

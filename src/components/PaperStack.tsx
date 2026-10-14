@@ -280,7 +280,7 @@ export default function PaperStack() {
                 {/* Paper Top Bar / Header */}
                 <div className="flex items-start justify-between border-b border-border pb-3.5">
                   <div className="flex items-center gap-2.5">
-                    <div className="h-7 w-7 rounded-xl bg-accent text-[#00363d] flex items-center justify-center font-bold text-xs shadow-sm">
+                    <div className="h-7 w-7 rounded-xl bg-accent text-accent-on flex items-center justify-center font-bold text-xs shadow-sm">
                       <FileText className="h-3.5 w-3.5" />
                     </div>
                     <div>

@@ -30,11 +30,11 @@ export const StudioRecentView: React.FC<StudioRecentViewProps> = ({
         <div className="h-[60vh] flex items-center justify-center">
           <EmptyState
             icon={FileText}
-            title="No recent documents yet"
-            description="Documents opened in this session will appear here for fast access."
+            title="No Recent Documents"
+            description="Opened documents will appear here."
             actionLabel="Open a PDF Document"
             onAction={onTriggerOpenFile}
-            hint="or drag and drop PDF anywhere"
+            hint="Or drag & drop files here"
           />
         </div>
       ) : (

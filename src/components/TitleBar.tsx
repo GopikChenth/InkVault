@@ -510,13 +510,24 @@ export default function TitleBar({
 
       {/* 2. Center: Active Document Title */}
       <div 
-        className="hidden md:flex flex-1 items-center justify-center min-w-0 px-2 h-full cursor-default pointer-events-none select-none"
+        className="hidden md:flex flex-1 items-center justify-center min-w-0 px-4 h-full cursor-default pointer-events-none select-none"
       >
-        <span 
-          className="text-[11px] font-mono text-zinc-500 dark:text-zinc-400 truncate max-w-xs lg:max-w-md font-medium"
-        >
-          {activeDocName ? `${title} — ${activeDocName}` : title}
-        </span>
+        <div className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400 truncate max-w-sm lg:max-w-md font-medium">
+          {activeDocName ? (
+            <>
+              {activeDocName.includes('/') ? (
+                <span className="text-zinc-400 dark:text-zinc-500 truncate">
+                  {activeDocName.substring(0, activeDocName.lastIndexOf('/'))} /
+                </span>
+              ) : null}
+              <span className="text-zinc-800 dark:text-zinc-200 truncate font-semibold">
+                {activeDocName.split('/').pop() || activeDocName}
+              </span>
+            </>
+          ) : (
+            <span className="font-semibold text-zinc-700 dark:text-zinc-300">{title}</span>
+          )}
+        </div>
       </div>
 
       {/* 3. Right: Quick Mode Switcher, Theme & Fullscreen */}

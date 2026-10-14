@@ -23,7 +23,8 @@ import {
   Home,
   Columns,
   PanelLeftClose,
-  FolderTree
+  FolderTree,
+  RotateCw
 } from 'lucide-react';
 import { 
   NavSidebarTab, 
@@ -43,9 +44,11 @@ interface ThumbnailCardProps {
   isCurrent: boolean;
   pdfDoc: pdfjsLib.PDFDocumentProxy | null;
   rotation: number;
+  pageRotations?: Record<number, number>;
   columns?: '1' | '2';
   sidebarWidth?: number;
   onSelect: (pageNum: number) => void;
+  onRotatePage?: (pageNum: number, delta: number) => void;
 }
 
 // Shared IntersectionObserver registry for all thumbnail cards (1 observer for all thumbnails)
@@ -82,20 +85,24 @@ const ThumbnailCard: React.FC<ThumbnailCardProps> = React.memo(({
   isCurrent,
   pdfDoc,
   rotation,
+  pageRotations,
   columns = '1',
   sidebarWidth = SIDEBAR_CONSTRAINTS.DEFAULT_WIDTH,
   onSelect,
+  onRotatePage,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const containerRef = useRef<HTMLButtonElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const [rendered, setRendered] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [dimensions, setDimensions] = useState<{ width: number; height: number }>({ width: 150, height: 200 });
 
-  // Reset rendered flag on layout, rotation, or sidebar width change
+  const pageExtra = pageRotations?.[pageNum] || 0;
+
+  // Reset rendered flag on layout, rotation, page rotation, or sidebar width change
   useEffect(() => {
     setRendered(false);
-  }, [columns, rotation, sidebarWidth]);
+  }, [columns, rotation, pageExtra, sidebarWidth]);
 
   // Connect to shared IntersectionObserver
   useEffect(() => {
@@ -146,7 +153,7 @@ const ThumbnailCard: React.FC<ThumbnailCardProps> = React.memo(({
         if (isCancelled || !canvasRef.current) return;
 
         const pageRotate = page.rotate || 0;
-        const totalRotation = (pageRotate + rotation) % 360;
+        const totalRotation = (pageRotate + rotation + pageExtra) % 360;
         const unscaledVp = page.getViewport({ scale: 1.0, rotation: totalRotation });
         const currentAspect = unscaledVp.width / unscaledVp.height;
 
@@ -179,7 +186,7 @@ const ThumbnailCard: React.FC<ThumbnailCardProps> = React.memo(({
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        const cacheKey = `${(pdfDoc as any).fingerprint || 'doc'}_${pageNum}_${rotation}_${Math.round(viewport.width * outputScale)}`;
+        const cacheKey = `${(pdfDoc as any).fingerprint || 'doc'}_${pageNum}_${rotation}_${pageExtra}_${Math.round(viewport.width * outputScale)}`;
         const cachedBmp = thumbnailBitmapCache.get(cacheKey);
         if (cachedBmp) {
           ctx.drawImage(cachedBmp, 0, 0);
@@ -227,11 +234,12 @@ const ThumbnailCard: React.FC<ThumbnailCardProps> = React.memo(({
         try { renderTask.cancel(); } catch {}
       }
     };
-  }, [pdfDoc, pageNum, rotation, rendered, columns, sidebarWidth, isVisible]);
+  }, [pdfDoc, pageNum, rotation, pageExtra, rendered, columns, sidebarWidth, isVisible]);
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       ref={containerRef}
       onClick={() => onSelect(pageNum)}
       onKeyDown={(e) => {
@@ -269,19 +277,42 @@ const ThumbnailCard: React.FC<ThumbnailCardProps> = React.memo(({
             <span className="text-[10px] font-mono opacity-50 tabular-nums">{pageNum}</span>
           </div>
         )}
+
+        {/* Hover rotate page button */}
+        {onRotatePage && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onRotatePage(pageNum, 90);
+            }}
+            title={`Rotate Page ${pageNum} 90° Clockwise`}
+            aria-label={`Rotate Page ${pageNum} 90° Clockwise`}
+            className="absolute top-1.5 right-1.5 h-6 w-6 rounded-full bg-black/60 hover:bg-accent text-white hover:text-black flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-md z-10 backdrop-blur-xs cursor-pointer focus:opacity-100"
+          >
+            <RotateCw className="h-3 w-3" />
+          </button>
+        )}
       </div>
 
       {/* Clean Centered Page Number */}
-      <span
-        className={`text-[11px] transition-colors font-medium tabular-nums ${
-          isCurrent 
-            ? 'text-accent font-bold' 
-            : 'text-zinc-500 dark:text-zinc-400 group-hover:text-on-surface'
-        }`}
-      >
-        {pageNum}
-      </span>
-    </button>
+      <div className="flex items-center gap-1">
+        <span
+          className={`text-[11px] transition-colors font-medium tabular-nums ${
+            isCurrent 
+              ? 'text-accent font-bold' 
+              : 'text-zinc-500 dark:text-zinc-400 group-hover:text-on-surface'
+          }`}
+        >
+          {pageNum}
+        </span>
+        {pageExtra !== 0 && (
+          <span className="text-[9px] font-mono text-accent/90 font-semibold" title={`Rotated +${pageExtra}°`}>
+            {pageExtra}°
+          </span>
+        )}
+      </div>
+    </div>
   );
 });
 
@@ -337,6 +368,10 @@ interface ViewerNavSidebarProps {
   activeDocId?: string;
   onSelectDoc?: (doc: LoadedPDF) => void;
   isStudyMode?: boolean;
+
+  // Per-page rotation support
+  pageRotations?: Record<number, number>;
+  onRotatePage?: (pageNum: number, delta: number) => void;
 }
 
 function ViewerNavSidebar({
@@ -348,6 +383,8 @@ function ViewerNavSidebar({
   docSize,
   pdfDoc,
   rotation = 0,
+  pageRotations,
+  onRotatePage,
   totalPages,
   currentPage,
   onPageSelect,
@@ -678,6 +715,8 @@ function ViewerNavSidebar({
                 isCurrent={pageNum === currentPage}
                 pdfDoc={pdfDoc}
                 rotation={rotation}
+                pageRotations={pageRotations}
+                onRotatePage={onRotatePage}
                 columns={thumbnailColumns}
                 sidebarWidth={debouncedSidebarWidth}
                 onSelect={onPageSelect}

@@ -87,8 +87,9 @@ interface PDFViewerProps {
   initialPage?: number;
   initialScale?: number;
   initialRotation?: number;
+  initialPageRotations?: Record<number, number>;
   initialAnnotations?: PDFAnnotation[];
-  onSaveSessionState?: (state: { page: number; scale: number; rotation: number; annotations: PDFAnnotation[]; pageCount?: number; isFinished?: boolean }) => void;
+  onSaveSessionState?: (state: { page: number; scale: number; rotation: number; pageRotations?: Record<number, number>; annotations: PDFAnnotation[]; pageCount?: number; isFinished?: boolean }) => void;
   initialAppMode?: AppMode;
   onAppModeChange?: (mode: AppMode) => void;
 }
@@ -118,6 +119,7 @@ export default function PDFViewer({
   initialPage,
   initialScale,
   initialRotation,
+  initialPageRotations,
   initialAnnotations,
   onSaveSessionState,
   initialAppMode = 'editor',
@@ -129,6 +131,7 @@ export default function PDFViewer({
   const [currentPage, setCurrentPage] = useState<number>(() => initialPage || doc.currentPage || 1);
   const [scale, setScale] = useState<number>(() => initialScale || 1.0);
   const [rotation, setRotation] = useState<number>(() => initialRotation || 0);
+  const [pageRotations, setPageRotations] = useState<Record<number, number>>(() => initialPageRotations || {});
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [isBakingAnnotations, setIsBakingAnnotations] = useState<boolean>(false);
@@ -295,12 +298,13 @@ export default function PDFViewer({
         page: currentPage,
         scale,
         rotation,
+        pageRotations,
         annotations: annotations || [],
         pageCount: actualPageCount,
         isFinished: isDocFinished,
       });
     }
-  }, [currentPage, scale, rotation, annotations, doc, pages.length, onSaveSessionState]);
+  }, [currentPage, scale, rotation, pageRotations, annotations, doc, pages.length, onSaveSessionState]);
 
   // Extracted Page Texts for Search & Reflow
   const [pagesText, setPagesText] = useState<PageTextData[]>([]);
@@ -369,6 +373,7 @@ export default function PDFViewer({
     page: currentPage, 
     scale, 
     rotation, 
+    pageRotations,
     annotations,
     pageCount: pages.length > 0 ? pages.length : doc.pageCount,
     isFinished: doc.isFinished,
@@ -378,11 +383,12 @@ export default function PDFViewer({
       page: currentPage, 
       scale, 
       rotation, 
+      pageRotations,
       annotations,
       pageCount: pages.length > 0 ? pages.length : doc.pageCount,
       isFinished: doc.isFinished,
     };
-  }, [currentPage, scale, rotation, annotations, pages.length, doc.pageCount, doc.isFinished]);
+  }, [currentPage, scale, rotation, pageRotations, annotations, pages.length, doc.pageCount, doc.isFinished]);
 
   useEffect(() => {
     return () => {
@@ -892,7 +898,8 @@ export default function PDFViewer({
     const canvas = canvasMapRef.current.get(pageNum);
     if (!canvas) return;
 
-    const renderKey = `${pageNum}-${rot}-${currentScale}`;
+    const pageExtra = pageRotations[pageNum] || 0;
+    const renderKey = `${pageNum}-${rot}-${pageExtra}-${currentScale}`;
     if (renderedPagesRef.current.has(renderKey) || pendingRenderKeysRef.current.has(renderKey)) return;
     pendingRenderKeysRef.current.add(renderKey);
     requestedRenderKeysRef.current.set(pageNum, renderKey);
@@ -918,7 +925,7 @@ export default function PDFViewer({
       const page = await pdfDoc.getPage(pageNum);
       const outputScale = window.devicePixelRatio || 1;
       const pageRotate = page.rotate || 0;
-      const totalRotation = (pageRotate + rot) % 360;
+      const totalRotation = (pageRotate + rot + pageExtra) % 360;
       const viewport = page.getViewport({ scale: currentScale, rotation: totalRotation });
 
       const scaledWidth = Math.floor(viewport.width * outputScale);
@@ -1013,7 +1020,7 @@ export default function PDFViewer({
     } finally {
       pendingRenderKeysRef.current.delete(renderKey);
     }
-  }, [pdfDoc]);
+  }, [pdfDoc, pageRotations]);
 
   // Virtual GPU Canvas Discarding: Reclaims GPU VRAM for offscreen pages
   const unloadCanvasPage = useCallback((pageNum: number) => {
@@ -1089,9 +1096,9 @@ export default function PDFViewer({
     return () => {
       observer.disconnect();
     };
-  }, [pdfDoc, pages, layoutMode, rotation, scale, renderCanvasPage, unloadCanvasPage]);
+  }, [pdfDoc, pages, layoutMode, rotation, pageRotations, scale, renderCanvasPage, unloadCanvasPage]);
 
-  // Re-render visible pages on scale / rotation change (debounced for smooth zooming)
+  // Re-render visible pages on scale / rotation / pageRotations change (debounced for smooth zooming)
   useEffect(() => {
     renderedPagesRef.current.clear();
     const timer = setTimeout(() => {
@@ -1107,7 +1114,7 @@ export default function PDFViewer({
     }, 120);
 
     return () => clearTimeout(timer);
-  }, [scale, rotation, pages, renderCanvasPage]);
+  }, [scale, rotation, pageRotations, pages, renderCanvasPage]);
 
   // 4. Zoom Controls & Wheel Listener
   useEffect(() => {
@@ -1175,16 +1182,20 @@ export default function PDFViewer({
   // 5b. Pre-calculate page center Y positions for instantaneous O(log N) scroll positioning
   const pageOffsets = useMemo(() => {
     if (pages.length === 0) return [];
-    const isRotated90or270 = rotation === 90 || rotation === 270;
     const centers: { pageNum: number; centerY: number }[] = [];
     let currentY = 32; // py-8 top padding = 32px
+
+    const getPageHeight = (p: PageInfo) => {
+      const extra = pageRotations[p.pageNum] || 0;
+      const isRot = ((rotation + extra) % 180) !== 0;
+      return Math.round((isRot ? p.width : p.height) * scale);
+    };
 
     if (layoutMode === 'two-page' || layoutMode === 'facing-pages') {
       let i = 0;
       if (layoutMode === 'facing-pages' && facingCoverPage && pages.length > 0) {
         const p = pages[0];
-        const baseH = isRotated90or270 ? p.width : p.height;
-        const h = Math.round(baseH * scale);
+        const h = getPageHeight(p);
         centers.push({ pageNum: p.pageNum, centerY: currentY + h / 2 });
         currentY += h + 32;
         i = 1;
@@ -1192,8 +1203,8 @@ export default function PDFViewer({
       for (; i < pages.length; i += 2) {
         const p1 = pages[i];
         const p2 = pages[i + 1];
-        const h1 = Math.round((isRotated90or270 ? p1.width : p1.height) * scale);
-        const h2 = p2 ? Math.round((isRotated90or270 ? p2.width : p2.height) * scale) : 0;
+        const h1 = getPageHeight(p1);
+        const h2 = p2 ? getPageHeight(p2) : 0;
         const maxH = Math.max(h1, h2);
         centers.push({ pageNum: p1.pageNum, centerY: currentY + maxH / 2 });
         if (p2) centers.push({ pageNum: p2.pageNum, centerY: currentY + maxH / 2 });
@@ -1202,14 +1213,13 @@ export default function PDFViewer({
     } else {
       for (let i = 0; i < pages.length; i++) {
         const p = pages[i];
-        const baseH = isRotated90or270 ? p.width : p.height;
-        const h = Math.round(baseH * scale);
+        const h = getPageHeight(p);
         centers.push({ pageNum: p.pageNum, centerY: currentY + h / 2 });
         currentY += h + 32;
       }
     }
     return centers;
-  }, [pages, rotation, scale, layoutMode, facingCoverPage]);
+  }, [pages, rotation, pageRotations, scale, layoutMode, facingCoverPage]);
 
   // Active Page Detection during Viewport Scroll (O(log N) mathematical lookup, ZERO DOM reflows)
   useEffect(() => {
@@ -1498,7 +1508,25 @@ export default function PDFViewer({
   };
 
   // Rotation Helpers
-  const handleRotateCW = () => setRotation((prev) => (prev + 90) % 360);
+  const handleRotateCW = useCallback(() => setRotation((prev) => (prev + 90) % 360), []);
+
+  const handleRotatePage = useCallback((pageNum: number, delta: number = 90) => {
+    setPageRotations((prev) => {
+      const current = prev[pageNum] || 0;
+      const next = (current + delta + 360) % 360;
+      const updated = { ...prev };
+      if (next === 0) {
+        delete updated[pageNum];
+      } else {
+        updated[pageNum] = next;
+      }
+      return updated;
+    });
+  }, []);
+
+  const handleRotateCurrentPage = useCallback(() => {
+    handleRotatePage(currentPage, 90);
+  }, [currentPage, handleRotatePage]);
 
   // Fullscreen & Minimal Study Mode
   useEffect(() => {
@@ -1682,7 +1710,11 @@ export default function PDFViewer({
       } else if (e.key === 'r' || e.key === 'R') {
         if (!e.ctrlKey && !e.metaKey) {
           e.preventDefault();
-          setRotation((prev) => (prev + 90) % 360);
+          if (e.shiftKey) {
+            handleRotateCW();
+          } else {
+            handleRotateCurrentPage();
+          }
         }
       } else if (e.key === 'z' || e.key === 'Z') {
         if (!e.ctrlKey && !e.metaKey) {
@@ -1715,6 +1747,8 @@ export default function PDFViewer({
     handleToggleFullscreen,
     handleFitWidth,
     handleFitPage,
+    handleRotateCurrentPage,
+    handleRotateCW,
     scrollToPage,
     currentPage,
     pages.length
@@ -1856,6 +1890,8 @@ export default function PDFViewer({
               isFullscreen={isFullscreen}
               onToggleFullscreen={handleToggleFullscreen}
               onExitStudyMode={handleToggleStudyMode}
+              onRotateCurrentPage={handleRotateCurrentPage}
+              onRotateDocument={handleRotateCW}
             />
           </div>
         </>
@@ -2055,9 +2091,16 @@ export default function PDFViewer({
 
           {/* 5. Rotate Action */}
           <button
-            onClick={handleRotateCW}
-            title="Rotate 90° Clockwise [R]"
-            className="h-8 w-8 rounded-full border border-outline/20 hover:bg-surface-container flex items-center justify-center text-on-surface transition-all duration-200 ease-caelestia-decel shadow-xs"
+            onClick={(e) => {
+              if (e.shiftKey) {
+                handleRotateCW();
+              } else {
+                handleRotateCurrentPage();
+              }
+            }}
+            title={`Rotate Page ${currentPage} 90° Clockwise [R] (Shift+Click or Shift+R for entire document)`}
+            aria-label={`Rotate Page ${currentPage} 90° Clockwise`}
+            className="h-8 w-8 rounded-full border border-outline/20 hover:bg-surface-container flex items-center justify-center text-on-surface transition-all duration-200 ease-caelestia-decel shadow-xs cursor-pointer"
           >
             <RotateCw className="h-3.5 w-3.5" />
           </button>
@@ -2162,6 +2205,8 @@ export default function PDFViewer({
             docSize={doc.size}
             pdfDoc={pdfDoc}
             rotation={rotation}
+            pageRotations={pageRotations}
+            onRotatePage={handleRotatePage}
             totalPages={pages.length}
             currentPage={currentPage}
             onPageSelect={scrollToPage}
@@ -2240,7 +2285,8 @@ export default function PDFViewer({
                 className={`flex items-center justify-center gap-6 mx-auto flex-shrink-0 ${layoutMode === 'two-page' || layoutMode === 'facing-pages' ? 'flex-row' : 'flex-col'}`}
               >
                 {group.map((p) => {
-                  const isRotated90or270 = rotation === 90 || rotation === 270;
+                  const pageExtra = pageRotations[p.pageNum] || 0;
+                  const isRotated90or270 = ((rotation + pageExtra) % 180) !== 0;
                   const baseW = isRotated90or270 ? p.height : p.width;
                   const baseH = isRotated90or270 ? p.width : p.height;
                   const displayWidth = Math.round(baseW * scale);

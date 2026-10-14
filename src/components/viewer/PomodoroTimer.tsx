@@ -94,12 +94,12 @@ function PomodoroTimer({ className = '' }: PomodoroTimerProps) {
       {/* 1. Slim Compact Timer Pill */}
       <div 
         ref={timerPillRef}
-        className={`h-7 px-2.5 rounded-full border flex items-center gap-1.5 transition-all duration-200 ease-caelestia-decel cursor-pointer shadow-xs ${
+        className={`h-7 pl-2.5 pr-1 rounded-lg border flex items-center gap-1.5 transition-all duration-200 cursor-pointer shadow-2xs ${
           isRunning
             ? phase === 'focus'
               ? 'bg-accent/15 border-accent/40 text-accent ring-1 ring-accent/20'
               : 'bg-secondary/15 border-secondary/40 text-secondary ring-1 ring-secondary/20'
-            : 'bg-surface-container border-outline/20 text-on-surface hover:border-outline/40 hover:bg-surface-high'
+            : 'bg-surface-container/60 border-border text-on-surface hover:border-accent/40 hover:bg-surface-container'
         }`}
         onClick={() => setShowPopover((prev) => !prev)}
         title="Pomodoro Study Timer (Click to open controls & custom intervals)"
@@ -125,24 +125,24 @@ function PomodoroTimer({ className = '' }: PomodoroTimerProps) {
         <span className="text-[9px] font-semibold uppercase tracking-wider opacity-80 hidden md:inline">
           {phase === 'focus' ? 'Work' : phase === 'shortBreak' ? 'Break' : 'Long Break'}
         </span>
-      </div>
 
-      {/* Play / Pause Shortcut Button directly beside the pill */}
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          toggleTimer();
-        }}
-        title={isRunning ? "Pause Timer" : "Start Pomodoro Timer"}
-        className={`h-6 w-6 ml-1 rounded-full flex items-center justify-center transition-all duration-200 ease-caelestia-decel ${
-          isRunning 
-            ? 'bg-accent/20 text-accent hover:bg-accent/30' 
-            : 'bg-surface-container text-on-surface hover:bg-surface-high border border-outline/20'
-        }`}
-      >
-        {isRunning ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3 ml-0.5" />}
-      </button>
+        {/* Play / Pause Shortcut Button directly inside the pill */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleTimer();
+          }}
+          title={isRunning ? "Pause Timer" : "Start Pomodoro Timer"}
+          className={`h-5 w-5 ml-0.5 rounded-md flex items-center justify-center transition-all ${
+            isRunning 
+              ? 'bg-accent/25 text-accent hover:bg-accent/40' 
+              : 'hover:bg-surface-high text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-100'
+          }`}
+        >
+          {isRunning ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3 ml-0.5" />}
+        </button>
+      </div>
 
       {/* 2. Popover Modal Dialog */}
       <FloatingAnchor 

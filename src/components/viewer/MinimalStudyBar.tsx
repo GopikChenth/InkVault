@@ -12,7 +12,8 @@ import {
   Pin,
   PinOff,
   FileText,
-  Columns
+  Columns,
+  RotateCw
 } from 'lucide-react';
 import { PageLayoutMode } from '../../types';
 import PomodoroTimer from './PomodoroTimer';
@@ -38,6 +39,8 @@ interface MinimalStudyBarProps {
   isFullscreen?: boolean;
   onToggleFullscreen?: () => void;
   onExitStudyMode: () => void;
+  onRotateCurrentPage?: () => void;
+  onRotateDocument?: () => void;
 }
 
 function MinimalStudyBar({
@@ -61,6 +64,8 @@ function MinimalStudyBar({
   isFullscreen,
   onToggleFullscreen,
   onExitStudyMode,
+  onRotateCurrentPage,
+  onRotateDocument,
 }: MinimalStudyBarProps) {
   const [inputVal, setInputVal] = useState<string>(String(currentPage));
 
@@ -109,7 +114,7 @@ function MinimalStudyBar({
           <ChevronLeft className="h-4 w-4" />
         </button>
 
-        {/* Page Input Box (Matches Firefox/Chrome minimal reader style) */}
+        {/* Page Input Box (Matches modern reader style) */}
         <div className="flex items-center gap-1.5 font-mono text-xs">
           <input
             type="text"
@@ -117,7 +122,7 @@ function MinimalStudyBar({
             onChange={(e) => setInputVal(e.target.value)}
             onKeyDown={handleInputSubmit}
             onBlur={handleInputSubmit}
-            className="w-10 h-6 bg-surface-container dark:bg-[#181c1d] border border-border rounded-full text-center text-xs font-semibold text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent tabular-nums"
+            className="w-10 h-7 bg-surface-container dark:bg-[#181c1d] border border-border rounded-lg text-center text-xs font-semibold text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent tabular-nums"
             title="Jump to page"
           />
           <span className="text-zinc-500 dark:text-zinc-400 text-xs">of {totalPages || 1}</span>
@@ -151,7 +156,7 @@ function MinimalStudyBar({
           type="button"
           onClick={onZoomReset}
           title="Reset Zoom to 100%"
-          className="h-6 px-2.5 rounded-full hover:bg-surface-container bg-surface-container/50 border border-border text-[11px] font-mono font-semibold text-accent transition-colors tabular-nums"
+          className="h-7 px-2.5 rounded-lg hover:bg-surface-container bg-surface-container/50 border border-border text-xs font-mono font-semibold text-accent transition-colors tabular-nums flex items-center justify-center"
         >
           {Math.round(scale * 100)}%
         </button>
@@ -173,9 +178,9 @@ function MinimalStudyBar({
           type="button"
           onClick={onFitWidth}
           title="Fit to Width [W]"
-          className="h-6 px-2.5 rounded-full hover:bg-surface-container border border-border text-[11px] font-medium text-zinc-500 hover:text-accent transition-colors hidden sm:inline-flex items-center"
+          className="h-7 px-2.5 rounded-lg hover:bg-surface-container border border-border text-xs font-medium text-zinc-600 dark:text-zinc-300 hover:text-accent transition-colors hidden sm:inline-flex items-center"
         >
-          Fit W
+          Fit Width
         </button>
 
         {/* Fit Page */}
@@ -183,9 +188,9 @@ function MinimalStudyBar({
           type="button"
           onClick={onFitPage}
           title="Fit Page [P]"
-          className="h-6 px-2.5 rounded-full hover:bg-surface-container border border-border text-[11px] font-medium text-zinc-500 hover:text-accent transition-colors hidden sm:inline-flex items-center"
+          className="h-7 px-2.5 rounded-lg hover:bg-surface-container border border-border text-xs font-medium text-zinc-600 dark:text-zinc-300 hover:text-accent transition-colors hidden sm:inline-flex items-center"
         >
-          Fit H
+          Fit Page
         </button>
 
         {/* Continuous vs Single Page toggle */}
@@ -193,20 +198,40 @@ function MinimalStudyBar({
           type="button"
           onClick={onToggleLayoutMode}
           title={layoutMode === 'continuous' ? "Switch to Single Page Presentation" : "Switch to Continuous Scroll"}
-          className="h-6 px-2.5 rounded-full hover:bg-surface-container border border-border text-[11px] font-medium text-zinc-500 hover:text-accent transition-colors hidden md:inline-flex items-center gap-1"
+          className="h-7 px-2.5 rounded-lg hover:bg-surface-container border border-border text-xs font-medium text-zinc-600 dark:text-zinc-300 hover:text-accent transition-colors hidden md:inline-flex items-center gap-1.5"
         >
           {layoutMode === 'continuous' ? (
             <>
-              <Columns className="h-3 w-3" />
+              <Columns className="h-3.5 w-3.5" />
               <span>Continuous</span>
             </>
           ) : (
             <>
-              <FileText className="h-3 w-3" />
+              <FileText className="h-3.5 w-3.5" />
               <span>Single</span>
             </>
           )}
         </button>
+
+        {/* Rotate Current Page (with Shift+Click / shortcut for all pages) */}
+        {onRotateCurrentPage && (
+          <button
+            type="button"
+            onClick={(e) => {
+              if (e.shiftKey && onRotateDocument) {
+                onRotateDocument();
+              } else {
+                onRotateCurrentPage();
+              }
+            }}
+            title="Rotate Page 90° Clockwise [R] (Shift+Click or Shift+R for all pages)"
+            aria-label="Rotate Page 90° Clockwise"
+            className="h-7 px-2.5 rounded-lg hover:bg-surface-container border border-border text-xs font-medium text-zinc-600 dark:text-zinc-300 hover:text-accent transition-colors flex items-center gap-1 cursor-pointer"
+          >
+            <RotateCw className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Rotate</span>
+          </button>
+        )}
       </div>
 
       {/* Right: Pomodoro Timer, Search, Pin Toolbar, and Exit */}
@@ -257,18 +282,21 @@ function MinimalStudyBar({
           {isPinned ? <Pin className="h-3.5 w-3.5" /> : <PinOff className="h-3.5 w-3.5" />}
         </button>
 
-        <div className="h-4 w-[1px] bg-border mx-0.5" />
-
-        {/* Exit Study Mode */}
-        <button
-          type="button"
-          onClick={onExitStudyMode}
-          title="Exit Minimal Study Mode [Esc]"
-          className="h-7 px-3 rounded-full bg-surface-container dark:bg-[#181c1d] hover:bg-rose-500/15 hover:text-rose-400 border border-border hover:border-rose-500/40 text-xs font-medium text-zinc-700 dark:text-zinc-300 transition-all flex items-center gap-1.5 shadow-xs"
-        >
-          <Minimize2 className="h-3.5 w-3.5" />
-          <span>Exit <kbd className="hidden md:inline text-[9px] font-mono opacity-70 bg-surface-lowest px-1 rounded-full">Esc</kbd></span>
-        </button>
+        {/* Exit Fullscreen (Only in Fullscreen Study Mode) */}
+        {isFullscreen && (
+          <>
+            <div className="h-4 w-[1px] bg-border mx-0.5" />
+            <button
+              type="button"
+              onClick={onExitStudyMode}
+              title="Exit Fullscreen Study Mode [Esc]"
+              className="h-7 px-2.5 rounded-lg bg-surface-container hover:bg-surface-high border border-border text-xs font-medium text-zinc-700 dark:text-zinc-300 transition-all flex items-center gap-1.5 shadow-2xs"
+            >
+              <Minimize2 className="h-3.5 w-3.5" />
+              <span>Exit Fullscreen</span>
+            </button>
+          </>
+        )}
       </div>
 
     </div>

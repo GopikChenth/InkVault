@@ -224,7 +224,7 @@ export default function WorkspacePage({
     }
   }, [currentMode, activeTab, openDocs.length, setActiveTab]);
 
-  const tabSessionMapRef = useRef<Map<string, { page: number; scale: number; rotation: number; annotations: PDFAnnotation[]; pageCount?: number; isFinished?: boolean }>>(new Map());
+  const tabSessionMapRef = useRef<Map<string, { page: number; scale: number; rotation: number; pageRotations?: Record<number, number>; annotations: PDFAnnotation[]; pageCount?: number; isFinished?: boolean }>>(new Map());
 
   // Restore persistent storage on initial mount
   useEffect(() => {
@@ -667,6 +667,7 @@ export default function WorkspacePage({
                     initialPage={tabSessionMapRef.current.get(activeDoc.id)?.page}
                     initialScale={tabSessionMapRef.current.get(activeDoc.id)?.scale}
                     initialRotation={tabSessionMapRef.current.get(activeDoc.id)?.rotation}
+                    initialPageRotations={tabSessionMapRef.current.get(activeDoc.id)?.pageRotations}
                     initialAnnotations={tabSessionMapRef.current.get(activeDoc.id)?.annotations}
                     onSaveSessionState={(state) => {
                       tabSessionMapRef.current.set(activeDoc.id, state);

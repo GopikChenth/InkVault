@@ -217,6 +217,48 @@ export default function WorkspacePage({
     try { localStorage.setItem('inkvault_active_subject_id', activeSubjectId); } catch {}
   }, [activeSubjectId]);
 
+  // Persist studySubjects to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('inkvault_study_subjects', JSON.stringify(studySubjects));
+    } catch {}
+  }, [studySubjects]);
+
+  // Auto-recover subjects from existing coursework documents if missing from localStorage
+  useEffect(() => {
+    if (studyRecentDocs.length === 0) return;
+    setStudySubjects((prev) => {
+      const existingNames = new Set(prev.map((s) => s.name.toLowerCase()));
+      const toAdd: StudySubject[] = [];
+      const palette = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#f43f5e', '#a855f7', '#14b8a6', '#f97316'];
+
+      studyRecentDocs.forEach((d) => {
+        let name = d.subjectName;
+        if (!name && d.name.includes('/')) {
+          const parts = d.name.replace(/\\/g, '/').split('/');
+          if (parts.length > 1 && parts[0]) {
+            name = parts[0];
+          }
+        }
+        if (name && !existingNames.has(name.toLowerCase())) {
+          existingNames.add(name.toLowerCase());
+          toAdd.push({
+            id: d.subjectId || `subj-${name.toLowerCase().replace(/\s+/g, '-')}`,
+            name,
+            color: palette[(prev.length + toAdd.length) % palette.length],
+            createdAt: new Date().toISOString(),
+            folderPath: d.folderPath,
+          });
+        }
+      });
+
+      if (toAdd.length > 0) {
+        return [...prev, ...toAdd];
+      }
+      return prev;
+    });
+  }, [studyRecentDocs]);
+
   // If leaving editor mode while on an offline tool, switch back to viewer or recent
   useEffect(() => {
     if (currentMode !== 'editor' && STUDIO_TOOL_ITEMS.some((t) => t.id === activeTab)) {

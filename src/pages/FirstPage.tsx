@@ -163,9 +163,13 @@ export default function FirstPage({
                       }
                     }}
                     onDoubleClick={() => onEnterWorkspace(mode.id)}
-                    className={`group relative flex flex-col p-3.5 rounded-2xl border text-left transition-all duration-200 cursor-pointer active:scale-[0.98] ${
+                    style={isSelected ? { 
+                      borderColor: 'var(--accent)', 
+                      backgroundColor: 'color-mix(in srgb, var(--accent) 8%, transparent)' 
+                    } : undefined}
+                    className={`group relative flex flex-col p-3.5 rounded-2xl border text-left transition-all duration-200 cursor-pointer active:scale-[0.98] outline-none focus:outline-none focus:ring-0 ${
                       isSelected
-                        ? 'border-accent/60 bg-accent/[0.08] dark:bg-accent/[0.14] shadow-sm ring-1 ring-accent/40'
+                        ? 'border-accent'
                         : 'border-border bg-card/60 hover:bg-card hover:border-zinc-300 dark:hover:border-zinc-700'
                     }`}
                   >
@@ -177,11 +181,17 @@ export default function FirstPage({
                       }`}>
                         <Icon className="h-4 w-4" />
                       </div>
-                      <span className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full border ${
-                        isSelected
-                          ? 'bg-accent/15 border-accent/30 text-accent'
-                          : 'bg-surface border-border text-zinc-500'
-                      }`}>
+                      <span 
+                        style={isSelected ? { 
+                          borderColor: 'var(--accent)', 
+                          backgroundColor: 'color-mix(in srgb, var(--accent) 15%, transparent)' 
+                        } : undefined}
+                        className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full border ${
+                          isSelected
+                            ? 'text-accent border-accent'
+                            : 'bg-surface border-border text-zinc-500'
+                        }`}
+                      >
                         {mode.tag}
                       </span>
                     </div>

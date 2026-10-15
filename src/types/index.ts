@@ -63,7 +63,7 @@ export interface StudySubject {
 
 export type PageLayoutMode = 'continuous' | 'single' | 'two-page' | 'facing-pages';
 
-export type NavSidebarTab = 'thumbnails' | 'outline' | 'bookmarks' | 'annotations' | 'attachments' | 'search' | 'files';
+export type NavSidebarTab = 'thumbnails' | 'outline' | 'bookmarks' | 'annotations' | 'search' | 'files';
 
 export interface PDFOutlineNode {
   title: string;

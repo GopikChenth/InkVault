@@ -24,7 +24,6 @@ import {
   NavSidebarTab, 
   PDFOutlineNode, 
   PDFBookmark, 
-  PDFAttachment, 
   SearchMatch, 
   MultiDocSearchResult,
   PDFAnnotation,
@@ -193,9 +192,9 @@ export default function PDFViewer({
   const [isNavSidebarOpen, setIsNavSidebarOpen] = useState<boolean>(() => {
     try {
       const saved = localStorage.getItem('inkvault_sidebar_open') ?? localStorage.getItem('pdflow_sidebar_open');
-      return saved !== null ? saved === 'true' : true;
+      return saved !== null ? saved === 'true' : initialAppMode !== 'reader';
     } catch {
-      return true;
+      return initialAppMode !== 'reader';
     }
   });
 
@@ -221,25 +220,42 @@ export default function PDFViewer({
       setFocusMode(true);
       setStudyTint('default');
       setIsStudyMode(false);
-      setIsNavSidebarOpen(false);
+      setNavSidebarTab((prev) => (prev === 'files' ? 'thumbnails' : prev));
     } else if (initialAppMode === 'study') {
       setIsStudyMode(true);
       setFocusMode(false);
       setLayoutMode('continuous');
       setStudyTint('default');
-      setIsNavSidebarOpen(false);
     } else if (initialAppMode === 'editor') {
       setIsStudyMode(false);
       setFocusMode(false);
       setLayoutMode('continuous');
       setStudyTint('default');
-      setIsNavSidebarOpen(true);
+      setNavSidebarTab((prev) => (prev === 'files' ? 'thumbnails' : prev));
     }
   }, [initialAppMode]);
 
-  const [navSidebarTab, setNavSidebarTab] = useState<NavSidebarTab>('thumbnails');
+  const [navSidebarTab, setNavSidebarTab] = useState<NavSidebarTab>(() => {
+    try {
+      const saved = localStorage.getItem('inkvault_sidebar_tab') as NavSidebarTab;
+      const validTabs: NavSidebarTab[] = ['thumbnails', 'outline', 'bookmarks', 'annotations', 'search', 'files'];
+      if (saved && validTabs.includes(saved)) {
+        if (saved === 'files' && initialAppMode !== 'study') {
+          return 'thumbnails';
+        }
+        return saved;
+      }
+    } catch {}
+    return initialAppMode === 'study' ? 'files' : 'thumbnails';
+  });
+
+  const handleTabChange = useCallback((tab: NavSidebarTab) => {
+    setNavSidebarTab(tab);
+    try {
+      localStorage.setItem('inkvault_sidebar_tab', tab);
+    } catch {}
+  }, []);
   const [outline, setOutline] = useState<PDFOutlineNode[]>([]);
-  const [attachments, setAttachments] = useState<PDFAttachment[]>([]);
   const [bookmarks, setBookmarks] = useState<PDFBookmark[]>([]);
   const isProgrammaticScrollRef = useRef<boolean>(false);
   const programmaticScrollTimeoutRef = useRef<any>(null);
@@ -319,7 +335,6 @@ export default function PDFViewer({
   const requestedRenderKeysRef = useRef<Map<number, string>>(new Map());
   const activeRenderTasksRef = useRef<Map<number, any>>(new Map());
   const activeTextTasksRef = useRef<Map<number, any>>(new Map());
-  const sharedOffscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const isExtractingTextRef = useRef(false);
 
   // Memoize annotations by page to isolate updates and avoid re-rendering untouched pages
@@ -828,29 +843,6 @@ export default function PDFViewer({
       } catch {
         if (!isCancelled) setOutline([]);
       }
-
-      // Extract Attachments
-      try {
-        const rawAttachments = await loadedPdf.getAttachments();
-        if (rawAttachments && !isCancelled) {
-          const attList: PDFAttachment[] = [];
-          for (const key of Object.keys(rawAttachments)) {
-            const att = rawAttachments[key];
-            const sizeInKb = (att.content.length / 1024).toFixed(1) + ' KB';
-            attList.push({
-              filename: att.filename || key,
-              size: sizeInKb,
-              rawSize: att.content.length,
-              content: att.content,
-            });
-          }
-          setAttachments(attList);
-        } else if (!isCancelled) {
-          setAttachments([]);
-        }
-      } catch {
-        if (!isCancelled) setAttachments([]);
-      }
     };
 
     // Check if proxy already exists in memory and is active
@@ -928,19 +920,21 @@ export default function PDFViewer({
       const totalRotation = (pageRotate + rot + pageExtra) % 360;
       const viewport = page.getViewport({ scale: currentScale, rotation: totalRotation });
 
-      const scaledWidth = Math.floor(viewport.width * outputScale);
-      const scaledHeight = Math.floor(viewport.height * outputScale);
+      const scaledWidth = Math.max(1, Math.floor(viewport.width * outputScale));
+      const scaledHeight = Math.max(1, Math.floor(viewport.height * outputScale));
 
-      // Double-buffered rendering via offscreen canvas: avoids blanking the existing screen
-      let offscreenCanvas = sharedOffscreenCanvasRef.current;
-      if (!offscreenCanvas) {
-        offscreenCanvas = document.createElement('canvas');
-        sharedOffscreenCanvasRef.current = offscreenCanvas;
-      }
+      // Double-buffered rendering via dedicated per-page offscreen canvas:
+      // Completely isolated per page to eliminate concurrent render collisions, #canvasInUse conflicts,
+      // and compound transform matrix inversions.
+      const offscreenCanvas = document.createElement('canvas');
       offscreenCanvas.width = scaledWidth;
       offscreenCanvas.height = scaledHeight;
       const offscreenCtx = offscreenCanvas.getContext('2d', { alpha: false });
       if (!offscreenCtx) return;
+
+      // Solid opaque white paper backing
+      offscreenCtx.fillStyle = '#ffffff';
+      offscreenCtx.fillRect(0, 0, scaledWidth, scaledHeight);
 
       const transform = outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : undefined;
 
@@ -1295,18 +1289,6 @@ export default function PDFViewer({
     }
   }, [pdfDoc, pages.length, scrollToPage]);
 
-  // Download Attachment Helper
-  const handleDownloadAttachment = useCallback((att: PDFAttachment) => {
-    const blob = new Blob([att.content as unknown as BlobPart], { type: 'application/octet-stream' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = att.filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }, []);
 
   // On-demand text extraction for search and text reflow
   const ensureTextExtracted = useCallback(async () => {
@@ -2200,7 +2182,7 @@ export default function PDFViewer({
             isOpen={isNavSidebarOpen}
             onClose={() => toggleNavSidebar(false)}
             activeTab={navSidebarTab}
-            onTabChange={setNavSidebarTab}
+            onTabChange={handleTabChange}
             docName={doc.name}
             docSize={doc.size}
             pdfDoc={pdfDoc}
@@ -2223,8 +2205,6 @@ export default function PDFViewer({
               }
             }}
             onDeleteAnnotation={handleDeleteAnnotation}
-            attachments={attachments}
-            onDownloadAttachment={handleDownloadAttachment}
             searchQuery={searchQuery}
             inDocMatches={inDocMatches}
             multiDocResults={multiDocResults}

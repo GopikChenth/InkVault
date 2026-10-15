@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { 
   FolderUp, 
   GraduationCap, 
@@ -41,6 +41,44 @@ export const StudySidebar: React.FC<StudySidebarProps> = ({
   onSelectDoc,
   onRemoveDoc,
 }) => {
+  // Derive effective subjects if studySubjects is not yet populated from storage
+  const effectiveSubjects = useMemo(() => {
+    if (studySubjects && studySubjects.length > 0) return studySubjects;
+    const map = new Map<string, StudySubject>();
+    const palette = ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4', '#14b8a6'];
+    let colorIdx = 0;
+    for (const doc of recentDocs) {
+      let subName = doc.subjectName;
+      if (!subName && doc.name.includes('/')) {
+        const parts = doc.name.replace(/\\/g, '/').split('/');
+        if (parts.length > 1 && parts[0]) {
+          subName = parts[0];
+        }
+      }
+      if (subName && !map.has(subName.toLowerCase())) {
+        map.set(subName.toLowerCase(), {
+          id: doc.subjectId || `subj-${subName.toLowerCase().replace(/\s+/g, '-')}`,
+          name: subName,
+          color: palette[colorIdx % palette.length],
+          createdAt: new Date().toISOString(),
+          folderPath: doc.folderPath,
+        });
+        colorIdx++;
+      }
+    }
+    return Array.from(map.values());
+  }, [studySubjects, recentDocs]);
+
+  const activeSubject = activeSubjectId !== 'all'
+    ? effectiveSubjects.find((s) => s.id === activeSubjectId)
+    : null;
+
+  const displayedDocs = activeSubjectId === 'all'
+    ? recentDocs
+    : recentDocs.filter(
+        (d) => d.subjectId === activeSubjectId || d.subjectName === activeSubject?.name
+      );
+
   return (
     <div className="flex flex-col gap-6">
       {/* Primary Action Button */}
@@ -107,11 +145,11 @@ export const StudySidebar: React.FC<StudySidebarProps> = ({
         </button>
       </div>
 
-      {/* Subjects / Folders Nav Group */}
-      <div className="flex flex-col gap-1.5 pt-3 border-t border-border">
+      {/* Subjects & Folders Tree Explorer */}
+      <div className="flex flex-col gap-2 pt-3 border-t border-border">
         <div className="flex items-center justify-between px-2">
           <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 font-semibold flex items-center gap-1.5">
-            <Folder className="h-3 w-3 text-accent" /> Subjects
+            <Folder className="h-3 w-3 text-accent" /> Subjects & Folders
           </span>
           <button
             type="button"
@@ -124,90 +162,80 @@ export const StudySidebar: React.FC<StudySidebarProps> = ({
           </button>
         </div>
 
-        {/* All Subjects pill */}
-        <button
-          type="button"
-          onClick={() => onSelectSubject('all')}
-          className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-            activeSubjectId === 'all'
-              ? 'bg-card text-zinc-900 dark:text-zinc-100 shadow-2xs border border-border font-semibold'
-              : 'text-zinc-600 dark:text-zinc-400 hover:bg-card hover:text-zinc-900 dark:hover:text-zinc-100'
-          }`}
-        >
-          <span className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-zinc-400" />
-            <span>All Subjects</span>
-          </span>
-          <span className="text-[10px] font-mono text-zinc-400">
-            {recentDocs.length}
-          </span>
-        </button>
+        {/* Subject Filter Pills (When subjects exist) */}
+        {effectiveSubjects.length > 0 && (
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 px-1 no-scrollbar">
+            <button
+              type="button"
+              onClick={() => onSelectSubject('all')}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium transition-all shrink-0 ${
+                activeSubjectId === 'all'
+                  ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-semibold shadow-2xs'
+                  : 'bg-card hover:bg-surface text-zinc-600 dark:text-zinc-400 border border-border'
+              }`}
+            >
+              <span>All</span>
+              <span className="text-[10px] opacity-70 font-mono">({recentDocs.length})</span>
+            </button>
 
-        {/* Individual Subjects */}
-        <div className="flex flex-col gap-1 max-h-72 overflow-y-auto pr-1">
-          {studySubjects.map((sub) => {
-            const isSelected = activeSubjectId === sub.id;
-            const subDocs = recentDocs.filter(
-              (d) => d.subjectId === sub.id || d.subjectName === sub.name
-            );
-            const docCount = subDocs.length;
-
-            return (
-              <div key={sub.id} className="flex flex-col">
+            {effectiveSubjects.map((sub) => {
+              const isSelected = activeSubjectId === sub.id;
+              const count = recentDocs.filter(
+                (d) => d.subjectId === sub.id || d.subjectName === sub.name
+              ).length;
+              return (
                 <div
+                  key={sub.id}
                   onClick={() => onSelectSubject(sub.id)}
-                  className={`group/sub flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all ${
+                  className={`group/pill flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium cursor-pointer transition-all shrink-0 ${
                     isSelected
-                      ? 'bg-card text-zinc-900 dark:text-zinc-100 shadow-2xs border border-border font-semibold'
-                      : 'text-zinc-600 dark:text-zinc-400 hover:bg-card hover:text-zinc-900 dark:hover:text-zinc-100'
+                      ? 'bg-card text-zinc-900 dark:text-zinc-100 border border-border shadow-2xs font-semibold'
+                      : 'bg-surface hover:bg-card text-zinc-600 dark:text-zinc-400 border border-border'
                   }`}
                 >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span
-                      className="w-2 h-2 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: sub.color }}
-                    />
-                    <span className="truncate">{sub.name}</span>
-                  </div>
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    <span className="text-[10px] font-mono text-zinc-400">
-                      {docCount}
-                    </span>
+                  <span
+                    className="w-2 h-2 rounded-full shrink-0"
+                    style={{ backgroundColor: sub.color }}
+                  />
+                  <span className="truncate max-w-[90px]">{sub.name}</span>
+                  <span className="text-[10px] opacity-70 font-mono">({count})</span>
+                  {onDeleteSubject && (
                     <button
                       type="button"
-                      onClick={(e) => onDeleteSubject(sub.id, e)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteSubject(sub.id, e);
+                      }}
                       title={`Delete ${sub.name}`}
-                      className="opacity-0 group-hover/sub:opacity-100 hover:text-rose-500 text-zinc-400 transition-opacity p-0.5 rounded"
+                      className="opacity-0 group-hover/pill:opacity-100 hover:text-rose-500 text-zinc-400 transition-opacity p-0.5 rounded"
                     >
-                      <Trash2 className="h-3 w-3" />
+                      <Trash2 className="h-2.5 w-2.5" />
                     </button>
-                  </div>
+                  )}
                 </div>
+              );
+            })}
+          </div>
+        )}
 
-                {/* Inline VS Code Tree Explorer in Left Sidebar */}
-                {isSelected && subDocs.length > 0 && (
-                  <div className="mt-1 mb-1 pl-1 border-l-2 border-accent/30 ml-2">
-                    <FolderTreeExplorer
-                      docs={subDocs}
-                      activeDocId={activeDocId}
-                      onSelectDoc={onSelectDoc}
-                      onRemoveDoc={onRemoveDoc}
-                      subjectName={sub.name}
-                      subjectColor={sub.color}
-                      isCompact={true}
-                      showControls={false}
-                    />
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {studySubjects.length === 0 && (
+        {/* Tree Explorer in Sidebar */}
+        {displayedDocs.length > 0 ? (
+          <div className="flex flex-col max-h-[calc(100vh-320px)] overflow-y-auto pr-1">
+            <FolderTreeExplorer
+              docs={displayedDocs}
+              activeDocId={activeDocId}
+              onSelectDoc={onSelectDoc}
+              onRemoveDoc={onRemoveDoc}
+              isCompact={true}
+              showControls={displayedDocs.length > 5}
+            />
+          </div>
+        ) : (
           <div className="px-2 py-3 rounded-lg border border-dashed border-border bg-card/40 text-center">
             <p className="text-[11px] text-zinc-400">
-              No subjects yet. Import or drop a folder.
+              {activeSubject
+                ? `No documents in "${activeSubject.name}".`
+                : 'No subjects yet. Import or drop a folder.'}
             </p>
           </div>
         )}

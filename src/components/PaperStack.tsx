@@ -15,98 +15,110 @@ export default function PaperStack() {
 
   // Maintain the virtual order of cards (indices 0..4)
   const [order, setOrder] = useState<number[]>([0, 1, 2, 3, 4]);
+  const orderRef = useRef<number[]>([0, 1, 2, 3, 4]);
   const isShufflingRef = useRef(false);
   const animeTimelineRef = useRef<Timeline | null>(null);
   const shuffleTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    orderRef.current = order;
+  }, [order]);
 
   // 1. Autonomous Page Shuffle Loop (Self-running, No Controls)
   const triggerShuffle = useCallback(() => {
     if (isShufflingRef.current) return;
     isShufflingRef.current = true;
 
-    setOrder((prevOrder) => {
-      const currentCards = cardRefs.current;
-      const topCardIndex = prevOrder[0];
-      const topCardEl = currentCards[topCardIndex];
+    const currentCards = cardRefs.current;
+    const currentOrder = orderRef.current;
+    const topCardIndex = currentOrder[0];
+    const topCardEl = currentCards[topCardIndex];
 
-      if (!topCardEl) {
+    if (!topCardEl) {
+      isShufflingRef.current = false;
+      return;
+    }
+
+    const nextOrder = [...currentOrder.slice(1), currentOrder[0]];
+
+    // Step 0: Ensure the elevating top card sits above all cards during lift
+    topCardEl.style.zIndex = '60';
+
+    const tl = createTimeline({
+      defaults: {
+        ease: 'cubicBezier(0.05, 0.7, 0.1, 1)',
+      },
+      onComplete: () => {
+        // Shuffle complete: finalize React state and release lock without flickering
+        setOrder(nextOrder);
+        orderRef.current = nextOrder;
         isShufflingRef.current = false;
-        return prevOrder;
-      }
-
-      // Rest of the cards
-      const nextOrder = [...prevOrder.slice(1), prevOrder[0]];
-      const tl = createTimeline({
-        defaults: {
-          ease: 'cubicBezier(0.05, 0.7, 0.1, 1)',
-        },
-        onComplete: () => {
-          isShufflingRef.current = false;
-        },
-      });
-
-      animeTimelineRef.current = tl;
-
-      // Step 1: Top card peels up, elevates, slides gracefully within bounds
-      tl.add(topCardEl, {
-        translateX: 24,
-        translateY: -40,
-        translateZ: 85,
-        rotateX: 14,
-        rotateY: -10,
-        rotateZ: 4,
-        scale: 1.02,
-        duration: 750,
-        ease: 'cubicBezier(0.05, 0.7, 0.1, 1)',
-      });
-
-      // Step 2: Concurrently promote remaining cards forward in the stack
-      nextOrder.slice(0, 4).forEach((idx, pos) => {
-        const cardEl = currentCards[idx];
-        if (cardEl) {
-          const t = getLayerTransform(pos);
-          tl.add(cardEl, {
-            translateX: t.translateX,
-            translateY: t.translateY,
-            translateZ: t.translateZ,
-            rotateX: t.rotateX,
-            rotateY: t.rotateY,
-            rotateZ: t.rotateZ,
-            scale: t.scale,
-            opacity: t.opacity,
-            duration: 650,
-            ease: 'cubicBezier(0.2, 0, 0, 1)',
-          }, pos === 0 ? '-=500' : '<');
-        }
-      });
-
-      // Step 3: Top card glides back and tucks behind the bottom of the stack
-      const bottomTransform = getLayerTransform(4);
-      tl.add(topCardEl, {
-        translateX: bottomTransform.translateX,
-        translateY: bottomTransform.translateY,
-        translateZ: bottomTransform.translateZ,
-        rotateX: bottomTransform.rotateX,
-        rotateY: bottomTransform.rotateY,
-        rotateZ: bottomTransform.rotateZ,
-        scale: bottomTransform.scale,
-        opacity: bottomTransform.opacity,
-        duration: 700,
-        ease: 'cubicBezier(0.05, 0.7, 0.1, 1)',
-      }, '-=300');
-
-      // Sync the ground shadow swell
-      if (shadowRef.current) {
-        animate(shadowRef.current, {
-          scale: [1, 1.15, 1],
-          opacity: [0.65, 0.45, 0.65],
-          duration: 1200,
-          ease: 'cubicBezier(0.2, 0, 0, 1)',
-        });
-      }
-
-      return nextOrder;
+      },
     });
+
+    animeTimelineRef.current = tl;
+
+    // Step 1: Top card peels up, elevates, slides gracefully within bounds
+    tl.add(topCardEl, {
+      translateX: 24,
+      translateY: -40,
+      translateZ: 85,
+      rotateX: 14,
+      rotateY: -10,
+      rotateZ: 4,
+      scale: 1.02,
+      duration: 750,
+      ease: 'cubicBezier(0.05, 0.7, 0.1, 1)',
+    });
+
+    // Step 2: Concurrently promote remaining cards forward in the stack
+    nextOrder.slice(0, 4).forEach((idx, pos) => {
+      const cardEl = currentCards[idx];
+      if (cardEl) {
+        const t = getLayerTransform(pos);
+        tl.add(cardEl, {
+          translateX: t.translateX,
+          translateY: t.translateY,
+          translateZ: t.translateZ,
+          rotateX: t.rotateX,
+          rotateY: t.rotateY,
+          rotateZ: t.rotateZ,
+          scale: t.scale,
+          opacity: t.opacity,
+          duration: 650,
+          ease: 'cubicBezier(0.2, 0, 0, 1)',
+        }, pos === 0 ? '-=500' : '<');
+      }
+    });
+
+    // Step 3: Top card glides back and tucks behind the bottom of the stack
+    const bottomTransform = getLayerTransform(4);
+    tl.add(topCardEl, {
+      translateX: bottomTransform.translateX,
+      translateY: bottomTransform.translateY,
+      translateZ: bottomTransform.translateZ,
+      rotateX: bottomTransform.rotateX,
+      rotateY: bottomTransform.rotateY,
+      rotateZ: bottomTransform.rotateZ,
+      scale: bottomTransform.scale,
+      opacity: bottomTransform.opacity,
+      duration: 700,
+      ease: 'cubicBezier(0.05, 0.7, 0.1, 1)',
+      begin: () => {
+        // As the card begins tucking behind, drop its z-index so it slides behind smoothly
+        topCardEl.style.zIndex = '5';
+      },
+    }, '-=300');
+
+    // Sync the ground shadow swell
+    if (shadowRef.current) {
+      animate(shadowRef.current, {
+        scale: [1, 1.15, 1],
+        opacity: [0.65, 0.45, 0.65],
+        duration: 1200,
+        ease: 'cubicBezier(0.2, 0, 0, 1)',
+      });
+    }
   }, []);
 
   const startAutonomousShuffle = useCallback(() => {
@@ -265,15 +277,15 @@ export default function PaperStack() {
               <div
                 key={doc.id}
                 ref={(el) => { cardRefs.current[index] = el; }}
-                className={`absolute inset-0 rounded-3xl bg-card dark:bg-[#181c1d] text-zinc-900 dark:text-zinc-100 border flex flex-col justify-between p-6 overflow-hidden backface-visible preserve-3d cursor-default transition-all duration-300 ${
-                  currentPositionInStack === 0
-                    ? 'border-accent/50 ring-1 ring-accent/30 shadow-[0_20px_50px_rgba(0,0,0,0.2),0_0_35px_rgba(129,211,224,0.18)] dark:shadow-[0_25px_60px_rgba(0,0,0,0.8),0_0_35px_rgba(129,211,224,0.18)]'
-                    : 'border-border shadow-[0_20px_50px_rgba(0,0,0,0.15)] dark:shadow-[0_25px_60px_rgba(0,0,0,0.6)]'
-                }`}
+                className="absolute inset-0 rounded-3xl bg-card dark:bg-[#181c1d] text-zinc-900 dark:text-zinc-100 border flex flex-col justify-between p-6 overflow-hidden backface-visible preserve-3d cursor-default transition-[border-color,box-shadow] duration-500"
                 style={{
                   zIndex,
+                  borderColor: currentPositionInStack === 0 ? 'var(--accent)' : 'var(--border)',
+                  boxShadow: currentPositionInStack === 0
+                    ? '0 25px 60px rgba(0,0,0,0.7), 0 0 30px color-mix(in srgb, var(--accent) 25%, transparent)'
+                    : '0 20px 50px rgba(0,0,0,0.5)',
                   willChange: 'transform, opacity',
-                  backgroundImage: 'radial-gradient(rgba(129, 211, 224, 0.05) 1px, transparent 0)',
+                  backgroundImage: 'radial-gradient(color-mix(in srgb, var(--accent) 6%, transparent) 1px, transparent 0)',
                   backgroundSize: '16px 16px',
                 }}
               >
@@ -339,10 +351,10 @@ export default function PaperStack() {
                         <span className="text-accent font-semibold">BALANCED</span>
                       </div>
                       <div className="flex items-end gap-1.5 h-10 pt-2 px-1">
-                        <div className="flex-1 bg-accent/20 rounded-t h-[40%]" />
-                        <div className="flex-1 bg-accent/40 rounded-t h-[65%]" />
-                        <div className="flex-1 bg-accent/60 rounded-t h-[50%]" />
-                        <div className="flex-1 bg-accent/80 rounded-t h-[85%]" />
+                        <div className="flex-1 rounded-t h-[40%]" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 20%, transparent)' }} />
+                        <div className="flex-1 rounded-t h-[65%]" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 40%, transparent)' }} />
+                        <div className="flex-1 rounded-t h-[50%]" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 60%, transparent)' }} />
+                        <div className="flex-1 rounded-t h-[85%]" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 80%, transparent)' }} />
                         <div className="flex-1 bg-accent rounded-t h-[100%]" />
                       </div>
                     </div>
@@ -374,9 +386,9 @@ export default function PaperStack() {
                         <span>CAD VECTOR GRID</span>
                         <span className="font-semibold text-accent">X: 1920 / Y: 1080</span>
                       </div>
-                      <div className="h-9 w-full rounded-lg border border-dashed border-accent/40 relative flex items-center justify-center overflow-hidden">
-                        <div className="absolute inset-0 bg-accent/5" />
-                        <div className="h-6 w-6 rounded-full border border-accent/60 flex items-center justify-center">
+                      <div className="h-9 w-full rounded-lg border border-dashed relative flex items-center justify-center overflow-hidden" style={{ borderColor: 'color-mix(in srgb, var(--accent) 40%, transparent)' }}>
+                        <div className="absolute inset-0" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 5%, transparent)' }} />
+                        <div className="h-6 w-6 rounded-full border flex items-center justify-center" style={{ borderColor: 'color-mix(in srgb, var(--accent) 60%, transparent)' }}>
                           <div className="h-1.5 w-1.5 rounded-full bg-accent animate-ping" />
                           <div className="h-1.5 w-1.5 rounded-full bg-accent absolute" />
                         </div>

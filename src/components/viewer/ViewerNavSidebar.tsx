@@ -4,13 +4,11 @@ import {
   Grid, 
   ListTree, 
   Bookmark, 
-  Paperclip, 
   Search, 
   ChevronRight, 
   ChevronDown, 
   Plus, 
   Trash2, 
-  Download, 
   X,
   FileText,
   MessageSquare,
@@ -30,7 +28,6 @@ import {
   NavSidebarTab, 
   PDFOutlineNode, 
   PDFBookmark, 
-  PDFAttachment, 
   SearchMatch, 
   MultiDocSearchResult,
   PDFAnnotation,
@@ -347,10 +344,6 @@ interface ViewerNavSidebarProps {
   onSelectAnnotation: (ann: PDFAnnotation) => void;
   onDeleteAnnotation: (id: string) => void;
 
-  // Attachments Data
-  attachments: PDFAttachment[];
-  onDownloadAttachment: (att: PDFAttachment) => void;
-
   // Search Results
   searchQuery: string;
   inDocMatches: SearchMatch[];
@@ -396,8 +389,6 @@ function ViewerNavSidebar({
   annotations,
   onSelectAnnotation,
   onDeleteAnnotation,
-  attachments,
-  onDownloadAttachment,
   searchQuery,
   inDocMatches,
   multiDocResults,
@@ -683,22 +674,7 @@ function ViewerNavSidebar({
             </button>
           ) : null}
 
-          {attachments && attachments.length > 0 ? (
-            <button
-              type="button"
-              onClick={() => onTabChange?.('attachments')}
-              title="Embedded Attachments"
-              className={`shrink-0 flex items-center gap-1.5 py-1 px-2.5 rounded-full text-[11px] font-medium transition-all whitespace-nowrap ${
-                activeTab === 'attachments'
-                  ? 'bg-accent text-accent-on font-bold shadow-2xs'
-                  : 'text-zinc-500 hover:text-on-surface'
-              }`}
-            >
-              <Paperclip className="h-3.5 w-3.5 shrink-0" />
-              <span>Attachments</span>
-              <span className="text-[9px] font-mono opacity-70 shrink-0">({attachments.length})</span>
-            </button>
-          ) : null}
+
         </div>
       </div>
 
@@ -912,45 +888,6 @@ function ViewerNavSidebar({
           </div>
         ) : null}
 
-        {/* TAB 5: ATTACHMENTS */}
-        {activeTab === 'attachments' ? (
-          <div className="flex flex-col gap-2">
-            {attachments.length === 0 ? (
-              <div className="py-12 px-4 text-center">
-                <Paperclip className="h-8 w-8 mx-auto text-zinc-300 dark:text-zinc-600 mb-2" />
-                <p className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">No Embedded Files</p>
-                <p className="text-[11px] text-zinc-400 mt-1">This PDF does not contain embedded file attachments.</p>
-              </div>
-            ) : (
-              attachments.map((att, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center justify-between p-2.5 rounded-lg bg-card border border-border hover:border-zinc-400 dark:hover:border-zinc-600 shadow-xs transition-all"
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <Paperclip className="h-4 w-4 text-zinc-400 flex-shrink-0" />
-                    <div className="min-w-0">
-                      <h5 className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 truncate">
-                        {att.filename}
-                      </h5>
-                      {att.size ? (
-                        <p className="text-[10px] font-mono text-zinc-400">{att.size}</p>
-                      ) : null}
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => onDownloadAttachment(att)}
-                    title="Download Attachment"
-                    className="p-1.5 rounded-lg bg-surface hover:bg-accent hover:text-white text-zinc-600 dark:text-zinc-300 transition-colors shadow-xs"
-                  >
-                    <Download className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              ))
-            )}
-          </div>
-        ) : null}
 
         {/* TAB 6: SEARCH RESULTS */}
         {activeTab === 'search' ? (

@@ -122,25 +122,35 @@ export const FolderTreeExplorer: React.FC<FolderTreeExplorerProps> = ({
       const cleanPath = doc.name.replace(/\\/g, '/');
       const parts = cleanPath.split('/');
 
-      if (parts.length === 1) {
+      let folderPath: string | null = null;
+      let fileName: string = cleanPath;
+
+      if (parts.length > 1) {
+        folderPath = parts.slice(0, -1).join('/');
+        fileName = parts[parts.length - 1];
+      } else if (doc.subjectName && (!subjectName || doc.subjectName.toLowerCase() !== subjectName.toLowerCase())) {
+        folderPath = doc.subjectName;
+        fileName = parts[0];
+      }
+
+      if (!folderPath) {
         root.files.push({
           type: 'file',
           id: doc.id,
-          name: parts[0],
+          name: fileName,
           fullPath: doc.name,
           depth: 1,
           doc,
         });
       } else {
-        const folderPath = parts.slice(0, -1).join('/');
-        const fileName = parts[parts.length - 1];
-        const folder = getOrCreateFolder(folderPath, parts.length - 1);
+        const depth = folderPath.split('/').length;
+        const folder = getOrCreateFolder(folderPath, depth);
         folder.files.push({
           type: 'file',
           id: doc.id,
           name: fileName,
           fullPath: doc.name,
-          depth: parts.length,
+          depth: depth + 1,
           doc,
         });
       }

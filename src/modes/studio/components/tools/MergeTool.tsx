@@ -28,6 +28,7 @@ interface MergeItem {
   size: string;
   rawSize: number;
   pages: number;
+  path?: string;
 }
 
 interface MergeToolProps {
@@ -63,6 +64,7 @@ export default function MergeTool({ initialDoc, onOpenMergedDoc }: MergeToolProp
               size: initialDoc.size,
               rawSize: initialDoc.rawSize,
               pages: pdf.numPages,
+              path: initialDoc.filePath || (initialDoc.file as any)?.path,
             },
           ]);
         } catch {
@@ -74,6 +76,7 @@ export default function MergeTool({ initialDoc, onOpenMergedDoc }: MergeToolProp
               size: initialDoc.size,
               rawSize: initialDoc.rawSize,
               pages: 1,
+              path: initialDoc.filePath || (initialDoc.file as any)?.path,
             },
           ]);
         }
@@ -106,6 +109,7 @@ export default function MergeTool({ initialDoc, onOpenMergedDoc }: MergeToolProp
         size: formatSize(file.size),
         rawSize: file.size,
         pages: pageCount,
+        path: (file as any)?.path,
       });
     }
 
@@ -159,6 +163,7 @@ export default function MergeTool({ initialDoc, onOpenMergedDoc }: MergeToolProp
       const nativeResult = await nativeMergePDFs(items.map((it) => ({
         file: it.file,
         name: it.name,
+        path: it.path || (it.file as any)?.path,
       })));
 
       if (nativeResult) {

@@ -104,41 +104,46 @@ export default function WorkspacePage({
     document.documentElement.setAttribute('data-mode', currentMode);
   }, [currentMode]);
 
-  const [internalActiveTab, setInternalActiveTab] = useState<string>(() => propActiveTab ?? controlledActiveTab ?? 'recent');
-  const activeTab = propActiveTab ?? controlledActiveTab ?? internalActiveTab;
+  const [internalActiveTabByMode, setInternalActiveTabByMode] = useState<Record<AppMode, string>>(() => {
+    try {
+      const initial = propActiveTab ?? controlledActiveTab ?? 'recent';
+      return {
+        editor: localStorage.getItem('inkvault_active_tab_editor') || initial,
+        study: localStorage.getItem('inkvault_active_tab_study') || initial,
+        reader: localStorage.getItem('inkvault_active_tab_reader') || initial,
+      };
+    } catch {
+      return { editor: 'recent', study: 'recent', reader: 'recent' };
+    }
+  });
+
+  const activeTab = propActiveTab ?? controlledActiveTab ?? internalActiveTabByMode[currentMode];
 
   // Sync tab changes from parent (e.g. File menu tools)
   useEffect(() => {
     const incomingTab = propActiveTab ?? controlledActiveTab;
-    if (incomingTab && incomingTab !== internalActiveTab) {
-      setInternalActiveTab(incomingTab);
+    if (incomingTab && incomingTab !== internalActiveTabByMode[currentMode]) {
+      setInternalActiveTabByMode((prev) => ({ ...prev, [currentMode]: incomingTab }));
     }
-  }, [propActiveTab, controlledActiveTab]);
+  }, [propActiveTab, controlledActiveTab, currentMode]);
 
   const setActiveTab = useCallback((tab: string) => {
-    setInternalActiveTab(tab);
+    setInternalActiveTabByMode((prev) => {
+      const next = { ...prev, [currentMode]: tab };
+      try {
+        localStorage.setItem(`inkvault_active_tab_${currentMode}`, tab);
+      } catch {}
+      return next;
+    });
     if (onActiveTabChange) onActiveTabChange(tab);
     if (propOnSelectTab) propOnSelectTab(tab);
-  }, [onActiveTabChange, propOnSelectTab]);
+  }, [currentMode, onActiveTabChange, propOnSelectTab]);
 
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
 
   // 2. Documents & Session Management
   const [openDocs, setOpenDocs] = useState<LoadedPDF[]>([]);
   const [recentDocs, setRecentDocs] = useState<LoadedPDF[]>(() => loadMetadataCache());
-
-  const handleModeChange = useCallback((mode: AppMode) => {
-    setCurrentMode(mode);
-    setOpenDocs((current) => {
-      const modeDocs = getDocsForMode(current, mode);
-      if (modeDocs.length === 0) {
-        setActiveTab('recent');
-      }
-      return current;
-    });
-    if (onModeChange) onModeChange(mode);
-    if (propOnSelectMode) propOnSelectMode(mode);
-  }, [onModeChange, propOnSelectMode, setActiveTab]);
 
   const [activeDocIdByMode, setActiveDocIdByMode] = useState<Record<AppMode, string | null>>(() => {
     try {
@@ -174,23 +179,102 @@ export default function WorkspacePage({
   const studyRecentDocs = React.useMemo(() => getDocsForMode(recentDocs, 'study'), [recentDocs]);
   const studioRecentDocs = React.useMemo(() => getDocsForMode(recentDocs, 'editor'), [recentDocs]);
 
+  // Open documents segregated strictly per mode (Domain Isolation)
   const readerOpenDocs = React.useMemo(() => getDocsForMode(openDocs, 'reader'), [openDocs]);
   const studyOpenDocs = React.useMemo(() => getDocsForMode(openDocs, 'study'), [openDocs]);
   const studioOpenDocs = React.useMemo(() => getDocsForMode(openDocs, 'editor'), [openDocs]);
 
-  const currentOpenDocs = React.useMemo(() => {
-    if (currentMode === 'reader') return readerOpenDocs;
-    if (currentMode === 'study') return studyOpenDocs;
-    return studioOpenDocs;
-  }, [currentMode, readerOpenDocs, studyOpenDocs, studioOpenDocs]);
+  // All study documents available (open documents + recent/imported documents for Study Mode)
+  const studyAllAvailableDocs = React.useMemo(() => {
+    const map = new Map<string, LoadedPDF>();
+    for (const d of studyOpenDocs) {
+      map.set(d.id, d);
+      map.set(d.name, d);
+    }
+    for (const d of studyRecentDocs) {
+      if (!map.has(d.id) && !map.has(d.name)) {
+        map.set(d.id, d);
+      }
+    }
+    return Array.from(new Set(map.values()));
+  }, [studyOpenDocs, studyRecentDocs]);
 
-  const activeDoc = React.useMemo(() => {
-    if (activeDocId) {
-      const found = currentOpenDocs.find((d) => d.id === activeDocId);
+  const studioActiveDoc = React.useMemo(() => {
+    const id = activeDocIdByMode.editor;
+    if (id) {
+      const found = studioOpenDocs.find((d) => d.id === id);
       if (found) return found;
     }
-    return currentOpenDocs.length > 0 ? currentOpenDocs[0] : null;
-  }, [currentOpenDocs, activeDocId]);
+    return studioOpenDocs.length > 0 ? studioOpenDocs[0] : null;
+  }, [studioOpenDocs, activeDocIdByMode.editor]);
+
+  const studyActiveDoc = React.useMemo(() => {
+    const id = activeDocIdByMode.study;
+    if (id) {
+      const found = studyOpenDocs.find((d) => d.id === id);
+      if (found) return found;
+    }
+    return studyOpenDocs.length > 0 ? studyOpenDocs[0] : null;
+  }, [studyOpenDocs, activeDocIdByMode.study]);
+
+  const readerActiveDoc = React.useMemo(() => {
+    const id = activeDocIdByMode.reader;
+    if (id) {
+      const found = readerOpenDocs.find((d) => d.id === id);
+      if (found) return found;
+    }
+    return readerOpenDocs.length > 0 ? readerOpenDocs[0] : null;
+  }, [readerOpenDocs, activeDocIdByMode.reader]);
+
+  const activeDoc = React.useMemo(() => {
+    if (currentMode === 'reader') return readerActiveDoc;
+    if (currentMode === 'study') return studyActiveDoc;
+    return studioActiveDoc;
+  }, [currentMode, readerActiveDoc, studyActiveDoc, studioActiveDoc]);
+
+  const studioActiveTab = internalActiveTabByMode.editor;
+  const studyActiveTab = internalActiveTabByMode.study;
+  const readerActiveTab = internalActiveTabByMode.reader;
+
+  const handleModeChange = useCallback((mode: AppMode) => {
+    setCurrentMode(mode);
+    if (onModeChange) onModeChange(mode);
+    if (propOnSelectMode) propOnSelectMode(mode);
+  }, [onModeChange, propOnSelectMode]);
+
+  const handleSaveSessionState = useCallback((docId: string, state: any) => {
+    tabSessionMapRef.current.set(docId, state);
+    setOpenDocs((prev) =>
+      prev.map((d) =>
+        d.id === docId
+          ? {
+              ...d,
+              currentPage: state.page,
+              pageCount: state.pageCount ?? d.pageCount,
+              isFinished: state.isFinished ?? d.isFinished,
+              lastReadAt: new Date().toISOString(),
+              mode: d.mode || currentMode,
+            }
+          : d
+      )
+    );
+    setRecentDocs((prev) => {
+      const updated = prev.map((d) =>
+        d.id === docId
+          ? {
+              ...d,
+              currentPage: state.page,
+              pageCount: state.pageCount ?? d.pageCount,
+              isFinished: state.isFinished ?? d.isFinished,
+              lastReadAt: new Date().toISOString(),
+              mode: d.mode || currentMode,
+            }
+          : d
+      );
+      saveMetadataCache(updated);
+      return updated;
+    });
+  }, [currentMode]);
 
   useEffect(() => {
     if (onActiveDocChange) onActiveDocChange(activeDoc ? activeDoc.name : null);
@@ -297,9 +381,9 @@ export default function WorkspacePage({
       const isTauri = typeof window !== 'undefined' && Boolean((window as any).__TAURI_INTERNALS__);
       if (isTauri && targetDoc.filePath) {
         try {
-          const bytes = await invoke<number[]>('read_file_bytes', { path: targetDoc.filePath });
-          const u8 = new Uint8Array(bytes);
-          const blob = new Blob([u8], { type: 'application/pdf' });
+          const bytes = await invoke<ArrayBuffer | Uint8Array | number[]>('read_file_bytes', { path: targetDoc.filePath });
+          const u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+          const blob = new Blob([u8.buffer as ArrayBuffer], { type: 'application/pdf' });
           const file = new File([blob], targetDoc.name, { type: 'application/pdf' });
           targetDoc = {
             ...targetDoc,
@@ -698,52 +782,23 @@ export default function WorkspacePage({
             </header>
           )}
 
-          {/* Workspace Canvas Area */}
+          {/* Workspace Canvas Area: Strict Domain-Isolated Viewports */}
           <div className="flex-1 overflow-hidden relative flex flex-col p-0 m-0">
-            {activeTab === 'viewer' ? (
-                activeDoc ? (
+
+            {/* 1. STUDIO VIEWPORT */}
+            <div className={`w-full h-full flex flex-col ${currentMode === 'editor' ? 'relative flex-1' : 'absolute inset-0 invisible pointer-events-none -z-10'}`}>
+              {studioActiveTab === 'viewer' ? (
+                studioActiveDoc ? (
                   <PDFViewer 
-                    key={activeDoc.id} 
-                    doc={activeDoc} 
-                    allDocs={currentOpenDocs}
-                    initialPage={tabSessionMapRef.current.get(activeDoc.id)?.page}
-                    initialScale={tabSessionMapRef.current.get(activeDoc.id)?.scale}
-                    initialRotation={tabSessionMapRef.current.get(activeDoc.id)?.rotation}
-                    initialPageRotations={tabSessionMapRef.current.get(activeDoc.id)?.pageRotations}
-                    initialAnnotations={tabSessionMapRef.current.get(activeDoc.id)?.annotations}
-                    onSaveSessionState={(state) => {
-                      tabSessionMapRef.current.set(activeDoc.id, state);
-                      setOpenDocs((prev) =>
-                        prev.map((d) =>
-                          d.id === activeDoc.id
-                            ? {
-                                ...d,
-                                currentPage: state.page,
-                                pageCount: state.pageCount ?? activeDoc.pageCount ?? d.pageCount,
-                                isFinished: state.isFinished ?? activeDoc.isFinished ?? d.isFinished,
-                                lastReadAt: new Date().toISOString(),
-                                mode: d.mode || currentMode,
-                              }
-                            : d
-                        )
-                      );
-                      setRecentDocs((prev) => {
-                        const updated = prev.map((d) =>
-                          d.id === activeDoc.id
-                            ? {
-                                ...d,
-                                currentPage: state.page,
-                                pageCount: state.pageCount ?? activeDoc.pageCount ?? d.pageCount,
-                                isFinished: state.isFinished ?? activeDoc.isFinished ?? d.isFinished,
-                                lastReadAt: new Date().toISOString(),
-                                mode: d.mode || currentMode,
-                              }
-                            : d
-                        );
-                        saveMetadataCache(updated);
-                        return updated;
-                      });
-                    }}
+                    key={studioActiveDoc.id} 
+                    doc={studioActiveDoc} 
+                    allDocs={studioOpenDocs}
+                    initialPage={tabSessionMapRef.current.get(studioActiveDoc.id)?.page}
+                    initialScale={tabSessionMapRef.current.get(studioActiveDoc.id)?.scale}
+                    initialRotation={tabSessionMapRef.current.get(studioActiveDoc.id)?.rotation}
+                    initialPageRotations={tabSessionMapRef.current.get(studioActiveDoc.id)?.pageRotations}
+                    initialAnnotations={tabSessionMapRef.current.get(studioActiveDoc.id)?.annotations}
+                    onSaveSessionState={(state) => handleSaveSessionState(studioActiveDoc.id, state)}
                     onCloseDoc={handleCloseTabDoc}
                     onSelectDoc={handleSelectTabDoc}
                     onNewTab={handleTriggerOpenFile}
@@ -751,88 +806,151 @@ export default function WorkspacePage({
                     darkMode={darkMode}
                     onToggleDarkMode={onToggleDarkMode}
                     onReturnToCover={onReturnToCover}
-                    initialAppMode={currentMode}
+                    initialAppMode="editor"
                     onAppModeChange={handleModeChange}
+                    isActive={currentMode === 'editor' && studioActiveTab === 'viewer'}
                   />
                 ) : (
                   <EmptyState
-                    icon={currentMode === 'study' ? GraduationCap : currentMode === 'reader' ? BookOpen : FolderOpen}
-                    title={
-                      currentMode === 'study'
-                        ? 'Import Subject Folder'
-                        : currentMode === 'reader'
-                        ? 'Your Bookshelf is Empty'
-                        : 'No Document Open'
-                    }
-                    description={
-                      currentMode === 'study'
-                        ? 'Select a folder to organize your study documents.'
-                        : currentMode === 'reader'
-                        ? 'Add books or comics to start reading.'
-                        : 'Select a PDF document to view and edit.'
-                    }
-                    actionLabel={
-                      currentMode === 'study'
-                        ? 'Select Folder from Computer'
-                        : currentMode === 'reader'
-                        ? 'Add Book or Comic'
-                        : 'Browse Local Files'
-                    }
-                    actionIcon={currentMode === 'study' ? FolderUp : Plus}
-                    onAction={currentMode === 'study' ? handleTriggerImportFolder : handleTriggerOpenFile}
-                    shortcut={currentMode === 'reader' ? '⌘O' : undefined}
-                    hint={currentMode === 'study' ? 'Or drag & drop a folder here' : 'Or drag & drop files here'}
-                    hintIcon={currentMode === 'study' ? Folder : currentMode === 'reader' ? BookOpen : UploadCloud}
+                    icon={FolderOpen}
+                    title="No Document Open"
+                    description="Select a PDF document to view and edit."
+                    actionLabel="Browse Local Files"
+                    actionIcon={Plus}
+                    onAction={handleTriggerOpenFile}
+                    hint="Or drag & drop files here"
+                    hintIcon={UploadCloud}
                   />
                 )
-              ) : activeTab === 'recent' ? (
-                currentMode === 'reader' ? (
-                  <BookComicHub
-                    docs={readerRecentDocs.length > 0 ? readerRecentDocs : readerOpenDocs}
-                    onOpenDoc={handleOpenRecentDoc}
-                    onImportBook={handleTriggerOpenFile}
-                    onRemoveDoc={(id) => handleRemoveRecentDoc(id)}
-                    onUpdateDocProgress={handleUpdateDocProgress}
+              ) : studioActiveTab === 'recent' ? (
+                <StudioRecentView
+                  docs={studioRecentDocs}
+                  activeDocId={studioActiveDoc?.id || null}
+                  onOpenDoc={handleOpenRecentDoc}
+                  onRemoveDoc={handleRemoveRecentDoc}
+                  onTriggerOpenFile={handleTriggerOpenFile}
+                />
+              ) : studioActiveTab === 'organize' ? (
+                <OrganizePagesTool initialDoc={studioActiveDoc} onOpenOrganizedDoc={handleRegisterAndOpenDoc} />
+              ) : studioActiveTab === 'merge' ? (
+                <MergeTool initialDoc={studioActiveDoc} onOpenMergedDoc={handleRegisterAndOpenDoc} />
+              ) : studioActiveTab === 'split' ? (
+                <SplitTool initialDoc={studioActiveDoc} onOpenExtractedDoc={handleRegisterAndOpenDoc} />
+              ) : studioActiveTab === 'compress' ? (
+                <CompressTool initialDoc={studioActiveDoc} onOpenCompressedDoc={handleRegisterAndOpenDoc} />
+              ) : studioActiveTab === 'watermark' ? (
+                <WatermarkTool initialDoc={studioActiveDoc} onOpenWatermarkedDoc={handleRegisterAndOpenDoc} />
+              ) : studioActiveTab === 'protect' ? (
+                <ProtectTool initialDoc={studioActiveDoc} onOpenProtectedDoc={handleRegisterAndOpenDoc} />
+              ) : studioActiveTab === 'sign' ? (
+                <DigitalSignTool initialDoc={studioActiveDoc} onOpenSignedDoc={handleRegisterAndOpenDoc} />
+              ) : studioActiveTab === 'forms' ? (
+                <PrepareFormTool initialDoc={studioActiveDoc} onOpenFormDoc={handleRegisterAndOpenDoc} />
+              ) : null}
+            </div>
+
+            {/* 2. STUDY VIEWPORT */}
+            <div className={`w-full h-full flex flex-col ${currentMode === 'study' ? 'relative flex-1' : 'absolute inset-0 invisible pointer-events-none -z-10'}`}>
+              {studyActiveTab === 'viewer' ? (
+                studyActiveDoc ? (
+                  <PDFViewer 
+                    key={studyActiveDoc.id} 
+                    doc={studyActiveDoc} 
+                    allDocs={studyAllAvailableDocs}
+                    initialPage={tabSessionMapRef.current.get(studyActiveDoc.id)?.page}
+                    initialScale={tabSessionMapRef.current.get(studyActiveDoc.id)?.scale}
+                    initialRotation={tabSessionMapRef.current.get(studyActiveDoc.id)?.rotation}
+                    initialPageRotations={tabSessionMapRef.current.get(studyActiveDoc.id)?.pageRotations}
+                    initialAnnotations={tabSessionMapRef.current.get(studyActiveDoc.id)?.annotations}
+                    onSaveSessionState={(state) => handleSaveSessionState(studyActiveDoc.id, state)}
+                    onCloseDoc={handleCloseTabDoc}
+                    onSelectDoc={handleSelectTabDoc}
+                    onNewTab={handleTriggerImportFolder}
+                    onOpenDocument={handleTriggerImportFolder}
                     darkMode={darkMode}
-                  />
-                ) : currentMode === 'study' ? (
-                  <StudyDashboard
-                    studySubjects={studySubjects}
-                    recentDocs={studyRecentDocs}
-                    activeSubjectId={activeSubjectId}
-                    onSelectSubject={setActiveSubjectId}
-                    activeDocId={activeDoc?.id || null}
-                    onOpenDoc={handleOpenRecentDoc}
-                    onRemoveDoc={handleRemoveRecentDoc}
-                    onTriggerImportFolder={handleTriggerImportFolder}
-                    onTriggerOpenFile={handleTriggerOpenFile}
+                    onToggleDarkMode={onToggleDarkMode}
+                    onReturnToCover={onReturnToCover}
+                    initialAppMode="study"
+                    onAppModeChange={handleModeChange}
+                    isActive={currentMode === 'study' && studyActiveTab === 'viewer'}
                   />
                 ) : (
-                  <StudioRecentView
-                    docs={studioRecentDocs}
-                    activeDocId={activeDoc?.id || null}
-                    onOpenDoc={handleOpenRecentDoc}
-                    onRemoveDoc={handleRemoveRecentDoc}
-                    onTriggerOpenFile={handleTriggerOpenFile}
+                  <EmptyState
+                    icon={GraduationCap}
+                    title="Import Subject Folder"
+                    description="Select a folder to organize your study documents."
+                    actionLabel="Select Folder from Computer"
+                    actionIcon={FolderUp}
+                    onAction={handleTriggerImportFolder}
+                    hint="Or drag & drop a folder here"
+                    hintIcon={Folder}
                   />
                 )
-              ) : activeTab === 'organize' ? (
-                <OrganizePagesTool initialDoc={activeDoc} onOpenOrganizedDoc={handleRegisterAndOpenDoc} />
-              ) : activeTab === 'merge' ? (
-                <MergeTool initialDoc={activeDoc} onOpenMergedDoc={handleRegisterAndOpenDoc} />
-              ) : activeTab === 'split' ? (
-                <SplitTool initialDoc={activeDoc} onOpenExtractedDoc={handleRegisterAndOpenDoc} />
-              ) : activeTab === 'compress' ? (
-                <CompressTool initialDoc={activeDoc} onOpenCompressedDoc={handleRegisterAndOpenDoc} />
-              ) : activeTab === 'watermark' ? (
-                <WatermarkTool initialDoc={activeDoc} onOpenWatermarkedDoc={handleRegisterAndOpenDoc} />
-              ) : activeTab === 'protect' ? (
-                <ProtectTool initialDoc={activeDoc} onOpenProtectedDoc={handleRegisterAndOpenDoc} />
-              ) : activeTab === 'sign' ? (
-                <DigitalSignTool initialDoc={activeDoc} onOpenSignedDoc={handleRegisterAndOpenDoc} />
-              ) : activeTab === 'forms' ? (
-                <PrepareFormTool initialDoc={activeDoc} onOpenFormDoc={handleRegisterAndOpenDoc} />
+              ) : studyActiveTab === 'recent' ? (
+                <StudyDashboard
+                  studySubjects={studySubjects}
+                  recentDocs={studyRecentDocs}
+                  activeSubjectId={activeSubjectId}
+                  onSelectSubject={setActiveSubjectId}
+                  activeDocId={studyActiveDoc?.id || null}
+                  onOpenDoc={handleOpenRecentDoc}
+                  onRemoveDoc={handleRemoveRecentDoc}
+                  onTriggerImportFolder={handleTriggerImportFolder}
+                  onTriggerOpenFile={handleTriggerOpenFile}
+                />
               ) : null}
+            </div>
+
+            {/* 3. READER VIEWPORT */}
+            <div className={`w-full h-full flex flex-col ${currentMode === 'reader' ? 'relative flex-1' : 'absolute inset-0 invisible pointer-events-none -z-10'}`}>
+              {readerActiveTab === 'viewer' ? (
+                readerActiveDoc ? (
+                  <PDFViewer 
+                    key={readerActiveDoc.id} 
+                    doc={readerActiveDoc} 
+                    allDocs={readerOpenDocs}
+                    initialPage={tabSessionMapRef.current.get(readerActiveDoc.id)?.page}
+                    initialScale={tabSessionMapRef.current.get(readerActiveDoc.id)?.scale}
+                    initialRotation={tabSessionMapRef.current.get(readerActiveDoc.id)?.rotation}
+                    initialPageRotations={tabSessionMapRef.current.get(readerActiveDoc.id)?.pageRotations}
+                    initialAnnotations={tabSessionMapRef.current.get(readerActiveDoc.id)?.annotations}
+                    onSaveSessionState={(state) => handleSaveSessionState(readerActiveDoc.id, state)}
+                    onCloseDoc={handleCloseTabDoc}
+                    onSelectDoc={handleSelectTabDoc}
+                    onNewTab={handleTriggerOpenFile}
+                    onOpenDocument={handleTriggerOpenFile}
+                    darkMode={darkMode}
+                    onToggleDarkMode={onToggleDarkMode}
+                    onReturnToCover={onReturnToCover}
+                    initialAppMode="reader"
+                    onAppModeChange={handleModeChange}
+                    isActive={currentMode === 'reader' && readerActiveTab === 'viewer'}
+                  />
+                ) : (
+                  <EmptyState
+                    icon={BookOpen}
+                    title="Your Bookshelf is Empty"
+                    description="Add books or comics to start reading."
+                    actionLabel="Add Book or Comic"
+                    actionIcon={Plus}
+                    onAction={handleTriggerOpenFile}
+                    shortcut="⌘O"
+                    hint="Or drag & drop files here"
+                    hintIcon={BookOpen}
+                  />
+                )
+              ) : readerActiveTab === 'recent' ? (
+                <BookComicHub
+                  docs={readerRecentDocs.length > 0 ? readerRecentDocs : readerOpenDocs}
+                  onOpenDoc={handleOpenRecentDoc}
+                  onImportBook={handleTriggerOpenFile}
+                  onRemoveDoc={(id) => handleRemoveRecentDoc(id)}
+                  onUpdateDocProgress={handleUpdateDocProgress}
+                  darkMode={darkMode}
+                />
+              ) : null}
+            </div>
+
           </div>
 
         </main>

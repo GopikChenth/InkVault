@@ -91,6 +91,7 @@ interface PDFViewerProps {
   onSaveSessionState?: (state: { page: number; scale: number; rotation: number; pageRotations?: Record<number, number>; annotations: PDFAnnotation[]; pageCount?: number; isFinished?: boolean }) => void;
   initialAppMode?: AppMode;
   onAppModeChange?: (mode: AppMode) => void;
+  isActive?: boolean;
 }
 
 interface PageInfo {
@@ -123,6 +124,7 @@ export default function PDFViewer({
   onSaveSessionState,
   initialAppMode = 'editor',
   onAppModeChange,
+  isActive = true,
 }: PDFViewerProps) {
   // Core Document State
   const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
@@ -1055,19 +1057,23 @@ export default function PDFViewer({
   useEffect(() => {
     if (!pdfDoc || pages.length === 0) return;
 
-    // Render Page 1 immediately
+    // Render Page 1 and current page immediately
     renderCanvasPage(1, rotation, scale);
+    if (currentPage > 1) {
+      renderCanvasPage(currentPage, rotation, scale);
+    }
 
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
+          if (!isActive) return;
           const pageNum = parseInt(entry.target.getAttribute('data-page') || '1', 10);
           if (entry.isIntersecting) {
             renderCanvasPage(pageNum, rotation, scale);
           } else {
             // Virtual Page Recycling: Reclaim GPU memory when scrolled >1200px away
             const rootBounds = entry.rootBounds;
-            if (rootBounds) {
+            if (rootBounds && rootBounds.width > 0 && rootBounds.height > 0 && entry.boundingClientRect.width > 0) {
               const distanceAbove = rootBounds.top - entry.boundingClientRect.bottom;
               const distanceBelow = entry.boundingClientRect.top - rootBounds.bottom;
               if (distanceAbove > 1200 || distanceBelow > 1200) {
@@ -1090,7 +1096,7 @@ export default function PDFViewer({
     return () => {
       observer.disconnect();
     };
-  }, [pdfDoc, pages, layoutMode, rotation, pageRotations, scale, renderCanvasPage, unloadCanvasPage]);
+  }, [pdfDoc, pages, layoutMode, rotation, pageRotations, scale, renderCanvasPage, unloadCanvasPage, isActive, currentPage]);
 
   // Re-render visible pages on scale / rotation / pageRotations change (debounced for smooth zooming)
   useEffect(() => {
@@ -1109,6 +1115,43 @@ export default function PDFViewer({
 
     return () => clearTimeout(timer);
   }, [scale, rotation, pageRotations, pages, renderCanvasPage]);
+
+  // Re-verify & re-render visible pages whenever this viewer becomes the active mode viewport
+  useEffect(() => {
+    if (!isActive || !pdfDoc || pages.length === 0) return;
+
+    // Clear cached rendered keys so any GPU textures purged by WebKit while inactive are guaranteed to redraw
+    renderedPagesRef.current.clear();
+
+    const timer = setTimeout(() => {
+      const container = scrollContainerRef.current;
+      if (!container) return;
+
+      const containerRect = container.getBoundingClientRect();
+      if (containerRect.width === 0 || containerRect.height === 0) return;
+
+      const pageElements = container.querySelectorAll<HTMLElement>('[data-page]');
+      const visiblePages: number[] = [];
+
+      pageElements.forEach((el) => {
+        const rect = el.getBoundingClientRect();
+        if (rect.bottom >= containerRect.top - 400 && rect.top <= containerRect.bottom + 400) {
+          const pageNum = parseInt(el.getAttribute('data-page') || '0', 10);
+          if (pageNum > 0) visiblePages.push(pageNum);
+        }
+      });
+
+      if (visiblePages.length === 0 && currentPage > 0) {
+        visiblePages.push(currentPage);
+      }
+
+      visiblePages.forEach((pageNum) => {
+        renderCanvasPage(pageNum, rotation, scale);
+      });
+    }, 40);
+
+    return () => clearTimeout(timer);
+  }, [isActive, pdfDoc, pages.length, rotation, scale, currentPage, renderCanvasPage]);
 
   // 4. Zoom Controls & Wheel Listener
   useEffect(() => {
@@ -1393,6 +1436,10 @@ export default function PDFViewer({
               continue;
             }
 
+            if (!otherDoc.blobUrl) {
+              continue;
+            }
+
             // High-Performance In-Memory Search Cache
             let otherText = globalTextIndexCache.get(otherDoc.id);
             if (!otherText) {
@@ -1584,6 +1631,8 @@ export default function PDFViewer({
   // Keyboard Shortcuts (Esc closes open overlays/menus without closing PDF, ⌘Z undo, ⌘⇧Z redo, ⌘F search, ⌘B sidebar, Zen mode, Rotations)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isActive) return;
+
       const target = e.target as HTMLElement;
       if (target && (target.tagName === 'TEXTAREA' || (target.tagName === 'INPUT' && (target as HTMLInputElement).type === 'text'))) {
         if (e.key === 'Escape') {
@@ -1733,7 +1782,8 @@ export default function PDFViewer({
     handleRotateCW,
     scrollToPage,
     currentPage,
-    pages.length
+    pages.length,
+    isActive
   ]);
 
   // 7. Page Layout Groups Construction
@@ -2272,10 +2322,6 @@ export default function PDFViewer({
                   const displayWidth = Math.round(baseW * scale);
                   const displayHeight = Math.round(baseH * scale);
 
-                  // Virtualized Windowing: Only mount heavy canvas and annotation components
-                  // for pages within viewport buffer window, keeping exact container dimensions for offscreen pages.
-                  const isWithinWindow = pages.length <= 15 || Math.abs(p.pageNum - currentPage) <= 3;
-
                   return (
                     <div
                       key={p.pageNum}
@@ -2286,62 +2332,51 @@ export default function PDFViewer({
                       }}
                       className="relative bg-white rounded-md shadow-[0_8px_30px_rgba(0,0,0,0.1)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.5)] border border-black/10 dark:border-white/15 overflow-hidden flex-shrink-0"
                     >
-                      {isWithinWindow ? (
-                        <>
-                          {/* 1. High-DPI Razor-Sharp Canvas Layer */}
-                          <canvas
-                            ref={(el) => {
-                              if (el) {
-                                canvasMapRef.current.set(p.pageNum, el);
-                                renderCanvasPage(p.pageNum, rotation, scale);
-                              } else {
-                                canvasMapRef.current.delete(p.pageNum);
-                              }
-                            }}
-                            className="block absolute inset-0 pointer-events-none w-full h-full"
-                            style={{
-                              width: '100%',
-                              height: '100%',
-                            }}
-                          />
+                      {/* 1. High-DPI Razor-Sharp Canvas Layer */}
+                      <canvas
+                        ref={(el) => {
+                          if (el) {
+                            canvasMapRef.current.set(p.pageNum, el);
+                          } else {
+                            canvasMapRef.current.delete(p.pageNum);
+                          }
+                        }}
+                        className="block absolute inset-0 pointer-events-none w-full h-full"
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                        }}
+                      />
 
-                          {/* 2. Official PDF.js Text Selection Layer */}
-                          <div
-                            ref={(el) => {
-                              if (el) textLayerMapRef.current.set(p.pageNum, el);
-                              else textLayerMapRef.current.delete(p.pageNum);
-                            }}
-                            className="textLayer"
-                            style={{
-                              width: `${displayWidth}px`,
-                              height: `${displayHeight}px`,
-                            }}
-                          />
+                      {/* 2. Official PDF.js Text Selection Layer */}
+                      <div
+                        ref={(el) => {
+                          if (el) textLayerMapRef.current.set(p.pageNum, el);
+                          else textLayerMapRef.current.delete(p.pageNum);
+                        }}
+                        className="textLayer"
+                        style={{
+                          width: `${displayWidth}px`,
+                          height: `${displayHeight}px`,
+                        }}
+                      />
 
-                          {/* 3. Interactive Markup & Annotation Overlay Layer */}
-                          <AnnotationLayer
-                            pageNum={p.pageNum}
-                            width={displayWidth}
-                            height={displayHeight}
-                            activeTool={activeAnnotationTool}
-                            activeColor={activeColor}
-                            strokeWidth={strokeWidth}
-                            annotations={annotationsByPage.get(p.pageNum) || EMPTY_ANNOTATIONS}
-                            onAddAnnotation={handleAddAnnotation}
-                            onUpdateAnnotation={handleUpdateAnnotation}
-                            onDeleteAnnotation={handleDeleteAnnotation}
-                            onOpenStickyNote={handleOpenStickyNote}
-                            onApplyRedaction={handleApplyRedaction}
-                            onToolUsed={handleAnnotationToolUsed}
-                          />
-                        </>
-                      ) : (
-                        <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-100/50 dark:bg-zinc-800/50 select-none">
-                          <span className="text-xs font-mono text-zinc-400 dark:text-zinc-500">
-                            Page {p.pageNum}
-                          </span>
-                        </div>
-                      )}
+                      {/* 3. Interactive Markup & Annotation Overlay Layer */}
+                      <AnnotationLayer
+                        pageNum={p.pageNum}
+                        width={displayWidth}
+                        height={displayHeight}
+                        activeTool={activeAnnotationTool}
+                        activeColor={activeColor}
+                        strokeWidth={strokeWidth}
+                        annotations={annotationsByPage.get(p.pageNum) || EMPTY_ANNOTATIONS}
+                        onAddAnnotation={handleAddAnnotation}
+                        onUpdateAnnotation={handleUpdateAnnotation}
+                        onDeleteAnnotation={handleDeleteAnnotation}
+                        onOpenStickyNote={handleOpenStickyNote}
+                        onApplyRedaction={handleApplyRedaction}
+                        onToolUsed={handleAnnotationToolUsed}
+                      />
                     </div>
                   );
                 })}

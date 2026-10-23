@@ -3,7 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 export interface PDFInputPayload {
   name: string;
   path?: string;
-  bytes?: number[];
+  bytes?: Uint8Array | number[];
 }
 
 /**
@@ -13,9 +13,35 @@ export function isTauriEnvironment(): boolean {
   return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 }
 
-export async function fileToBytes(file: File): Promise<number[]> {
+/**
+ * Resolves the absolute disk path of a File if available in the Tauri desktop environment
+ */
+export function resolveFilePath(file?: File, explicitPath?: string): string | undefined {
+  if (explicitPath && typeof explicitPath === 'string' && explicitPath.trim().length > 0) {
+    return explicitPath.trim();
+  }
+  if (file && 'path' in file && typeof (file as any).path === 'string' && (file as any).path.trim().length > 0) {
+    return (file as any).path.trim();
+  }
+  return undefined;
+}
+
+/**
+ * High-performance binary byte reader avoiding intermediate JS number array allocation
+ */
+export async function fileToBytes(file: File): Promise<Uint8Array> {
   const arrayBuffer = await file.arrayBuffer();
-  return Array.from(new Uint8Array(arrayBuffer));
+  return new Uint8Array(arrayBuffer);
+}
+
+function toUint8Array(output: ArrayBuffer | Uint8Array | number[]): Uint8Array {
+  if (output instanceof Uint8Array) {
+    return output;
+  }
+  if (output instanceof ArrayBuffer) {
+    return new Uint8Array(output);
+  }
+  return new Uint8Array(output);
 }
 
 /**
@@ -28,15 +54,16 @@ export async function nativeMergePDFs(
   try {
     const items: PDFInputPayload[] = [];
     for (const f of files) {
-      const bytes = f.path ? undefined : await fileToBytes(f.file);
+      const resolvedPath = resolveFilePath(f.file, f.path);
+      const bytes = resolvedPath ? undefined : await fileToBytes(f.file);
       items.push({
         name: f.name,
-        path: f.path,
+        path: resolvedPath,
         bytes,
       });
     }
-    const output = await invoke<number[]>('native_merge', { items });
-    return new Uint8Array(output);
+    const output = await invoke<ArrayBuffer | Uint8Array | number[]>('native_merge', { items });
+    return toUint8Array(output);
   } catch (err) {
     console.warn('[InkVault Engine] Native merge failed, falling back to client-side:', err);
     return null;
@@ -54,13 +81,14 @@ export async function nativeSplitPDF(
 ): Promise<Uint8Array | null> {
   if (!isTauriEnvironment()) return null;
   try {
-    const bytes = path ? undefined : await fileToBytes(file);
-    const item: PDFInputPayload = { name, path, bytes };
-    const output = await invoke<number[]>('native_split', {
+    const resolvedPath = resolveFilePath(file, path);
+    const bytes = resolvedPath ? undefined : await fileToBytes(file);
+    const item: PDFInputPayload = { name, path: resolvedPath, bytes };
+    const output = await invoke<ArrayBuffer | Uint8Array | number[]>('native_split', {
       item,
       pageIndices,
     });
-    return new Uint8Array(output);
+    return toUint8Array(output);
   } catch (err) {
     console.warn('[InkVault Engine] Native split failed, falling back to client-side:', err);
     return null;
@@ -81,16 +109,17 @@ export async function nativeProtectPDF(
 ): Promise<Uint8Array | null> {
   if (!isTauriEnvironment()) return null;
   try {
-    const bytes = path ? undefined : await fileToBytes(file);
-    const item: PDFInputPayload = { name, path, bytes };
-    const output = await invoke<number[]>('native_protect', {
+    const resolvedPath = resolveFilePath(file, path);
+    const bytes = resolvedPath ? undefined : await fileToBytes(file);
+    const item: PDFInputPayload = { name, path: resolvedPath, bytes };
+    const output = await invoke<ArrayBuffer | Uint8Array | number[]>('native_protect', {
       item,
       userPassword: userPassword || null,
       ownerPassword: ownerPassword || null,
       allowPrint,
       allowCopy,
     });
-    return new Uint8Array(output);
+    return toUint8Array(output);
   } catch (err) {
     console.warn('[InkVault Engine] Native protect failed, falling back to client-side:', err);
     return null;
@@ -108,13 +137,14 @@ export async function nativeCompressPDF(
 ): Promise<Uint8Array | null> {
   if (!isTauriEnvironment()) return null;
   try {
-    const bytes = path ? undefined : await fileToBytes(file);
-    const item: PDFInputPayload = { name, path, bytes };
-    const output = await invoke<number[]>('native_compress', {
+    const resolvedPath = resolveFilePath(file, path);
+    const bytes = resolvedPath ? undefined : await fileToBytes(file);
+    const item: PDFInputPayload = { name, path: resolvedPath, bytes };
+    const output = await invoke<ArrayBuffer | Uint8Array | number[]>('native_compress', {
       item,
       preset,
     });
-    return new Uint8Array(output);
+    return toUint8Array(output);
   } catch (err) {
     console.warn('[InkVault Engine] Native compress failed, falling back to client-side:', err);
     return null;
@@ -131,12 +161,13 @@ export async function nativeSanitizePDF(
 ): Promise<Uint8Array | null> {
   if (!isTauriEnvironment()) return null;
   try {
-    const bytes = path ? undefined : await fileToBytes(file);
-    const item: PDFInputPayload = { name, path, bytes };
-    const output = await invoke<number[]>('native_sanitize', {
+    const resolvedPath = resolveFilePath(file, path);
+    const bytes = resolvedPath ? undefined : await fileToBytes(file);
+    const item: PDFInputPayload = { name, path: resolvedPath, bytes };
+    const output = await invoke<ArrayBuffer | Uint8Array | number[]>('native_sanitize', {
       item,
     });
-    return new Uint8Array(output);
+    return toUint8Array(output);
   } catch (err) {
     console.warn('[InkVault Engine] Native sanitize failed:', err);
     return null;
@@ -165,15 +196,17 @@ export async function nativeSignPDF(
 ): Promise<Uint8Array | null> {
   if (!isTauriEnvironment()) return null;
   try {
-    const bytes = path ? undefined : await fileToBytes(file);
-    const item: PDFInputPayload = { name, path, bytes };
-    const certBytes = options.certPath ? undefined : await fileToBytes(options.certFile);
+    const resolvedPath = resolveFilePath(file, path);
+    const bytes = resolvedPath ? undefined : await fileToBytes(file);
+    const item: PDFInputPayload = { name, path: resolvedPath, bytes };
+    const resolvedCertPath = resolveFilePath(options.certFile, options.certPath);
+    const certBytes = resolvedCertPath ? undefined : await fileToBytes(options.certFile);
     const certPayload: PDFInputPayload = {
       name: options.certFile.name,
-      path: options.certPath,
+      path: resolvedCertPath,
       bytes: certBytes,
     };
-    const output = await invoke<number[]>('native_sign', {
+    const output = await invoke<ArrayBuffer | Uint8Array | number[]>('native_sign', {
       item,
       certPayload,
       certPassword: options.certPassword,
@@ -183,7 +216,7 @@ export async function nativeSignPDF(
       location: options.location || null,
       contact: options.contact || null,
     });
-    return new Uint8Array(output);
+    return toUint8Array(output);
   } catch (err) {
     console.warn('[InkVault Engine] Native sign failed:', err);
     return null;
@@ -203,15 +236,16 @@ export async function nativeRedactPDF(
 ): Promise<Uint8Array | null> {
   if (!isTauriEnvironment()) return null;
   try {
-    const bytes = path ? undefined : await fileToBytes(file);
-    const item: PDFInputPayload = { name, path, bytes };
-    const output = await invoke<number[]>('native_redact', {
+    const resolvedPath = resolveFilePath(file, path);
+    const bytes = resolvedPath ? undefined : await fileToBytes(file);
+    const item: PDFInputPayload = { name, path: resolvedPath, bytes };
+    const output = await invoke<ArrayBuffer | Uint8Array | number[]>('native_redact', {
       item,
       page,
       rects,
       overlayText: overlayText || null,
     });
-    return new Uint8Array(output);
+    return toUint8Array(output);
   } catch (err) {
     console.warn('[InkVault Engine] Native redact failed:', err);
     return null;
@@ -238,9 +272,10 @@ export async function nativeCreateForms(
 ): Promise<Uint8Array | null> {
   if (!isTauriEnvironment()) return null;
   try {
-    const bytes = path ? undefined : await fileToBytes(file);
-    const item: PDFInputPayload = { name, path, bytes };
-    const output = await invoke<number[]>('native_create_forms', {
+    const resolvedPath = resolveFilePath(file, path);
+    const bytes = resolvedPath ? undefined : await fileToBytes(file);
+    const item: PDFInputPayload = { name, path: resolvedPath, bytes };
+    const output = await invoke<ArrayBuffer | Uint8Array | number[]>('native_create_forms', {
       item,
       fields: fields.map((f) => ({
         page: f.page,
@@ -251,7 +286,7 @@ export async function nativeCreateForms(
         default_value: f.defaultValue || null,
       })),
     });
-    return new Uint8Array(output);
+    return toUint8Array(output);
   } catch (err) {
     console.warn('[InkVault Engine] Native create forms failed:', err);
     return null;
@@ -280,9 +315,10 @@ export async function nativeWatermarkPDF(
 ): Promise<Uint8Array | null> {
   if (!isTauriEnvironment()) return null;
   try {
-    const bytes = path ? undefined : await fileToBytes(file);
-    const item: PDFInputPayload = { name, path, bytes };
-    const output = await invoke<number[]>('native_watermark', {
+    const resolvedPath = resolveFilePath(file, path);
+    const bytes = resolvedPath ? undefined : await fileToBytes(file);
+    const item: PDFInputPayload = { name, path: resolvedPath, bytes };
+    const output = await invoke<ArrayBuffer | Uint8Array | number[]>('native_watermark', {
       item,
       wm: {
         text: options.text,
@@ -295,7 +331,7 @@ export async function nativeWatermarkPDF(
         offset: options.offset ?? null,
       },
     });
-    return new Uint8Array(output);
+    return toUint8Array(output);
   } catch (err) {
     console.warn('[InkVault Engine] Native watermark failed:', err);
     return null;
@@ -318,20 +354,19 @@ export async function nativeOrganizePDF(
 ): Promise<Uint8Array | null> {
   if (!isTauriEnvironment()) return null;
   try {
-    const bytes = path ? undefined : await fileToBytes(file);
-    const item: PDFInputPayload = { name, path, bytes };
-    const output = await invoke<number[]>('native_organize', {
+    const resolvedPath = resolveFilePath(file, path);
+    const bytes = resolvedPath ? undefined : await fileToBytes(file);
+    const item: PDFInputPayload = { name, path: resolvedPath, bytes };
+    const output = await invoke<ArrayBuffer | Uint8Array | number[]>('native_organize', {
       item,
       actions: actions.map((a) => ({
         page_index: a.pageIndex,
         rotation_delta: a.rotationDelta ?? null,
       })),
     });
-    return new Uint8Array(output);
+    return toUint8Array(output);
   } catch (err) {
     console.warn('[InkVault Engine] Native organize failed:', err);
     return null;
   }
 }
-
-

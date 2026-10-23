@@ -102,9 +102,8 @@ pub fn native_protect_pdf(
     }
 
     let mut seed = [0u8; 32];
-    for (i, b) in seed.iter_mut().enumerate() {
-        *b = ((i * 37 + 101) % 256) as u8;
-    }
+    getrandom::fill(&mut seed)
+        .map_err(|e| format!("Failed to generate secure cryptographic seed: {e}"))?;
 
     let params = NewEncryption {
         algorithm: Algorithm::Aes256,

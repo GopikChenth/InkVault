@@ -185,21 +185,96 @@ fn scan_subject_folder(folder_path: String) -> Result<Option<FolderScanResult>, 
 }
 
 #[tauri::command]
-fn read_file_bytes(path: String) -> Result<Vec<u8>, String> {
-    fs::read(&path).map_err(|e| e.to_string())
+fn pick_document_file() -> Result<Option<String>, String> {
+    let mut chosen_path: Option<String> = None;
+
+    // 1. On Linux, try zenity then kdialog
+    #[cfg(target_os = "linux")]
+    {
+        let zenity_out = Command::new("zenity")
+            .args([
+                "--file-selection",
+                "--title=Select Document",
+                "--file-filter=Supported Documents (*.pdf *.epub *.cbz *.cbr *.cbn) | *.pdf *.epub *.cbz *.cbr *.cbn *.PDF *.EPUB *.CBZ *.CBR *.CBN",
+            ])
+            .output();
+
+        if let Ok(out) = zenity_out {
+            if out.status.success() {
+                let s = String::from_utf8_lossy(&out.stdout).trim().to_string();
+                if !s.is_empty() {
+                    chosen_path = Some(s);
+                }
+            }
+        }
+
+        if chosen_path.is_none() {
+            let kdialog_out = Command::new("kdialog")
+                .args(["--getopenfilename", ".", "*.pdf *.epub *.cbz *.cbr *.cbn|Supported Documents"])
+                .output();
+            if let Ok(out) = kdialog_out {
+                if out.status.success() {
+                    let s = String::from_utf8_lossy(&out.stdout).trim().to_string();
+                    if !s.is_empty() {
+                        chosen_path = Some(s);
+                    }
+                }
+            }
+        }
+    }
+
+    // 2. On macOS, try AppleScript
+    #[cfg(target_os = "macos")]
+    {
+        let script = r#"POSIX path of (choose file of type {"pdf", "epub", "cbz", "cbr", "cbn"} with prompt "Select Document")"#;
+        let osascript_out = Command::new("osascript").args(["-e", script]).output();
+        if let Ok(out) = osascript_out {
+            if out.status.success() {
+                let s = String::from_utf8_lossy(&out.stdout).trim().to_string();
+                if !s.is_empty() {
+                    chosen_path = Some(s);
+                }
+            }
+        }
+    }
+
+    // 3. On Windows, try PowerShell OpenFileDialog
+    #[cfg(target_os = "windows")]
+    {
+        let ps_cmd = r#"[System.Reflection.Assembly]::LoadWithPartialName('System.windows.forms') | Out-Null; $f = New-Object System.Windows.Forms.OpenFileDialog; $f.Filter = 'Documents (*.pdf;*.epub;*.cbz;*.cbr;*.cbn)|*.pdf;*.epub;*.cbz;*.cbr;*.cbn|All Files (*.*)|*.*'; $f.Title = 'Select Document'; if ($f.ShowDialog() -eq 'OK') { Write-Output $f.FileName }"#;
+        let ps_out = Command::new("powershell")
+            .args(["-NoProfile", "-Command", ps_cmd])
+            .output();
+        if let Ok(out) = ps_out {
+            if out.status.success() {
+                let s = String::from_utf8_lossy(&out.stdout).trim().to_string();
+                if !s.is_empty() {
+                    chosen_path = Some(s);
+                }
+            }
+        }
+    }
+
+    Ok(chosen_path)
+}
+
+#[tauri::command]
+fn read_file_bytes(path: String) -> Result<Response, String> {
+    fs::read(&path).map(Response::new).map_err(|e| e.to_string())
 }
 
 pub mod pdf_engine;
 use pdf_engine::PDFInputPayload;
+use tauri::ipc::Response;
 
 #[tauri::command]
-fn native_merge(items: Vec<PDFInputPayload>) -> Result<Vec<u8>, String> {
-    pdf_engine::native_merge_pdfs(items)
+fn native_merge(items: Vec<PDFInputPayload>) -> Result<Response, String> {
+    pdf_engine::native_merge_pdfs(items).map(Response::new)
 }
 
 #[tauri::command]
-fn native_split(item: PDFInputPayload, page_indices: Vec<usize>) -> Result<Vec<u8>, String> {
-    pdf_engine::native_split_pdf(item, page_indices)
+fn native_split(item: PDFInputPayload, page_indices: Vec<usize>) -> Result<Response, String> {
+    pdf_engine::native_split_pdf(item, page_indices).map(Response::new)
 }
 
 #[tauri::command]
@@ -209,18 +284,18 @@ fn native_protect(
     owner_password: Option<String>,
     allow_print: bool,
     allow_copy: bool,
-) -> Result<Vec<u8>, String> {
-    pdf_engine::native_protect_pdf(item, user_password, owner_password, allow_print, allow_copy)
+) -> Result<Response, String> {
+    pdf_engine::native_protect_pdf(item, user_password, owner_password, allow_print, allow_copy).map(Response::new)
 }
 
 #[tauri::command]
-fn native_compress(item: PDFInputPayload, preset: String) -> Result<Vec<u8>, String> {
-    pdf_engine::native_compress_pdf(item, &preset)
+fn native_compress(item: PDFInputPayload, preset: String) -> Result<Response, String> {
+    pdf_engine::native_compress_pdf(item, &preset).map(Response::new)
 }
 
 #[tauri::command]
-fn native_sanitize(item: PDFInputPayload) -> Result<Vec<u8>, String> {
-    pdf_engine::native_sanitize_pdf(item)
+fn native_sanitize(item: PDFInputPayload) -> Result<Response, String> {
+    pdf_engine::native_sanitize_pdf(item).map(Response::new)
 }
 
 #[tauri::command]
@@ -233,7 +308,7 @@ fn native_sign(
     reason: Option<String>,
     location: Option<String>,
     contact: Option<String>,
-) -> Result<Vec<u8>, String> {
+) -> Result<Response, String> {
     pdf_engine::native_sign_pdf(
         item,
         cert_payload,
@@ -243,7 +318,7 @@ fn native_sign(
         reason,
         location,
         contact,
-    )
+    ).map(Response::new)
 }
 
 #[tauri::command]
@@ -252,32 +327,32 @@ fn native_redact(
     page: usize,
     rects: Vec<[f64; 4]>,
     overlay_text: Option<String>,
-) -> Result<Vec<u8>, String> {
-    pdf_engine::native_redact_pdf(item, page, rects, overlay_text)
+) -> Result<Response, String> {
+    pdf_engine::native_redact_pdf(item, page, rects, overlay_text).map(Response::new)
 }
 
 #[tauri::command]
 fn native_create_forms(
     item: PDFInputPayload,
     fields: Vec<pdf_engine::FormFieldPayload>,
-) -> Result<Vec<u8>, String> {
-    pdf_engine::native_create_form_fields(item, fields)
+) -> Result<Response, String> {
+    pdf_engine::native_create_form_fields(item, fields).map(Response::new)
 }
 
 #[tauri::command]
 fn native_watermark(
     item: PDFInputPayload,
     wm: pdf_engine::WatermarkPayload,
-) -> Result<Vec<u8>, String> {
-    pdf_engine::native_watermark_pdf(item, wm)
+) -> Result<Response, String> {
+    pdf_engine::native_watermark_pdf(item, wm).map(Response::new)
 }
 
 #[tauri::command]
 fn native_organize(
     item: PDFInputPayload,
     actions: Vec<pdf_engine::PageOrganizeAction>,
-) -> Result<Vec<u8>, String> {
-    pdf_engine::native_organize_pdf(item, actions)
+) -> Result<Response, String> {
+    pdf_engine::native_organize_pdf(item, actions).map(Response::new)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -287,6 +362,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             pick_study_folder,
             scan_subject_folder,
+            pick_document_file,
             read_file_bytes,
             native_merge,
             native_split,

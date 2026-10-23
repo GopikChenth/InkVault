@@ -40,6 +40,7 @@ serde_json = "1"
 log = "0.4"
 kurbo = "0.13"
 proptest = "1"
+getrandom = "0.4"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
@@ -55,6 +56,7 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = [] }
 tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
+getrandom.workspace = true
 
 # Native InkVault engine crates
 inkvault-cos = { path = "crates/cos" }
@@ -68,7 +70,7 @@ inkvault-forms = { path = "crates/forms" }
 inkvault-edit = { path = "crates/edit" }
 
 [profile.release]
-opt-level = "z"
+opt-level = 3
 lto = true
 codegen-units = 1
 panic = "abort"

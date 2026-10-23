@@ -54,8 +54,9 @@ export default {
         'caelestia-spring': 'cubic-bezier(0.175, 0.885, 0.32, 1.275)',
       },
       fontFamily: {
-        mono: ['Geist Mono', 'JetBrains Mono', 'monospace'],
-        sans: ['Plus Jakarta Sans', 'Inter', 'sans-serif'],
+        mono: ['JetBrains Mono', 'monospace'],
+        sans: ['Inter', 'sans-serif'],
+        handwriting: ['Dancing Script', 'cursive'],
       },
     },
   },

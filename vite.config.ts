@@ -29,10 +29,16 @@ export default defineConfig({
     sourcemap: !!process.env.TAURI_ENV_DEBUG,
     rollupOptions: {
       output: {
-        manualChunks: {
-          'vendor-pdfjs': ['pdfjs-dist'],
-          'vendor-pdflib': ['pdf-lib'],
-          'vendor-anime': ['animejs'],
+        manualChunks(id) {
+          if (id.includes('commonjsHelpers') || id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
+            return 'vendor-react';
+          }
+          if (id.includes('node_modules/pdfjs-dist')) {
+            return 'vendor-pdfjs';
+          }
+          if (id.includes('node_modules/pdf-lib') || id.includes('node_modules/@pdf-lib') || id.includes('node_modules/pako')) {
+            return 'vendor-pdflib';
+          }
         },
       },
     },

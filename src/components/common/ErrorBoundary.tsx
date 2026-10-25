@@ -10,12 +10,13 @@ interface Props {
 interface State {
   hasError: boolean;
   error: Error | null;
+  errorInfo?: ErrorInfo | null;
 }
 
 export default class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, errorInfo: null };
   }
 
   static getDerivedStateFromError(error: Error): State {
@@ -24,10 +25,11 @@ export default class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('ErrorBoundary caught an unhandled error:', error, errorInfo);
+    this.setState({ errorInfo });
   }
 
   handleReset = () => {
-    this.setState({ hasError: false, error: null });
+    this.setState({ hasError: false, error: null, errorInfo: null });
     if (this.props.onReset) {
       this.props.onReset();
     }
@@ -56,8 +58,9 @@ export default class ErrorBoundary extends Component<Props, State> {
             </div>
 
             {this.state.error && (
-              <pre className="w-full max-h-24 overflow-y-auto text-[11px] font-mono p-3 rounded-xl bg-surface border border-border text-zinc-600 dark:text-zinc-400 text-left">
+              <pre className="w-full max-h-40 overflow-y-auto text-[10px] font-mono p-3 rounded-xl bg-surface border border-border text-zinc-600 dark:text-zinc-400 text-left whitespace-pre-wrap break-all select-text">
                 {this.state.error.message}
+                {this.state.errorInfo?.componentStack ? '\n\nComponent Stack:' + this.state.errorInfo.componentStack : ''}
               </pre>
             )}
 

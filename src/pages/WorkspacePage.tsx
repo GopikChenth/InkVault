@@ -94,8 +94,8 @@ export default function WorkspacePage({
 
   // Sync mode changes from parent (e.g. TitleBar mode switcher)
   useEffect(() => {
-    if (propCurrentMode && propCurrentMode !== currentMode) {
-      setCurrentMode(propCurrentMode);
+    if (propCurrentMode) {
+      setCurrentMode((prev) => (prev !== propCurrentMode ? propCurrentMode : prev));
     }
   }, [propCurrentMode]);
 
@@ -122,8 +122,11 @@ export default function WorkspacePage({
   // Sync tab changes from parent (e.g. File menu tools)
   useEffect(() => {
     const incomingTab = propActiveTab ?? controlledActiveTab;
-    if (incomingTab && incomingTab !== internalActiveTabByMode[currentMode]) {
-      setInternalActiveTabByMode((prev) => ({ ...prev, [currentMode]: incomingTab }));
+    if (incomingTab) {
+      setInternalActiveTabByMode((prev) => {
+        if (prev[currentMode] === incomingTab) return prev;
+        return { ...prev, [currentMode]: incomingTab };
+      });
     }
   }, [propActiveTab, controlledActiveTab, currentMode]);
 

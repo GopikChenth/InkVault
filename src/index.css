@@ -316,10 +316,10 @@
   --card: #1c1815;
   --border: rgba(234, 165, 88, 0.14);
   --border-active: rgba(234, 165, 88, 0.45);
-  --accent: #eaa558;
-  --accent-hover: #f3b875;
-  --accent-container: #723b06;
-  --on-accent: #291402;
+  --accent: #a78bfa;
+  --accent-hover: #c4b5fd;
+  --accent-container: #4c1d95;
+  --on-accent: #1c1033;
   --secondary: #dac3ad;
   --secondary-container: #544131;
   --tertiary: #c4c6dc;
@@ -543,4 +543,122 @@ canvas {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+
+/* ==========================================================================
+   CYBERPUNK / INDUSTRIAL BRUTALIST CHAMFERS & BEVELS (Zero-Round Aesthetics)
+   ========================================================================== */
+
+/* Cut Corners & Diagonal Chamfers */
+.cyber-cut-tr {
+  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%);
+}
+
+.cyber-cut-tr-sm {
+  clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 0 100%);
+}
+
+.cyber-cut-br {
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
+}
+
+.cyber-cut-diagonal {
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+}
+
+.cyber-cut-diagonal-lg {
+  clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 18px 100%, 0 calc(100% - 18px));
+}
+
+.cyber-cut-btn {
+  clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
+}
+
+.cyber-cut-btn-alt {
+  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
+}
+
+.cyber-cut-all {
+  clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px), 0 10px);
+}
+
+.cyber-cut-tag {
+  clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
+}
+
+/* Industrial Bevel Shadows & High-Tech Insets */
+.cyber-bevel-panel {
+  box-shadow: 
+    inset 1px 1px 0 rgba(255, 255, 255, 0.12),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.6),
+    0 4px 16px rgba(0, 0, 0, 0.45);
+}
+
+.cyber-bevel-orange {
+  box-shadow: 
+    inset 1px 1px 0 rgba(255, 255, 255, 0.4),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.45),
+    0 6px 20px rgba(255, 85, 32, 0.35);
+}
+
+.cyber-bevel-sage {
+  box-shadow: 
+    inset 1px 1px 0 rgba(255, 255, 255, 0.6),
+    inset -1px -1px 0 rgba(18, 21, 23, 0.35),
+    0 6px 20px rgba(204, 216, 204, 0.2);
+}
+
+
+/* Mecha Cyber HUD Bevels & Accents */
+.mecha-bevel-cyan {
+  box-shadow: 
+    inset 1px 1px 0 rgba(0, 229, 188, 0.5),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.6),
+    0 0 20px rgba(0, 229, 188, 0.25);
+}
+
+.mecha-bevel-dark {
+  box-shadow: 
+    inset 1px 1px 0 rgba(255, 255, 255, 0.12),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.8),
+    0 6px 24px rgba(0, 0, 0, 0.6);
+}
+
+.mecha-stepped-card {
+  clip-path: polygon(
+    0 0, 
+    calc(100% - 16px) 0, 
+    100% 16px, 
+    100% calc(100% - 16px), 
+    calc(100% - 16px) 100%, 
+    16px 100%, 
+    0 calc(100% - 16px)
+  );
+}
+
+.mecha-stepped-panel {
+  clip-path: polygon(
+    0 0,
+    calc(100% - 16px) 0,
+    100% 16px,
+    100% calc(100% - 18px),
+    calc(100% - 18px) 100%,
+    20px 100%,
+    0 calc(100% - 20px)
+  );
+}
+
+.mecha-bevel-orange {
+  box-shadow: 
+    inset 1px 1px 0 rgba(255, 255, 255, 0.4),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.6),
+    0 0 20px rgba(255, 85, 32, 0.35);
+}
+
+.mecha-bevel-sage {
+  box-shadow: 
+    inset 1px 1px 0 rgba(255, 255, 255, 0.6),
+    inset -1px -1px 0 rgba(18, 21, 23, 0.35),
+    0 0 20px rgba(204, 216, 204, 0.25);
 }

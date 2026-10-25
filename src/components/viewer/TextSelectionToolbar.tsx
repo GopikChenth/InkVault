@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { 
   Highlighter, 
   Globe, 
@@ -68,8 +68,13 @@ function TextSelectionToolbar({
 
   const { clientRect, text } = selectionData || { clientRect: { top: 0, bottom: 0, left: 0, right: 0, width: 0, height: 0 }, text: '' };
 
+  const anchorObj = useMemo(
+    () => ({ currentRect: selectionData ? clientRect : null }),
+    [selectionData, clientRect.top, clientRect.left, clientRect.width, clientRect.height]
+  );
+
   const { style, actualPlacement } = useFloatingConstraints(
-    { currentRect: selectionData ? clientRect : null },
+    anchorObj,
     toolbarRef,
     {
       placement: 'top-center',

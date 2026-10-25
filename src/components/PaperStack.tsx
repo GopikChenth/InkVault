@@ -273,106 +273,222 @@ export default function PaperStack() {
             const currentPositionInStack = order.indexOf(index);
             const zIndex = 50 - currentPositionInStack * 10;
 
+            // Palette mapped directly from reference theme:
+            // 0: Pale Sage Green (Panel 1 & 2 left card)
+            // 1: Industrial Safety Orange (Panel 2 right card)
+            // 2: Deep Matte Carbon Slate (Panel 3 & 4)
+            // 3: Pale Sage CAD Blueprint
+            // 4: Deep Carbon Avionics Console
+            const isSageCard = index === 0 || index === 3;
+            const isOrangeCard = index === 1;
+
             return (
               <div
                 key={doc.id}
                 ref={(el) => { cardRefs.current[index] = el; }}
-                className="absolute inset-0 rounded-3xl bg-card dark:bg-[#181c1d] text-zinc-900 dark:text-zinc-100 border flex flex-col justify-between p-6 overflow-hidden backface-visible preserve-3d cursor-default transition-[border-color,box-shadow] duration-500"
+                className={`absolute inset-0 rounded-3xl border flex flex-col justify-between p-5 sm:p-6 overflow-hidden backface-visible preserve-3d cursor-default transition-[box-shadow] duration-500 ${
+                  isOrangeCard
+                    ? 'bg-[#ff5722] text-white border-white/30'
+                    : isSageCard
+                      ? 'bg-[#ccd8cc] text-[#121517] border-[#121517]/20'
+                      : 'bg-[#15191b] text-zinc-100 border-white/15'
+                }`}
                 style={{
                   zIndex,
-                  borderColor: currentPositionInStack === 0 ? 'var(--accent)' : 'var(--border)',
                   boxShadow: currentPositionInStack === 0
-                    ? '0 25px 60px rgba(0,0,0,0.7), 0 0 30px color-mix(in srgb, var(--accent) 25%, transparent)'
+                    ? isOrangeCard
+                      ? '0 25px 60px rgba(255,87,34,0.45), 0 0 35px rgba(255,87,34,0.3)'
+                      : isSageCard
+                        ? '0 25px 60px rgba(0,0,0,0.6), 0 0 25px rgba(204,216,204,0.2)'
+                        : '0 25px 60px rgba(0,0,0,0.8), 0 0 30px rgba(255,87,34,0.2)'
                     : '0 20px 50px rgba(0,0,0,0.5)',
                   willChange: 'transform, opacity',
-                  backgroundImage: 'radial-gradient(color-mix(in srgb, var(--accent) 6%, transparent) 1px, transparent 0)',
+                  backgroundImage: isOrangeCard
+                    ? 'radial-gradient(rgba(0,0,0,0.06) 1px, transparent 0)'
+                    : isSageCard
+                      ? 'radial-gradient(rgba(0,0,0,0.08) 1px, transparent 0)'
+                      : 'radial-gradient(rgba(255,255,255,0.06) 1px, transparent 0)',
                   backgroundSize: '16px 16px',
                 }}
               >
-                {/* Paper Top Bar / Header */}
-                <div className="flex items-start justify-between border-b border-border pb-3.5">
+                {/* Paper Top Bar / Header with Technical Telemetry */}
+                <div className={`flex items-start justify-between pb-3 border-b ${
+                  isOrangeCard
+                    ? 'border-white/20'
+                    : isSageCard
+                      ? 'border-[#121517]/15'
+                      : 'border-white/10'
+                }`}>
                   <div className="flex items-center gap-2.5">
-                    <div className="h-7 w-7 rounded-xl bg-accent text-accent-on flex items-center justify-center font-bold text-xs shadow-sm">
+                    <div className={`h-7 w-7 rounded-lg flex items-center justify-center font-bold text-xs shadow-sm ${
+                      isOrangeCard
+                        ? 'bg-black/30 text-white'
+                        : isSageCard
+                          ? 'bg-[#121517] text-[#ccd8cc]'
+                          : 'bg-[#ff5722] text-white'
+                    }`}>
                       <FileText className="h-3.5 w-3.5" />
                     </div>
                     <div>
-                      <div className="text-[10px] font-mono font-bold tracking-wider uppercase text-zinc-500 dark:text-zinc-400">
-                        {doc.type}
+                      <div className={`text-[10px] font-mono font-bold tracking-wider uppercase ${
+                        isOrangeCard
+                          ? 'text-white/80'
+                          : isSageCard
+                            ? 'text-[#121517]/70'
+                            : 'text-zinc-400'
+                      }`}>
+                        {index === 0 ? 'ORION N5 // MARS EXPEDITION' : index === 1 ? 'TELEMETRY RESULTS // ID-350' : doc.type}
                       </div>
-                      <div className="text-[9px] font-mono text-zinc-400 dark:text-zinc-500">
+                      <div className={`text-[9px] font-mono ${
+                        isOrangeCard
+                          ? 'text-white/60'
+                          : isSageCard
+                            ? 'text-[#121517]/60'
+                            : 'text-zinc-500'
+                      }`}>
                         PAGES 01–{doc.pages.toString().padStart(2, '0')} • {doc.size}
                       </div>
                     </div>
                   </div>
 
-                  <span className={`text-[9px] font-mono font-semibold px-2.5 py-0.5 rounded-full border ${doc.badgeColor} flex items-center gap-1`}>
+                  {/* Hazard Hatch Badge */}
+                  <span className={`text-[9px] font-mono font-bold px-2.5 py-0.5 rounded border flex items-center gap-1.5 ${
+                    isOrangeCard
+                      ? 'bg-black/25 text-white border-white/20'
+                      : isSageCard
+                        ? 'bg-[#121517] text-[#ccd8cc] border-[#121517]'
+                        : 'bg-white/10 text-emerald-400 border-emerald-500/30'
+                  }`}>
+                    <span className="font-mono text-[8px] opacity-70">///////</span>
                     <ShieldCheck className="h-2.5 w-2.5" />
-                    {doc.badge}
+                    {index === 0 ? 'ID-75 // 34' : index === 1 ? 'ID-32 // 95%' : doc.badge}
                   </span>
                 </div>
 
-                {/* Paper Body: Render Document Specific Mockup Elements */}
-                <div className="flex-1 py-4 flex flex-col justify-between">
+                {/* Paper Body: Thematic Mockups directly matching reference image */}
+                <div className="flex-1 py-3 flex flex-col justify-between">
                   {/* Document Title Header */}
                   <div>
-                    <h3 className="text-xs font-mono font-bold leading-snug tracking-tight text-zinc-900 dark:text-zinc-100 line-clamp-2">
-                      {doc.title}
+                    <h3 className={`text-xs font-mono font-bold leading-snug tracking-tight line-clamp-2 ${
+                      isOrangeCard ? 'text-white' : isSageCard ? 'text-[#121517]' : 'text-zinc-100'
+                    }`}>
+                      {index === 0 ? 'PLANETARY TELEMETRY RESULTS' : doc.title}
                     </h3>
-                    <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-1 font-mono">
+                    <p className={`text-[9.5px] mt-0.5 font-mono ${
+                      isOrangeCard ? 'text-white/70' : isSageCard ? 'text-[#121517]/70' : 'text-zinc-400'
+                    }`}>
                       AUTHOR: {doc.author.toUpperCase()} • {doc.date}
                     </p>
                   </div>
 
-                  {/* Document Custom Graphic Body depending on index */}
+                  {/* Card 0: Pale Sage with Vertical Bar Chart Telemetry (Panel 1 of reference image) */}
                   {index === 0 && (
-                    <div className="my-2 p-2.5 rounded-xl bg-surface dark:bg-surface-container border border-border flex flex-col gap-2 font-mono">
-                      <div className="flex items-center justify-between text-[9px] text-zinc-500">
-                        <span>PIPELINE RENDER STATUS</span>
-                        <span className="text-emerald-500 font-semibold">100% COMPILED</span>
-                      </div>
-                      <div className="h-1.5 w-full bg-surface-lowest dark:bg-surface-lowest rounded-full overflow-hidden border border-border/50">
-                        <div className="h-full bg-emerald-500 rounded-full w-[88%]" />
-                      </div>
-                      <div className="grid grid-cols-2 gap-1.5 pt-1 text-[8.5px] text-zinc-600 dark:text-zinc-300">
-                        <div className="p-1 rounded-lg bg-card dark:bg-[#181c1d] border border-border">
-                          MEMORY: <strong className="text-zinc-900 dark:text-zinc-100">42.8 MB</strong>
+                    <div className="my-1.5 p-2.5 rounded-xl bg-[#121517]/5 border border-[#121517]/10 flex flex-col gap-1.5 font-mono">
+                      <div className="flex items-baseline justify-between">
+                        <div>
+                          <div className="text-[28px] font-black tracking-tight leading-none text-[#121517]">
+                            34<span className="text-xs font-normal opacity-60 ml-1">/ 100</span>
+                          </div>
+                          <div className="text-[8.5px] font-bold text-[#121517]/70 mt-0.5">
+                            SURFACE RECONNAISSANCE ACCURACY
+                          </div>
                         </div>
-                        <div className="p-1 rounded-lg bg-card dark:bg-[#181c1d] border border-border">
-                          LAYERS: <strong className="text-zinc-900 dark:text-zinc-100">8 VECTORS</strong>
+                        <span className="text-[10px] font-bold text-[#ff5722] bg-[#ff5722]/15 px-2 py-0.5 rounded">
+                          STATUS: NOMINAL
+                        </span>
+                      </div>
+
+                      {/* Technical Bar Graph: 1 Bright Orange Bar and remaining dark bars */}
+                      <div className="h-11 pt-1.5 flex items-end gap-1.5 border-b border-[#121517]/20 pb-1">
+                        <div className="flex-1 bg-[#121517]/60 rounded-t h-[35%]" />
+                        <div className="flex-1 bg-[#121517]/75 rounded-t h-[55%]" />
+                        {/* THE ICONIC ORANGE BAR */}
+                        <div className="flex-1 bg-[#ff5722] rounded-t h-[100%] shadow-[0_0_10px_rgba(255,87,34,0.5)]" />
+                        <div className="flex-1 bg-[#121517]/60 rounded-t h-[65%]" />
+                        <div className="flex-1 bg-[#121517]/80 rounded-t h-[80%]" />
+                        <div className="flex-1 bg-[#121517]/50 rounded-t h-[45%]" />
+                        <div className="flex-1 bg-[#121517]/90 rounded-t h-[90%]" />
+                        <div className="flex-1 bg-[#121517]/40 rounded-t h-[38%]" />
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-1 pt-0.5 text-[8.5px] text-[#121517]">
+                        <div className="p-1 rounded bg-[#121517]/5 text-center">
+                          <strong>75+</strong> MOD
+                        </div>
+                        <div className="p-1 rounded bg-[#121517]/5 text-center">
+                          <strong>29</strong> ORBITS
+                        </div>
+                        <div className="p-1 rounded bg-[#121517]/5 text-center">
+                          <strong>52k</strong> THRUST
                         </div>
                       </div>
                     </div>
                   )}
 
+                  {/* Card 1: Vibrant Safety Orange Card with 95% metric and Phase Gantt Timeline */}
                   {index === 1 && (
-                    <div className="my-2 p-2.5 rounded-xl bg-surface dark:bg-surface-container border border-border flex flex-col gap-2 font-mono">
-                      <div className="flex items-center justify-between text-[9px] text-zinc-500">
-                        <span>AUDIT METRICS</span>
-                        <span className="text-accent font-semibold">BALANCED</span>
+                    <div className="my-1.5 p-2.5 rounded-xl bg-black/20 border border-white/20 flex flex-col gap-1.5 font-mono text-white">
+                      <div className="flex items-baseline justify-between">
+                        <div>
+                          <div className="text-[32px] font-black tracking-tight leading-none text-white">
+                            95%
+                          </div>
+                          <div className="text-[8.5px] font-bold text-white/80 mt-0.5">
+                            ESTIMATED MISSION SUCCESS RATE
+                          </div>
+                        </div>
+                        <div className="h-6 px-2 rounded bg-white text-[#ff5722] font-black text-xs flex items-center">
+                          ID-32
+                        </div>
                       </div>
-                      <div className="flex items-end gap-1.5 h-10 pt-2 px-1">
-                        <div className="flex-1 rounded-t h-[40%]" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 20%, transparent)' }} />
-                        <div className="flex-1 rounded-t h-[65%]" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 40%, transparent)' }} />
-                        <div className="flex-1 rounded-t h-[50%]" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 60%, transparent)' }} />
-                        <div className="flex-1 rounded-t h-[85%]" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 80%, transparent)' }} />
-                        <div className="flex-1 bg-accent rounded-t h-[100%]" />
+
+                      {/* Phase 1 / Phase 2 Timeline Block */}
+                      <div className="space-y-1 pt-1">
+                        <div className="flex justify-between text-[8px] text-white/80">
+                          <span>PHASE 1: INGESTION</span>
+                          <span>PHASE 2: COMPILE</span>
+                        </div>
+                        <div className="flex gap-1 h-3 rounded overflow-hidden">
+                          <div className="w-[60%] bg-white/90 rounded-l" />
+                          <div className="w-[40%] bg-black/40 rounded-r border border-white/30" />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between text-[8px] text-white/70 pt-0.5">
+                        <span>ZERO CLOUD TELEMETRY</span>
+                        <span className="font-bold text-white">100% AIR-GAPPED</span>
                       </div>
                     </div>
                   )}
 
+                  {/* Card 2: Deep Matte Carbon Basalt Card (Panel 3 & 4 of reference image) */}
                   {index === 2 && (
-                    <div className="my-2 p-2.5 rounded-xl bg-surface dark:bg-surface-container border border-border flex flex-col gap-1.5 font-mono text-[9px]">
-                      <div className="flex items-center justify-between text-zinc-500">
-                        <span>LEGAL JURISDICTION</span>
-                        <span className="font-semibold text-rose-500">STRICT PRIVACY</span>
+                    <div className="my-1.5 p-2.5 rounded-xl bg-white/5 border border-white/10 flex flex-col gap-1.5 font-mono text-zinc-300">
+                      <div className="flex items-baseline justify-between">
+                        <div>
+                          <div className="text-[28px] font-black tracking-tight leading-none text-white">
+                            79<span className="text-xs font-normal text-zinc-500 ml-1">/ 100</span>
+                          </div>
+                          <div className="text-[8.5px] font-bold text-zinc-400 mt-0.5">
+                            ORBITAL TRAJECTORY DRIFT
+                          </div>
+                        </div>
+                        <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">
+                          PIPELINE COMPILED
+                        </span>
                       </div>
-                      <div className="space-y-1 text-zinc-600 dark:text-zinc-400">
-                        <p className="line-clamp-2 italic text-[8.5px] leading-tight">
-                          "All in-memory vectors are executed in zero-telemetry hardware sandbox without external egress."
-                        </p>
+
+                      <div className="grid grid-cols-2 gap-1.5 pt-1 text-[8.5px]">
+                        <div className="p-1.5 rounded bg-black/40 border border-white/5">
+                          MEMORY: <strong className="text-white">42.8 MB</strong>
+                        </div>
+                        <div className="p-1.5 rounded bg-black/40 border border-white/5">
+                          VECTORS: <strong className="text-[#ff5722]">8 LAYERS</strong>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 pt-1">
-                        <div className="h-4 w-12 bg-rose-500/20 rounded border border-rose-500/30 flex items-center justify-center text-[7px] text-rose-400 font-bold">
+
+                      <div className="flex items-center gap-2 pt-0.5">
+                        <div className="h-4 px-2 bg-rose-500/20 rounded border border-rose-500/30 flex items-center text-[7.5px] text-rose-400 font-bold">
                           SEALED
                         </div>
                         <span className="text-[8px] text-zinc-400">SIGNATURE ID: 0x9F41E</span>
@@ -380,51 +496,61 @@ export default function PaperStack() {
                     </div>
                   )}
 
+                  {/* Card 3: Pale Sage CAD Vector Blueprint */}
                   {index === 3 && (
-                    <div className="my-2 p-2.5 rounded-xl bg-surface dark:bg-surface-container border border-border flex flex-col gap-1 font-mono text-[9px]">
-                      <div className="flex items-center justify-between text-zinc-500">
-                        <span>CAD VECTOR GRID</span>
-                        <span className="font-semibold text-accent">X: 1920 / Y: 1080</span>
+                    <div className="my-1.5 p-2.5 rounded-xl bg-[#121517]/5 border border-[#121517]/10 flex flex-col gap-1 font-mono text-[9px] text-[#121517]">
+                      <div className="flex items-center justify-between text-[#121517]/70">
+                        <span>CAD VECTOR RETICLE</span>
+                        <span className="font-bold text-[#ff5722]">X: 1920 // Y: 1080</span>
                       </div>
-                      <div className="h-9 w-full rounded-lg border border-dashed relative flex items-center justify-center overflow-hidden" style={{ borderColor: 'color-mix(in srgb, var(--accent) 40%, transparent)' }}>
-                        <div className="absolute inset-0" style={{ backgroundColor: 'color-mix(in srgb, var(--accent) 5%, transparent)' }} />
-                        <div className="h-6 w-6 rounded-full border flex items-center justify-center" style={{ borderColor: 'color-mix(in srgb, var(--accent) 60%, transparent)' }}>
-                          <div className="h-1.5 w-1.5 rounded-full bg-accent animate-ping" />
-                          <div className="h-1.5 w-1.5 rounded-full bg-accent absolute" />
+                      <div className="h-11 w-full rounded-lg border border-dashed border-[#121517]/30 relative flex items-center justify-center overflow-hidden bg-[#121517]/5">
+                        <div className="h-8 w-8 rounded-full border border-[#121517]/30 flex items-center justify-center">
+                          <div className="h-2 w-2 rounded-full bg-[#ff5722] animate-ping" />
+                          <div className="h-2 w-2 rounded-full bg-[#ff5722] absolute" />
                         </div>
+                        <div className="absolute left-2 text-[7px] text-[#121517]/60 font-mono">0.00°</div>
+                        <div className="absolute right-2 text-[7px] text-[#121517]/60 font-mono">300 DPI</div>
                       </div>
                     </div>
                   )}
 
+                  {/* Card 4: Horizontal Orange Avionics Stripe (Panel 4 of reference image) */}
                   {index === 4 && (
-                    <div className="my-2 p-2.5 rounded-xl bg-surface dark:bg-surface-container border border-border flex flex-col gap-1.5 font-mono text-[9px]">
-                      <div className="flex items-center justify-between text-zinc-500">
-                        <span>TYPOGRAPHY SYSTEM</span>
-                        <span className="text-tertiary font-semibold">GEIST / PLUS JAKARTA</span>
+                    <div className="my-1.5 p-2.5 rounded-xl bg-white/5 border border-white/10 flex flex-col gap-1.5 font-mono text-zinc-300">
+                      {/* Iconic Orange Instrument Stripe */}
+                      <div className="p-2 rounded-lg bg-[#ff5722] text-white flex items-center justify-between text-[9px] font-bold shadow-md">
+                        <span>NOVA DYNAMICS</span>
+                        <span>07.12 / 2027</span>
+                        <span>5.302 RATE</span>
                       </div>
-                      <div className="flex gap-2">
-                        <div className="h-5 flex-1 rounded-lg bg-tertiary/20 border border-tertiary/30 flex items-center justify-center text-[8px] font-bold text-tertiary">
-                          H1 (24PX)
-                        </div>
-                        <div className="h-5 flex-1 rounded-lg bg-tertiary/10 border border-tertiary/20 flex items-center justify-center text-[8px] text-tertiary">
-                          BODY (13PX)
-                        </div>
+                      <div className="flex justify-between items-center text-[8.5px] text-zinc-400 pt-0.5">
+                        <span>AIR-GAPPED HARDWARE VAULT</span>
+                        <span className="text-[#c8d8c7] font-bold">SHA-256 VERIFIED</span>
                       </div>
                     </div>
                   )}
 
                   {/* Document Simulated Lines */}
-                  <div className="space-y-1.5">
-                    <div className="h-1.5 bg-surface-high dark:bg-[#272b2b] rounded-full w-full" />
-                    <div className="h-1.5 bg-surface-high dark:bg-[#272b2b] rounded-full w-[85%]" />
-                    <div className="h-1.5 bg-surface-high dark:bg-[#272b2b] rounded-full w-[60%]" />
+                  <div className="space-y-1.5 pt-1">
+                    <div className={`h-1.5 rounded-full w-full ${
+                      isOrangeCard ? 'bg-white/30' : isSageCard ? 'bg-[#121517]/15' : 'bg-white/10'
+                    }`} />
+                    <div className={`h-1.5 rounded-full w-[85%] ${
+                      isOrangeCard ? 'bg-white/20' : isSageCard ? 'bg-[#121517]/10' : 'bg-white/5'
+                    }`} />
                   </div>
                 </div>
 
                 {/* Paper Footer Bar: Barcode, Stamp, Page Number */}
-                <div className="border-t border-border pt-3 flex items-center justify-between font-mono text-[9px] text-zinc-400">
+                <div className={`border-t pt-2.5 flex items-center justify-between font-mono text-[9px] ${
+                  isOrangeCard
+                    ? 'border-white/20 text-white/80'
+                    : isSageCard
+                      ? 'border-[#121517]/15 text-[#121517]/70'
+                      : 'border-white/10 text-zinc-400'
+                }`}>
                   <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-0.5 h-3 opacity-60">
+                    <div className="flex items-center gap-0.5 h-3 opacity-70">
                       <div className="w-[1px] h-full bg-current" />
                       <div className="w-[2px] h-full bg-current" />
                       <div className="w-[1px] h-full bg-current" />
@@ -433,17 +559,23 @@ export default function PaperStack() {
                       <div className="w-[2px] h-full bg-current" />
                       <div className="w-[1px] h-full bg-current" />
                     </div>
-                    <span className="text-[8px] tracking-widest uppercase">DOC_{doc.id.toUpperCase()}</span>
+                    <span className="text-[8px] tracking-widest uppercase">
+                      {isOrangeCard ? 'N5_EXPEDITION' : isSageCard ? 'ORION_SYS_01' : `DOC_${doc.id.toUpperCase()}`}
+                    </span>
                   </div>
 
                   <div className="flex items-center gap-1.5">
-                    <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
-                    <span className="text-[8.5px] font-semibold text-zinc-600 dark:text-zinc-300">LOCAL VAULT</span>
+                    <span className={`h-1.5 w-1.5 rounded-full ${
+                      isOrangeCard ? 'bg-white' : isSageCard ? 'bg-[#121517]' : 'bg-[#ff5722]'
+                    } animate-pulse`} />
+                    <span className="text-[8.5px] font-bold">
+                      {isOrangeCard ? 'AIR-GAPPED' : isSageCard ? 'ISO 32000-2' : 'LOCAL VAULT'}
+                    </span>
                   </div>
                 </div>
 
-                {/* Subtle paper texture overlay */}
-                <div className="absolute inset-0 pointer-events-none bg-gradient-to-tr from-black/[0.02] via-transparent to-white/[0.04] dark:from-white/[0.01] dark:to-transparent" />
+                {/* Paper surface sheen */}
+                <div className="absolute inset-0 pointer-events-none bg-gradient-to-tr from-black/[0.04] via-transparent to-white/[0.08]" />
               </div>
             );
           })}

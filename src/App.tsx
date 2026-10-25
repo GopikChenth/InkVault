@@ -102,6 +102,16 @@ export default function App() {
     }
   }, []);
 
+  // Stable mode selection callbacks
+  const handleTitleBarSelectMode = useCallback((mode: AppMode) => {
+    setAppMode(mode);
+    setCurrentView('workspace');
+  }, []);
+
+  const handleFirstPageSelectMode = useCallback((mode: AppMode) => {
+    setAppMode(mode);
+  }, []);
+
   // Global keyboard shortcuts (⌘+Enter to toggle view, ⌘1/⌘2/⌘3 to switch workflow mode)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -111,21 +121,21 @@ export default function App() {
         if (e.key === '1') {
           e.preventDefault();
           setAppMode('editor');
-          if (currentView === 'firstPage') setCurrentView('workspace');
+          setCurrentView((prev) => (prev === 'firstPage' ? 'workspace' : prev));
         } else if (e.key === '2') {
           e.preventDefault();
           setAppMode('study');
-          if (currentView === 'firstPage') setCurrentView('workspace');
+          setCurrentView((prev) => (prev === 'firstPage' ? 'workspace' : prev));
         } else if (e.key === '3') {
           e.preventDefault();
           setAppMode('reader');
-          if (currentView === 'firstPage') setCurrentView('workspace');
+          setCurrentView((prev) => (prev === 'firstPage' ? 'workspace' : prev));
         }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentView]);
+  }, []);
 
   return (
     <div data-mode={appMode} className="flex flex-col h-screen w-full overflow-hidden bg-background text-zinc-800 dark:text-zinc-200 transition-colors duration-200">
@@ -141,10 +151,7 @@ export default function App() {
         onReturnToCover={handleReturnToCover}
         onToggleFullscreen={handleToggleFullscreen}
         currentMode={appMode}
-        onSelectMode={(mode) => {
-          setAppMode(mode);
-          setCurrentView('workspace');
-        }}
+        onSelectMode={handleTitleBarSelectMode}
       />
 
       {/* Main App Viewport */}
@@ -157,7 +164,7 @@ export default function App() {
                 darkMode={darkMode}
                 onToggleDarkMode={handleToggleDarkMode}
                 currentMode={appMode}
-                onSelectMode={setAppMode}
+                onSelectMode={handleFirstPageSelectMode}
               />
             ) : (
               <WorkspacePage

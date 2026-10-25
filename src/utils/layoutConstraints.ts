@@ -195,3 +195,14 @@ export function calculateStackLayerTransform(depth: number) {
     opacity: Math.max(0.4, 1 - d * STACK_CONSTRAINTS.OPACITY_STEP),
   };
 }
+
+// 5. First Page Hero & Hardware Bay Alignment Constraints
+export const FIRST_PAGE_CONSTRAINTS = {
+  MAX_CONTAINER_WIDTH_PX: 1280,
+  HERO_MIN_HEIGHT_PX: 580,
+  HARDWARE_BAY_MAX_WIDTH_PX: 490,
+  HARDWARE_BAY_MIN_HEIGHT_PX: 530,
+  METRIC_CARD_MIN_WIDTH_PX: 92,
+  MODE_CARD_MIN_HEIGHT_PX: 82,
+  GAP_RESPONSIVE_PX: 28,
+} as const;

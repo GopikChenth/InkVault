@@ -1,4 +1,4 @@
-import { useState, useLayoutEffect, useEffect, RefObject, useCallback } from 'react';
+import { useState, useLayoutEffect, useEffect, RefObject, useCallback, useRef } from 'react';
 import {
   calculateClampedPopoverPosition,
   PopoverPlacement,
@@ -29,6 +29,12 @@ export function useFloatingConstraints(
     enabled = true,
   } = options;
 
+  const anchorRefInternal = useRef(anchorRef);
+  anchorRefInternal.current = anchorRef;
+
+  const floatingRefInternal = useRef(floatingRef);
+  floatingRefInternal.current = floatingRef;
+
   const computePosition = useCallback((floatingEl: HTMLElement | null = null): PopoverPositionResult => {
     if (!enabled || typeof window === 'undefined') {
       return {
@@ -41,10 +47,11 @@ export function useFloatingConstraints(
     }
 
     let anchorRect: Rect | null = null;
-    if ('currentRect' in anchorRef && anchorRef.currentRect) {
-      anchorRect = anchorRef.currentRect;
-    } else if ('current' in anchorRef && anchorRef.current) {
-      const r = anchorRef.current.getBoundingClientRect();
+    const currentAnchor = anchorRefInternal.current;
+    if ('currentRect' in currentAnchor && currentAnchor.currentRect) {
+      anchorRect = currentAnchor.currentRect;
+    } else if ('current' in currentAnchor && currentAnchor.current) {
+      const r = currentAnchor.current.getBoundingClientRect();
       anchorRect = {
         top: r.top,
         bottom: r.bottom,
@@ -75,21 +82,33 @@ export function useFloatingConstraints(
       viewportWidth: window.innerWidth,
       viewportHeight: window.innerHeight,
     });
-  }, [anchorRef, enabled, placement, offset, viewportPadding]);
+  }, [enabled, placement, offset, viewportPadding]);
 
   // Compute position synchronously on initial mount so element is never placed at (0, 0)
   const [result, setResult] = useState<PopoverPositionResult>(() => computePosition(null));
 
   const updatePosition = useCallback(() => {
     if (!enabled || typeof window === 'undefined') return;
-    const floatingEl = floatingRef.current;
+    const floatingEl = floatingRefInternal.current?.current;
     const pos = computePosition(floatingEl);
-    setResult(pos);
-  }, [enabled, floatingRef, computePosition]);
+    setResult((prev) => {
+      if (
+        prev.x === pos.x &&
+        prev.y === pos.y &&
+        prev.actualPlacement === pos.actualPlacement &&
+        prev.horizontalAlign === pos.horizontalAlign &&
+        prev.maxHeight === pos.maxHeight
+      ) {
+        return prev;
+      }
+      return pos;
+    });
+  }, [enabled, computePosition]);
 
   useLayoutEffect(() => {
+    if (!enabled) return;
     updatePosition();
-  }, [updatePosition]);
+  }, [enabled, placement, offset, viewportPadding, updatePosition]);
 
   useEffect(() => {
     if (!enabled) return;

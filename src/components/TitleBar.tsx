@@ -156,7 +156,7 @@ export default function TitleBar({
         {/* Chamfered Insignia matching FirstPage */}
         <div 
           onClick={onReturnToCover}
-          className="h-6 w-6 flex items-center justify-center font-black [clip-path:polygon(0_0,calc(100%-6px)_0,100%_6px,100%_100%,0_100%)] bg-accent text-accent-on cursor-pointer hover:opacity-90 active:translate-y-0.5 transition-all mr-1 shadow-xs flex-shrink-0"
+          className="h-7 w-7 flex items-center justify-center font-black [clip-path:polygon(0_0,calc(100%-6px)_0,100%_6px,100%_100%,0_100%)] bg-accent text-accent-on cursor-pointer hover:opacity-90 active:translate-y-0.5 transition-all mr-1 shadow-xs flex-shrink-0"
           title="Ink Vault Cover / Return (⌘↵)"
         >
           <span className="font-mono text-xs leading-none font-black">✛</span>
@@ -188,7 +188,7 @@ export default function TitleBar({
           <button
             onClick={() => toggleMenu('file')}
             onMouseEnter={() => handleMenuHover('file')}
-            className={`px-2 py-0.5 rounded text-[11px] font-bold outline-none focus:outline-none select-none transition-colors ${
+            className={`h-7 px-2.5 flex items-center rounded text-xs font-bold outline-none focus:outline-none select-none transition-colors ${
               activeMenu === 'file' 
                 ? 'bg-accent/15 text-accent' 
                 : 'hover:bg-black/5 dark:hover:bg-white/10 text-zinc-900 dark:text-zinc-200 hover:text-black dark:hover:text-white'
@@ -331,7 +331,7 @@ export default function TitleBar({
           <button
             onClick={() => toggleMenu('edit')}
             onMouseEnter={() => handleMenuHover('edit')}
-            className={`px-2 py-0.5 rounded text-[11px] font-bold outline-none focus:outline-none select-none transition-colors ${
+            className={`h-7 px-2.5 flex items-center rounded text-xs font-bold outline-none focus:outline-none select-none transition-colors ${
               activeMenu === 'edit' 
                 ? 'bg-accent/15 text-accent' 
                 : 'hover:bg-black/5 dark:hover:bg-white/10 text-zinc-900 dark:text-zinc-200 hover:text-black dark:hover:text-white'
@@ -363,7 +363,7 @@ export default function TitleBar({
           <button
             onClick={() => toggleMenu('view')}
             onMouseEnter={() => handleMenuHover('view')}
-            className={`px-2 py-0.5 rounded text-[11px] font-bold outline-none focus:outline-none select-none transition-colors ${
+            className={`h-7 px-2.5 flex items-center rounded text-xs font-bold outline-none focus:outline-none select-none transition-colors ${
               activeMenu === 'view' 
                 ? 'bg-accent/15 text-accent' 
                 : 'hover:bg-black/5 dark:hover:bg-white/10 text-zinc-900 dark:text-zinc-200 hover:text-black dark:hover:text-white'
@@ -451,7 +451,7 @@ export default function TitleBar({
           <button
             onClick={() => toggleMenu('window')}
             onMouseEnter={() => handleMenuHover('window')}
-            className={`px-2 py-0.5 rounded text-[11px] font-bold outline-none focus:outline-none select-none transition-colors ${
+            className={`h-7 px-2.5 flex items-center rounded text-xs font-bold outline-none focus:outline-none select-none transition-colors ${
               activeMenu === 'window' 
                 ? 'bg-accent/15 text-accent' 
                 : 'hover:bg-black/5 dark:hover:bg-white/10 text-zinc-900 dark:text-zinc-200 hover:text-black dark:hover:text-white'
@@ -498,7 +498,7 @@ export default function TitleBar({
           <button
             onClick={() => toggleMenu('help')}
             onMouseEnter={() => handleMenuHover('help')}
-            className={`px-2 py-0.5 rounded text-[11px] font-bold outline-none focus:outline-none select-none transition-colors ${
+            className={`h-7 px-2.5 flex items-center rounded text-xs font-bold outline-none focus:outline-none select-none transition-colors ${
               activeMenu === 'help' 
                 ? 'bg-accent/15 text-accent' 
                 : 'hover:bg-black/5 dark:hover:bg-white/10 text-zinc-900 dark:text-zinc-200 hover:text-black dark:hover:text-white'
@@ -544,71 +544,71 @@ export default function TitleBar({
 
       </div>
 
-      {/* 2. Center: Active Document Title or Air-Gapped Status — Single line, no vertical overflow */}
+      {/* 2. Center: Active Document Title or Air-Gapped Status — Single line, unified h-7 size */}
       <div 
         className="hidden lg:flex flex-1 items-center justify-center min-w-0 px-3 h-full cursor-default select-none"
       >
         {activeDocName ? (
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded border border-border/80 bg-black/[0.04] dark:bg-white/[0.04] max-w-sm shadow-2xs whitespace-nowrap overflow-hidden">
+          <div className="h-7 flex items-center gap-1.5 px-3 rounded border border-border/80 bg-black/[0.04] dark:bg-white/[0.04] max-w-sm shadow-2xs whitespace-nowrap overflow-hidden">
             <span className="font-mono text-xs font-black text-accent shrink-0">✛</span>
-            <span className="text-zinc-950 dark:text-zinc-50 truncate font-bold font-mono text-[11px]">
+            <span className="text-zinc-950 dark:text-zinc-50 truncate font-bold font-mono text-xs">
               {activeDocName.split('/').pop() || activeDocName}
             </span>
-            <span className="text-zinc-600 dark:text-zinc-400 text-[9px] uppercase font-semibold shrink-0">
+            <span className="text-zinc-600 dark:text-zinc-400 text-[10px] uppercase font-semibold shrink-0">
               // ISO 32000-2
             </span>
           </div>
         ) : (
-          <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded border border-border/60 bg-black/[0.02] dark:bg-white/[0.03] text-[9.5px] font-mono font-bold text-zinc-600 dark:text-zinc-400 uppercase tracking-widest whitespace-nowrap">
+          <div className="h-7 flex items-center gap-1.5 px-2.5 rounded border border-border/60 bg-black/[0.02] dark:bg-white/[0.03] text-[10px] font-mono font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-widest whitespace-nowrap">
             <span className="text-accent">✛</span> AIR-GAPPED // LOCAL WORKSPACE
           </div>
         )}
       </div>
 
-      {/* 3. Right: Quick Mode Switcher, Launch, Theme & Fullscreen */}
+      {/* 3. Right: Quick Mode Switcher, Launch, Theme & Fullscreen — All unified to h-7 size */}
       <div className="flex items-center gap-2 h-full flex-shrink-0">
 
         {/* FirstPage-style Chamfered Mode Segmented Control */}
         {onSelectMode && (
-          <div className="flex items-center gap-1 p-0.5 bg-black/[0.04] dark:bg-white/[0.06] border border-border [clip-path:polygon(4px_0,100%_0,calc(100%-4px)_100%,0_100%)] text-[10.5px] font-mono font-bold shadow-2xs">
+          <div className="h-7 flex items-center gap-0.5 p-0.5 bg-black/[0.04] dark:bg-white/[0.06] border border-border [clip-path:polygon(4px_0,100%_0,calc(100%-4px)_100%,0_100%)] text-xs font-mono font-bold shadow-2xs">
             <button
               onClick={() => onSelectMode('editor')}
               title="Studio Editor (⌘1)"
-              className={`flex items-center gap-1.5 px-2.5 py-1 transition-all [clip-path:polygon(3px_0,100%_0,calc(100%-3px)_100%,0_100%)] ${
+              className={`h-full flex items-center gap-1.5 px-2.5 transition-all [clip-path:polygon(3px_0,100%_0,calc(100%-3px)_100%,0_100%)] ${
                 currentMode === 'editor'
                   ? 'bg-accent text-accent-on font-black shadow-xs'
                   : 'text-zinc-900 dark:text-zinc-200 hover:text-black dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10'
               }`}
             >
-              <Layers className="h-3 w-3" />
+              <Layers className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Studio</span>
-              <span className="text-[8.5px] opacity-75 font-mono ml-0.5 hidden md:inline">01</span>
+              <span className="text-[9px] opacity-75 font-mono ml-0.5 hidden md:inline">01</span>
             </button>
             <button
               onClick={() => onSelectMode('study')}
               title="Study Mode (⌘2)"
-              className={`flex items-center gap-1.5 px-2.5 py-1 transition-all [clip-path:polygon(3px_0,100%_0,calc(100%-3px)_100%,0_100%)] ${
+              className={`h-full flex items-center gap-1.5 px-2.5 transition-all [clip-path:polygon(3px_0,100%_0,calc(100%-3px)_100%,0_100%)] ${
                 currentMode === 'study'
                   ? 'bg-accent text-accent-on font-black shadow-xs'
                   : 'text-zinc-900 dark:text-zinc-200 hover:text-black dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10'
               }`}
             >
-              <GraduationCap className="h-3 w-3" />
+              <GraduationCap className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Study</span>
-              <span className="text-[8.5px] opacity-75 font-mono ml-0.5 hidden md:inline">02</span>
+              <span className="text-[9px] opacity-75 font-mono ml-0.5 hidden md:inline">02</span>
             </button>
             <button
               onClick={() => onSelectMode('reader')}
               title="Books & Comics (⌘3)"
-              className={`flex items-center gap-1.5 px-2.5 py-1 transition-all [clip-path:polygon(3px_0,100%_0,calc(100%-3px)_100%,0_100%)] ${
+              className={`h-full flex items-center gap-1.5 px-2.5 transition-all [clip-path:polygon(3px_0,100%_0,calc(100%-3px)_100%,0_100%)] ${
                 currentMode === 'reader'
                   ? 'bg-accent text-accent-on font-black shadow-xs'
                   : 'text-zinc-900 dark:text-zinc-200 hover:text-black dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10'
               }`}
             >
-              <BookOpen className="h-3 w-3" />
+              <BookOpen className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Reader</span>
-              <span className="text-[8.5px] opacity-75 font-mono ml-0.5 hidden md:inline">03</span>
+              <span className="text-[9px] opacity-75 font-mono ml-0.5 hidden md:inline">03</span>
             </button>
           </div>
         )}
@@ -618,11 +618,11 @@ export default function TitleBar({
           <button
             type="button"
             onClick={onLaunchWorkspace}
-            className="hidden sm:flex items-center gap-1.5 px-3 py-1 font-mono font-black text-[10px] [clip-path:polygon(0_0,calc(100%-8px)_0,100%_8px,100%_100%,8px_100%,0_calc(100%-8px))] cursor-pointer active:translate-y-0.5 transition-all duration-200 bg-accent text-accent-on shadow-xs shrink-0"
+            className="h-7 hidden sm:flex items-center gap-1.5 px-3 font-mono font-black text-xs [clip-path:polygon(0_0,calc(100%-8px)_0,100%_8px,100%_100%,8px_100%,0_calc(100%-8px))] cursor-pointer active:translate-y-0.5 transition-all duration-200 bg-accent text-accent-on shadow-xs shrink-0"
             title="Launch Workspace (⌘↵)"
           >
             <span>LAUNCH</span>
-            <ArrowRight className="h-3 w-3" />
+            <ArrowRight className="h-3.5 w-3.5" />
           </button>
         )}
 
@@ -630,7 +630,7 @@ export default function TitleBar({
         <button
           onClick={onToggleDarkMode}
           title={darkMode ? 'Switch to Light Mode (⌘T)' : 'Switch to Dark Mode (⌘T)'}
-          className="h-6 w-6 [clip-path:polygon(3px_0,100%_0,calc(100%-3px)_100%,0_100%)] bg-black/[0.04] dark:bg-white/[0.06] border border-border hover:bg-black/10 dark:hover:bg-white/15 flex items-center justify-center text-zinc-950 dark:text-zinc-50 transition-colors shadow-2xs shrink-0"
+          className="h-7 w-7 [clip-path:polygon(3px_0,100%_0,calc(100%-3px)_100%,0_100%)] bg-black/[0.04] dark:bg-white/[0.06] border border-border hover:bg-black/10 dark:hover:bg-white/15 flex items-center justify-center text-zinc-950 dark:text-zinc-50 transition-colors shadow-2xs shrink-0"
         >
           {darkMode ? <Sun className="h-3.5 w-3.5 text-amber-400" /> : <Moon className="h-3.5 w-3.5 text-zinc-950" />}
         </button>
@@ -639,9 +639,9 @@ export default function TitleBar({
           <button
             onClick={onToggleFullscreen}
             title="Toggle Fullscreen (F11)"
-            className="h-6 w-6 [clip-path:polygon(3px_0,100%_0,calc(100%-3px)_100%,0_100%)] bg-black/[0.04] dark:bg-white/[0.06] border border-border hover:bg-black/10 dark:hover:bg-white/15 flex items-center justify-center text-zinc-900 dark:text-zinc-100 hover:text-black dark:hover:text-white transition-colors hidden sm:flex shadow-2xs shrink-0"
+            className="h-7 w-7 [clip-path:polygon(3px_0,100%_0,calc(100%-3px)_100%,0_100%)] bg-black/[0.04] dark:bg-white/[0.06] border border-border hover:bg-black/10 dark:hover:bg-white/15 flex items-center justify-center text-zinc-900 dark:text-zinc-100 hover:text-black dark:hover:text-white transition-colors hidden sm:flex shadow-2xs shrink-0"
           >
-            <Maximize2 className="h-3 w-3" />
+            <Maximize2 className="h-3.5 w-3.5" />
           </button>
         )}
 

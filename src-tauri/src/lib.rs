@@ -348,11 +348,54 @@ fn native_watermark(
 }
 
 #[tauri::command]
+fn native_header_footer(
+    item: PDFInputPayload,
+    payload: pdf_engine::HeaderFooterPayload,
+) -> Result<Response, String> {
+    pdf_engine::native_add_header_footer_pdf(item, payload).map(Response::new)
+}
+
+#[tauri::command]
 fn native_organize(
     item: PDFInputPayload,
     actions: Vec<pdf_engine::PageOrganizeAction>,
 ) -> Result<Response, String> {
     pdf_engine::native_organize_pdf(item, actions).map(Response::new)
+}
+
+#[tauri::command]
+fn native_flatten(
+    item: PDFInputPayload,
+    pages: Option<Vec<usize>>,
+    flatten_annotations: bool,
+    flatten_forms: bool,
+    incremental: Option<bool>,
+) -> Result<Response, String> {
+    pdf_engine::native_flatten_pdf(item, pages, flatten_annotations, flatten_forms, incremental).map(Response::new)
+}
+
+#[tauri::command]
+fn native_save_document(
+    item: PDFInputPayload,
+    incremental: bool,
+) -> Result<Response, String> {
+    pdf_engine::native_save_document_pdf(item, incremental).map(Response::new)
+}
+
+#[tauri::command]
+fn native_detect_form_fields(
+    item: PDFInputPayload,
+    page: usize,
+) -> Result<Vec<pdf_engine::FormFieldPayload>, String> {
+    pdf_engine::native_detect_form_fields_pdf(item, page)
+}
+
+#[tauri::command]
+fn native_recalculate_form(
+    item: PDFInputPayload,
+    incremental: Option<bool>,
+) -> Result<Response, String> {
+    pdf_engine::native_recalculate_form_pdf(item, incremental).map(Response::new)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -373,7 +416,12 @@ pub fn run() {
             native_redact,
             native_create_forms,
             native_watermark,
-            native_organize
+            native_header_footer,
+            native_organize,
+            native_flatten,
+            native_save_document,
+            native_detect_form_fields,
+            native_recalculate_form
         ])
         .run(tauri::generate_context!())
     {

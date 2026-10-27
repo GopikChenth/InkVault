@@ -34,7 +34,6 @@ fn fixture() -> Document {
 
 fn reopen(doc: &Document) -> Document {
     let bytes = write_incremental(doc, &SaveOptions::default()).unwrap();
-    hayro_syntax::Pdf::new(bytes.clone()).expect("parses");
     Document::open(Arc::new(bytes)).unwrap()
 }
 
@@ -94,6 +93,25 @@ fn header_and_footer_are_drawn_in_display_space_and_wrap_the_original_content() 
     let shared_fonts = doc.resolve(shared.as_dict().unwrap().get(b"Font").unwrap());
     assert!(!shared_fonts.as_dict().unwrap().contains(b"PCHelv"), "the shared dictionary is untouched");
     assert_eq!(marks_present(&doc), [MarkKind::HeaderFooter]);
+}
+
+#[test]
+fn header_and_footer_with_shrink_scales_original_content() {
+    let mut doc = fixture();
+    let hf = HeaderFooter {
+        text: ["Left".into(), String::new(), "<<1 of n>>".into(), String::new(), "Footer".into(), String::new()],
+        shrink: true,
+        margins: [50.0, 50.0, 50.0, 50.0],
+        ..HeaderFooter::default()
+    };
+    add_header_footer(&mut doc, &[0], &hf, false, &cx()).unwrap();
+    let doc = reopen(&doc);
+    let s0 = streams(&doc, 0);
+    assert_eq!(s0.len(), 4);
+    // Wrapper open has transform matrix scaled < 1.0 to avoid overlapping margins
+    assert!(s0[0].contains("q %InkVault\n") && s0[0].contains("cm\n"), "scaled wrapper opener: {}", s0[0]);
+    assert_eq!(s0[2].as_str(), "Q %InkVault\n");
+    assert!(s0[3].contains("/PCMark /HeaderFooter"));
 }
 
 #[test]

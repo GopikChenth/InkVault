@@ -63,12 +63,22 @@ pub struct HeaderFooter {
     pub margins: [f64; 4],
     /// The number `<<1>>` shows on the first page of the range.
     pub start_number: u32,
+    /// Shrink document content to avoid overlapping headers and footers.
+    pub shrink: bool,
 }
 
 impl Default for HeaderFooter {
     /// Acrobat's defaults: 8 pt black, margins 0.5 in top and bottom, 1 in left and right.
     fn default() -> Self {
-        Self { text: Default::default(), font_size: 8.0, color: [0.0; 3], underline: false, margins: [36.0, 36.0, 72.0, 72.0], start_number: 1 }
+        Self {
+            text: Default::default(),
+            font_size: 8.0,
+            color: [0.0; 3],
+            underline: false,
+            margins: [36.0, 36.0, 72.0, 72.0],
+            start_number: 1,
+            shrink: false,
+        }
     }
 }
 
@@ -326,8 +336,15 @@ fn place(doc: &mut Document, page: &inkvault_model::Page, kind: MarkKind, conten
     place_tagged(doc, page, kind.tag(), content, behind)
 }
 
-/// Put content on a page, tagged `tag` (see [`place`]).
-fn place_tagged(doc: &mut Document, page: &inkvault_model::Page, tag: &str, content: Vec<u8>, behind: bool) -> Result<(), EditError> {
+/// Put content on a page, tagged `tag` (see [`place`]), optionally providing custom wrap opener bytes.
+fn place_tagged_with_wrap(
+    doc: &mut Document,
+    page: &inkvault_model::Page,
+    tag: &str,
+    content: Vec<u8>,
+    behind: bool,
+    custom_open: Option<&[u8]>,
+) -> Result<(), EditError> {
     let mut list = contents(doc, page)?;
     let mark = Object::Ref(doc.add(Object::Stream(Stream::flate(tagged(tag), &content))));
     if behind {
@@ -336,7 +353,8 @@ fn place_tagged(doc: &mut Document, page: &inkvault_model::Page, tag: &str, cont
         let wrapped = list.iter().any(|o| stream_tag(doc, o).as_deref() == Some("Wrap"));
         let original = list.iter().any(|o| stream_tag(doc, o).is_none());
         if !wrapped && original {
-            let open = Object::Ref(doc.add(Object::Stream(Stream::from_raw(tagged("Wrap"), WRAP_OPEN.to_vec()))));
+            let open_bytes = custom_open.unwrap_or(WRAP_OPEN);
+            let open = Object::Ref(doc.add(Object::Stream(Stream::from_raw(tagged("Wrap"), open_bytes.to_vec()))));
             let close = Object::Ref(doc.add(Object::Stream(Stream::from_raw(tagged("Wrap"), WRAP_CLOSE.to_vec()))));
             // Behind-marks stay outside the wrapper.
             let split = list.iter().position(|o| stream_tag(doc, o).is_none()).unwrap_or(list.len());
@@ -347,6 +365,11 @@ fn place_tagged(doc: &mut Document, page: &inkvault_model::Page, tag: &str, cont
     }
     doc.update_dict(page.obj, |d| d.set(b"Contents".to_vec(), Object::Array(list)))?;
     Ok(())
+}
+
+/// Put content on a page, tagged `tag` (see [`place`]).
+fn place_tagged(doc: &mut Document, page: &inkvault_model::Page, tag: &str, content: Vec<u8>, behind: bool) -> Result<(), EditError> {
+    place_tagged_with_wrap(doc, page, tag, content, behind, None)
 }
 
 /// Draw `content` on top of a page (0-based) as permanent page content, with standard Helvetica
@@ -439,7 +462,17 @@ pub fn add_header_footer(doc: &mut Document, pages: &[usize], hf: &HeaderFooter,
         content.extend_from_slice(END.as_bytes());
         add_resources(doc, page, None, None)?;
         let page = &page_list(doc)[i];
-        place(doc, page, MarkKind::HeaderFooter, content, false)?;
+        if hf.shrink {
+            let avail_w = (w - left - right).max(10.0);
+            let avail_h = (h - top - bottom).max(10.0);
+            let s = (avail_w / w).min(avail_h / h).clamp(0.05, 1.0);
+            let tx = left + (avail_w - w * s) / 2.0;
+            let ty = bottom + (avail_h - h * s) / 2.0;
+            let wrap_open = format!("q %InkVault\n{} 0 0 {} {} {} cm\n", n(s), n(s), n(tx), n(ty)).into_bytes();
+            place_tagged_with_wrap(doc, page, MarkKind::HeaderFooter.tag(), content, false, Some(&wrap_open))?;
+        } else {
+            place(doc, page, MarkKind::HeaderFooter, content, false)?;
+        }
     }
     Ok(())
 }

@@ -40,6 +40,8 @@ import MergeTool from '../modes/studio/components/tools/MergeTool';
 import SplitTool from '../modes/studio/components/tools/SplitTool';
 import CompressTool from '../modes/studio/components/tools/CompressTool';
 import WatermarkTool from '../modes/studio/components/tools/WatermarkTool';
+import BatesNumberingTool from '../modes/studio/components/tools/BatesNumberingTool';
+import FlattenTool from '../modes/studio/components/tools/FlattenTool';
 import ProtectTool from '../modes/studio/components/tools/ProtectTool';
 import DigitalSignTool from '../modes/studio/components/tools/DigitalSignTool';
 import PrepareFormTool from '../modes/studio/components/tools/PrepareFormTool';
@@ -843,6 +845,10 @@ export default function WorkspacePage({
                 <CompressTool initialDoc={studioActiveDoc} onOpenCompressedDoc={handleRegisterAndOpenDoc} />
               ) : studioActiveTab === 'watermark' ? (
                 <WatermarkTool initialDoc={studioActiveDoc} onOpenWatermarkedDoc={handleRegisterAndOpenDoc} />
+              ) : studioActiveTab === 'bates' ? (
+                <BatesNumberingTool initialDoc={studioActiveDoc} onOpenBatesDoc={handleRegisterAndOpenDoc} />
+              ) : studioActiveTab === 'flatten' ? (
+                <FlattenTool initialDoc={studioActiveDoc} onOpenFlattenedDoc={handleRegisterAndOpenDoc} />
               ) : studioActiveTab === 'protect' ? (
                 <ProtectTool initialDoc={studioActiveDoc} onOpenProtectedDoc={handleRegisterAndOpenDoc} />
               ) : studioActiveTab === 'sign' ? (

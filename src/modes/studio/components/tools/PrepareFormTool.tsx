@@ -17,7 +17,12 @@ import {
 } from 'lucide-react';
 import { LoadedPDF } from '../../../../types';
 import EmptyState from '../../../../components/EmptyState';
-import { nativeCreateForms, FormFieldPayload } from '../../../../utils/nativePdfBridge';
+import { 
+  nativeCreateForms, 
+  nativeDetectFormFields, 
+  nativeRecalculateForm, 
+  FormFieldPayload 
+} from '../../../../utils/nativePdfBridge';
 
 interface PrepareFormToolProps {
   initialDoc: LoadedPDF | null;
@@ -36,6 +41,8 @@ export default function PrepareFormTool({ initialDoc, onOpenFormDoc }: PrepareFo
   const [placementPreset, setPlacementPreset] = useState<'top' | 'middle' | 'bottom' | 'full'>('top');
 
   const [generating, setGenerating] = useState<boolean>(false);
+  const [detecting, setDetecting] = useState<boolean>(false);
+  const [recalculating, setRecalculating] = useState<boolean>(false);
   const [generatedDoc, setGeneratedDoc] = useState<LoadedPDF | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -109,6 +116,59 @@ export default function PrepareFormTool({ initialDoc, onOpenFormDoc }: PrepareFo
 
   const handleRemoveField = (index: number) => {
     setFields((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleAutoDetect = async () => {
+    if (!doc) return;
+    setDetecting(true);
+    try {
+      const pageIdx = Math.max(0, targetPage - 1);
+      const detected = await nativeDetectFormFields(doc.file, doc.name, pageIdx, doc.filePath);
+      if (detected && detected.length > 0) {
+        setFields((prev) => {
+          const existingKeys = new Set(prev.map((f) => `${f.page}-${f.name}`));
+          const newItems = detected.filter((d) => !existingKeys.has(`${d.page}-${d.name}`));
+          return [...prev, ...newItems];
+        });
+      } else {
+        alert(`No printed blank lines or boxes found on Page ${targetPage}.`);
+      }
+    } catch (err) {
+      console.error('Detection failed:', err);
+      alert('Auto-detection error: ' + String(err));
+    } finally {
+      setDetecting(false);
+    }
+  };
+
+  const handleRecalculate = async () => {
+    if (!doc) return;
+    setRecalculating(true);
+    try {
+      const updatedBytes = await nativeRecalculateForm(doc.file, doc.name, false, doc.filePath);
+      if (updatedBytes) {
+        const blob = new Blob([updatedBytes.buffer as ArrayBuffer], { type: 'application/pdf' });
+        const outputName = doc.name.replace(/\.pdf$/i, '') + '-calculated.pdf';
+        const newFile = new File([blob], outputName, { type: 'application/pdf' });
+        const updated: LoadedPDF = {
+          id: `${Date.now()}-${outputName}`,
+          name: outputName,
+          size: formatSize(updatedBytes.length),
+          rawSize: updatedBytes.length,
+          blobUrl: URL.createObjectURL(blob),
+          file: newFile,
+          loadedAt: new Date(),
+        };
+        onOpenFormDoc(updated);
+      } else {
+        alert('No calculation scripts or formulas found in form.');
+      }
+    } catch (err) {
+      console.error('Recalculation failed:', err);
+      alert('Recalculation error: ' + String(err));
+    } finally {
+      setRecalculating(false);
+    }
   };
 
   const handleGenerateForms = useCallback(async () => {
@@ -204,6 +264,51 @@ export default function PrepareFormTool({ initialDoc, onOpenFormDoc }: PrepareFo
             {/* Left Column: Authoring Palette */}
             <div className="lg:col-span-7 flex flex-col gap-5">
               
+              {/* Intelligent Form Tools Bar */}
+              <div className="p-3.5 rounded-xl bg-gradient-to-r from-accent/10 to-transparent border border-accent/20 flex flex-wrap items-center justify-between gap-3 shadow-xs">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-accent shrink-0" />
+                  <div className="flex flex-col">
+                    <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
+                      Smart Form Engine
+                    </span>
+                    <span className="text-[10px] text-muted font-mono">
+                      Targeting Page {targetPage}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={detecting}
+                    onClick={handleAutoDetect}
+                    className="px-2.5 py-1.5 rounded-lg bg-surface border border-border hover:bg-card text-xs font-medium text-zinc-800 dark:text-zinc-200 transition-colors shadow-xs flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    {detecting ? (
+                      <div className="w-3 h-3 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <Sparkles className="w-3 h-3 text-accent" />
+                    )}
+                    <span>Auto-Detect Fields</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={recalculating}
+                    onClick={handleRecalculate}
+                    className="px-2.5 py-1.5 rounded-lg bg-surface border border-border hover:bg-card text-xs font-medium text-zinc-800 dark:text-zinc-200 transition-colors shadow-xs flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    {recalculating ? (
+                      <div className="w-3 h-3 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <FormInput className="w-3 h-3 text-accent" />
+                    )}
+                    <span>Recalculate</span>
+                  </button>
+                </div>
+              </div>
+
               {/* Field Types Grid */}
               <div className="p-4 rounded-xl bg-card border border-border flex flex-col gap-3 shadow-sm">
                 <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100">

@@ -16,7 +16,9 @@ import {
   BookOpen,
   LayoutGrid,
   Award,
-  FormInput
+  FormInput,
+  Hash,
+  FileCheck2
 } from 'lucide-react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { AppMode } from '../types';
@@ -241,10 +243,22 @@ export default function TitleBar({
                     <Minimize2 className="h-3.5 w-3.5" /> Compress PDF
                   </button>
                   <button
+                    onClick={() => handleAction(() => onSelectTab('bates'))}
+                    className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-accent hover:text-accent-on font-medium transition-colors text-left"
+                  >
+                    <Hash className="h-3.5 w-3.5" /> Bates & Header
+                  </button>
+                  <button
                     onClick={() => handleAction(() => onSelectTab('watermark'))}
                     className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-accent hover:text-accent-on font-medium transition-colors text-left"
                   >
                     <Stamp className="h-3.5 w-3.5" /> Watermark
+                  </button>
+                  <button
+                    onClick={() => handleAction(() => onSelectTab('flatten'))}
+                    className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-accent hover:text-accent-on font-medium transition-colors text-left"
+                  >
+                    <FileCheck2 className="h-3.5 w-3.5" /> Flatten PDF
                   </button>
                   <button
                     onClick={() => handleAction(() => onSelectTab('protect'))}

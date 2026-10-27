@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::sync::Arc;
 
-use inkvault_cos::{Document, SaveOptions, write_full};
+use inkvault_cos::{Document, SaveOptions, write_full, write_incremental};
 use inkvault_organize::{combine, extract_pages};
 use inkvault_optimize::{optimize, Settings, ImageSettings, Compression};
 use inkvault_crypt::{Algorithm, NewEncryption};
@@ -200,18 +200,13 @@ pub fn native_sanitize_pdf(item: PDFInputPayload) -> Result<Vec<u8>, String> {
     Ok(output_bytes)
 }
 
-fn current_pdf_date() -> String {
+fn current_date_tuple() -> (i64, u32, u32) {
     use std::time::{SystemTime, UNIX_EPOCH};
     let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs();
     let secs_day = 86400;
-    let days = now / secs_day;
-    let rem_secs = now % secs_day;
-    let hours = rem_secs / 3600;
-    let mins = (rem_secs % 3600) / 60;
-    let secs = rem_secs % 60;
+    let mut days_left = now / secs_day;
 
     let mut year = 1970;
-    let mut days_left = days;
     loop {
         let is_leap = (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
         let days_in_year = if is_leap { 366 } else { 365 };
@@ -232,6 +227,19 @@ fn current_pdf_date() -> String {
         month += 1;
     }
     let day = days_left + 1;
+    (year, month as u32, day as u32)
+}
+
+fn current_pdf_date() -> String {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs();
+    let secs_day = 86400;
+    let rem_secs = now % secs_day;
+    let hours = rem_secs / 3600;
+    let mins = (rem_secs % 3600) / 60;
+    let secs = rem_secs % 60;
+
+    let (year, month, day) = current_date_tuple();
     format!("D:{:04}{:02}{:02}{:02}{:02}{:02}Z", year, month, day, hours, mins, secs)
 }
 
@@ -428,6 +436,63 @@ pub fn native_watermark_pdf(
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct HeaderFooterPayload {
+    /// 6 slots: [header_left, header_center, header_right, footer_left, footer_center, footer_right]
+    pub text: [String; 6],
+    pub pages: Option<Vec<usize>>, // None = all pages (0-indexed)
+    pub font_size: Option<f64>,    // default 8.0
+    pub color_rgb: Option<[f64; 3]>, // [r, g, b] 0.0..1.0
+    pub underline: Option<bool>,
+    /// Margins in points: [top, bottom, left, right], default [36.0, 36.0, 72.0, 72.0]
+    pub margins: Option<[f64; 4]>,
+    pub start_number: Option<u32>, // default 1
+    pub shrink: Option<bool>,      // default false
+    pub replace: Option<bool>,     // default true
+}
+
+/// Native Header & Footer and Legal Bates Numbering with token expansion and margin control
+pub fn native_add_header_footer_pdf(
+    item: PDFInputPayload,
+    payload: HeaderFooterPayload,
+) -> Result<Vec<u8>, String> {
+    let bytes = item.get_bytes()?;
+    let mut doc = Document::open(Arc::new(bytes))
+        .map_err(|e| format!("Failed to parse PDF: {:?}", e))?;
+
+    let total_pages = inkvault_organize::page_count(&doc)
+        .map_err(|e| format!("Failed to count pages: {:?}", e))?;
+
+    let pages: Vec<usize> = payload.pages.unwrap_or_else(|| (0..total_pages).collect());
+    if pages.is_empty() {
+        return Err("No pages selected for header/footer".to_string());
+    }
+
+    let native_hf = inkvault_edit::HeaderFooter {
+        text: payload.text,
+        font_size: payload.font_size.unwrap_or(8.0).clamp(1.0, 200.0),
+        color: payload.color_rgb.unwrap_or([0.0, 0.0, 0.0]),
+        underline: payload.underline.unwrap_or(false),
+        margins: payload.margins.unwrap_or([36.0, 36.0, 72.0, 72.0]),
+        start_number: payload.start_number.unwrap_or(1),
+        shrink: payload.shrink.unwrap_or(false),
+    };
+
+    let cx = inkvault_edit::Context {
+        date: current_date_tuple(),
+    };
+
+    let replace = payload.replace.unwrap_or(true);
+
+    inkvault_edit::add_header_footer(&mut doc, &pages, &native_hf, replace, &cx)
+        .map_err(|e| format!("Failed to apply native header/footer: {:?}", e))?;
+
+    let output_bytes = write_full(&doc, &SaveOptions::default())
+        .map_err(|e| format!("Failed to serialize PDF with headers/footers: {:?}", e))?;
+
+    Ok(output_bytes)
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct PageOrganizeAction {
     pub page_index: usize, // 0-indexed original page
     pub rotation_delta: Option<i64>, // e.g. 90, 180, 270
@@ -466,4 +531,138 @@ pub fn native_organize_pdf(
         .map_err(|e| format!("Failed to serialize organized PDF: {:?}", e))?;
 
     Ok(output_bytes)
+}
+
+/// Helper to serialize document either incrementally (append-only fearless persistence) or full rewrite
+pub fn save_document(doc: &Document, incremental: bool) -> Result<Vec<u8>, String> {
+    if incremental {
+        write_incremental(doc, &SaveOptions::default())
+            .map_err(|e| format!("Incremental serialization failed: {:?}", e))
+    } else {
+        write_full(doc, &SaveOptions::default())
+            .map_err(|e| format!("Serialization failed: {:?}", e))
+    }
+}
+
+/// Explicit incremental or full document save
+pub fn native_save_document_pdf(item: PDFInputPayload, incremental: bool) -> Result<Vec<u8>, String> {
+    let bytes = item.get_bytes()?;
+    let doc = Document::open(Arc::new(bytes))
+        .map_err(|e| format!("Failed to parse PDF: {:?}", e))?;
+    save_document(&doc, incremental)
+}
+
+/// Document Flattening: Bake interactive form fields and annotations into static PDF content streams
+pub fn native_flatten_pdf(
+    item: PDFInputPayload,
+    pages: Option<Vec<usize>>,
+    flatten_annotations: bool,
+    flatten_forms: bool,
+    incremental: Option<bool>,
+) -> Result<Vec<u8>, String> {
+    let bytes = item.get_bytes()?;
+    let mut doc = Document::open(Arc::new(bytes))
+        .map_err(|e| format!("Failed to parse PDF: {:?}", e))?;
+
+    let total_pages = inkvault_organize::page_count(&doc)
+        .map_err(|e| format!("Failed to count pages: {:?}", e))?;
+
+    let pages_to_flatten: Vec<usize> = pages.unwrap_or_else(|| (0..total_pages).collect());
+    if pages_to_flatten.is_empty() {
+        return Err("No pages selected for flattening".to_string());
+    }
+
+    inkvault_edit::flatten(&mut doc, &pages_to_flatten, flatten_annotations, flatten_forms)
+        .map_err(|e| format!("Document flattening failed: {:?}", e))?;
+
+    save_document(&doc, incremental.unwrap_or(false))
+}
+
+/// Form Auto-Detection: Discover form fields, checkboxes, rules, and blanks from page contents and vector shapes
+pub fn native_detect_form_fields_pdf(
+    item: PDFInputPayload,
+    page: usize,
+) -> Result<Vec<FormFieldPayload>, String> {
+    let bytes = item.get_bytes()?;
+    let doc = Document::open(Arc::new(bytes))
+        .map_err(|e| format!("Failed to parse PDF: {:?}", e))?;
+
+    let total_pages = inkvault_organize::page_count(&doc)
+        .map_err(|e| format!("Failed to count pages: {:?}", e))?;
+
+    if page >= total_pages {
+        return Err(format!("Page {} is out of range (total pages: {})", page + 1, total_pages));
+    }
+
+    // 1. Existing widgets and taken names
+    let all_fields = inkvault_forms::fields(&doc);
+    let mut existing_rects = Vec::new();
+    let mut taken_names = Vec::new();
+    for f in &all_fields {
+        taken_names.push(f.name.clone());
+        for w in &f.widgets {
+            if w.page == Some(page) {
+                existing_rects.push(w.rect);
+            }
+        }
+    }
+
+    // 2. Vector shapes (boxes and horizontal rules)
+    let shapes = inkvault_forms::detect::page_shapes(&doc, page);
+
+    // 3. Text lines mapped into words with bounding rects
+    let lines = inkvault_edit::text_lines(&doc, page).unwrap_or_default();
+    let mut words = Vec::new();
+    for line in &lines {
+        let parts: Vec<&str> = line.text.split_whitespace().collect();
+        if parts.is_empty() {
+            continue;
+        }
+        let total_chars: usize = parts.iter().map(|w| w.len()).sum();
+        let total_w = (line.rect[2] - line.rect[0]).max(1.0);
+        let mut cur_x = line.rect[0];
+        for p in parts {
+            let part_w = (p.len() as f64 / total_chars.max(1) as f64) * total_w * 0.9;
+            words.push(inkvault_forms::detect::Word {
+                text: p.to_string(),
+                rect: [cur_x, line.rect[1], cur_x + part_w, line.rect[3]],
+            });
+            cur_x += part_w + 3.0;
+        }
+    }
+
+    // 4. Run detection heuristics
+    let candidates = inkvault_forms::detect::detect(&words, &shapes, &existing_rects, &taken_names);
+
+    let payloads = candidates
+        .into_iter()
+        .map(|c| FormFieldPayload {
+            page,
+            rect: c.rect,
+            kind: match c.kind {
+                inkvault_forms::detect::Kind::CheckBox => "checkbox".to_string(),
+                inkvault_forms::detect::Kind::Text => "text".to_string(),
+            },
+            name: Some(c.name),
+            options: None,
+            default_value: None,
+        })
+        .collect();
+
+    Ok(payloads)
+}
+
+/// Form Recalculation: Evaluate all calculation scripts and update dependent field values
+pub fn native_recalculate_form_pdf(
+    item: PDFInputPayload,
+    incremental: Option<bool>,
+) -> Result<Vec<u8>, String> {
+    let bytes = item.get_bytes()?;
+    let mut doc = Document::open(Arc::new(bytes))
+        .map_err(|e| format!("Failed to parse PDF: {:?}", e))?;
+
+    inkvault_forms::recalculate(&mut doc)
+        .map_err(|e| format!("Form recalculation failed: {:?}", e))?;
+
+    save_document(&doc, incremental.unwrap_or(false))
 }

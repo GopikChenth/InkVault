@@ -9,7 +9,9 @@ import {
   Stamp, 
   Lock,
   Award,
-  FormInput
+  FormInput,
+  Hash,
+  FileCheck2
 } from 'lucide-react';
 import { StudioToolItem } from '../types';
 
@@ -18,7 +20,9 @@ export const STUDIO_TOOL_ITEMS: StudioToolItem[] = [
   { id: 'merge', label: 'Merge PDF', icon: Combine, description: 'Combine documents in order' },
   { id: 'split', label: 'Split PDF', icon: Scissors, description: 'Extract or burst pages' },
   { id: 'compress', label: 'Compress PDF', icon: Minimize2, description: 'Reduce file footprint' },
+  { id: 'bates', label: 'Bates & Header', icon: Hash, description: 'Page numbers, dates & Bates' },
   { id: 'watermark', label: 'Watermark', icon: Stamp, description: 'Apply text or stamp mark' },
+  { id: 'flatten', label: 'Flatten PDF', icon: FileCheck2, description: 'Bake forms & annotations' },
   { id: 'protect', label: 'Protect / Lock', icon: Lock, description: 'Encrypt or set passwords' },
   { id: 'sign', label: 'Digital Sign', icon: Award, description: 'PAdES certificate signing' },
   { id: 'forms', label: 'Prepare Form', icon: FormInput, description: 'AcroForm field authoring' },

@@ -338,6 +338,53 @@ export async function nativeWatermarkPDF(
   }
 }
 
+export interface HeaderFooterOptions {
+  text: [string, string, string, string, string, string];
+  pages?: number[];
+  fontSize?: number;
+  colorRgb?: [number, number, number];
+  underline?: boolean;
+  margins?: [number, number, number, number]; // [top, bottom, left, right]
+  startNumber?: number;
+  shrink?: boolean;
+  replace?: boolean;
+}
+
+/**
+ * High-performance Native Rust Header/Footer & Legal Bates Numbering powered by inkvault-edit
+ */
+export async function nativeAddHeaderFooter(
+  file: File,
+  name: string,
+  options: HeaderFooterOptions,
+  path?: string
+): Promise<Uint8Array | null> {
+  if (!isTauriEnvironment()) return null;
+  try {
+    const resolvedPath = resolveFilePath(file, path);
+    const bytes = resolvedPath ? undefined : await fileToBytes(file);
+    const item: PDFInputPayload = { name, path: resolvedPath, bytes };
+    const output = await invoke<ArrayBuffer | Uint8Array | number[]>('native_header_footer', {
+      item,
+      payload: {
+        text: options.text,
+        pages: options.pages ?? null,
+        font_size: options.fontSize ?? null,
+        color_rgb: options.colorRgb ?? null,
+        underline: options.underline ?? null,
+        margins: options.margins ?? null,
+        start_number: options.startNumber ?? null,
+        shrink: options.shrink ?? null,
+        replace: options.replace ?? null,
+      },
+    });
+    return toUint8Array(output);
+  } catch (err) {
+    console.warn('[InkVault Engine] Native header/footer failed:', err);
+    return null;
+  }
+}
+
 export interface PageOrganizeItem {
   pageIndex: number;
   rotationDelta?: number;
@@ -367,6 +414,120 @@ export async function nativeOrganizePDF(
     return toUint8Array(output);
   } catch (err) {
     console.warn('[InkVault Engine] Native organize failed:', err);
+    return null;
+  }
+}
+
+export interface FlattenOptions {
+  pages?: number[]; // 0-indexed
+  flattenAnnotations?: boolean; // default true
+  flattenForms?: boolean; // default true
+  incremental?: boolean; // default false
+}
+
+/**
+ * High-performance Native Rust Document Flattening powered by inkvault-edit
+ * Permanently bakes interactive annotations and form widgets into page content streams.
+ */
+export async function nativeFlattenPDF(
+  file: File,
+  name: string,
+  options: FlattenOptions = {},
+  path?: string
+): Promise<Uint8Array | null> {
+  if (!isTauriEnvironment()) return null;
+  try {
+    const resolvedPath = resolveFilePath(file, path);
+    const bytes = resolvedPath ? undefined : await fileToBytes(file);
+    const item: PDFInputPayload = { name, path: resolvedPath, bytes };
+    const output = await invoke<ArrayBuffer | Uint8Array | number[]>('native_flatten', {
+      item,
+      pages: options.pages ?? null,
+      flattenAnnotations: options.flattenAnnotations ?? true,
+      flattenForms: options.flattenForms ?? true,
+      incremental: options.incremental ?? null,
+    });
+    return toUint8Array(output);
+  } catch (err) {
+    console.warn('[InkVault Engine] Native flatten failed:', err);
+    return null;
+  }
+}
+
+/**
+ * Fearless Incremental or Full Document Saving powered by inkvault-cos
+ * In incremental mode, appends update blocks to original bytes without re-serializing unchanged streams.
+ */
+export async function nativeSaveDocument(
+  file: File,
+  name: string,
+  incremental: boolean = true,
+  path?: string
+): Promise<Uint8Array | null> {
+  if (!isTauriEnvironment()) return null;
+  try {
+    const resolvedPath = resolveFilePath(file, path);
+    const bytes = resolvedPath ? undefined : await fileToBytes(file);
+    const item: PDFInputPayload = { name, path: resolvedPath, bytes };
+    const output = await invoke<ArrayBuffer | Uint8Array | number[]>('native_save_document', {
+      item,
+      incremental,
+    });
+    return toUint8Array(output);
+  } catch (err) {
+    console.warn('[InkVault Engine] Native save document failed:', err);
+    return null;
+  }
+}
+
+/**
+ * Automatic Form Field Detection powered by inkvault-forms
+ * Scans printed blank lines, boxes, and surrounding labels to discover candidate form fields.
+ */
+export async function nativeDetectFormFields(
+  file: File,
+  name: string,
+  page: number,
+  path?: string
+): Promise<FormFieldPayload[] | null> {
+  if (!isTauriEnvironment()) return null;
+  try {
+    const resolvedPath = resolveFilePath(file, path);
+    const bytes = resolvedPath ? undefined : await fileToBytes(file);
+    const item: PDFInputPayload = { name, path: resolvedPath, bytes };
+    const candidates = await invoke<FormFieldPayload[]>('native_detect_form_fields', {
+      item,
+      page,
+    });
+    return candidates;
+  } catch (err) {
+    console.warn('[InkVault Engine] Native form detection failed:', err);
+    return null;
+  }
+}
+
+/**
+ * Form Recalculation powered by inkvault-forms
+ * Executes AcroForm calculation scripts and arithmetic formulas.
+ */
+export async function nativeRecalculateForm(
+  file: File,
+  name: string,
+  incremental: boolean = false,
+  path?: string
+): Promise<Uint8Array | null> {
+  if (!isTauriEnvironment()) return null;
+  try {
+    const resolvedPath = resolveFilePath(file, path);
+    const bytes = resolvedPath ? undefined : await fileToBytes(file);
+    const item: PDFInputPayload = { name, path: resolvedPath, bytes };
+    const output = await invoke<ArrayBuffer | Uint8Array | number[]>('native_recalculate_form', {
+      item,
+      incremental,
+    });
+    return toUint8Array(output);
+  } catch (err) {
+    console.warn('[InkVault Engine] Native recalculate form failed:', err);
     return null;
   }
 }

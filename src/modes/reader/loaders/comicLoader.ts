@@ -23,6 +23,11 @@ async function rasterizeToPngBytes(bytes: Uint8Array, mimeType: string): Promise
         }
         ctx.drawImage(img, 0, 0);
         canvas.toBlob(async (pngBlob) => {
+          img.onload = null;
+          img.onerror = null;
+          img.src = '';
+          canvas.width = 0;
+          canvas.height = 0;
           if (!pngBlob) {
             reject(new Error('Canvas toBlob returned null'));
             return;
@@ -31,12 +36,18 @@ async function rasterizeToPngBytes(bytes: Uint8Array, mimeType: string): Promise
           resolve(new Uint8Array(buf));
         }, 'image/png');
       } catch (err) {
+        img.onload = null;
+        img.onerror = null;
+        img.src = '';
         reject(err);
       }
     };
 
     img.onerror = () => {
       URL.revokeObjectURL(url);
+      img.onload = null;
+      img.onerror = null;
+      img.src = '';
       reject(new Error('Failed to load image in browser for rasterization'));
     };
 
@@ -79,6 +90,10 @@ export async function loadComicBookArchive(file: File): Promise<{ pdfBytes: Uint
   const pdfDoc = await PDFDocument.create();
 
   for (let i = 0; i < imageEntries.length; i++) {
+    // Cooperative yielding to prevent UI thread lock on large comic archives
+    if (i % 8 === 0 && i > 0) {
+      await new Promise((r) => setTimeout(r, 0));
+    }
     const entry = imageEntries[i];
     const imageBytes = await entry.async('uint8array');
     const lowerName = entry.name.toLowerCase();

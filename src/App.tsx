@@ -43,10 +43,12 @@ export default function App() {
       if (saved !== null) {
         return saved === 'true';
       }
-      return document.documentElement.classList.contains('dark') ||
-        window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+        return false;
+      }
+      return true;
     }
-    return false;
+    return true;
   });
 
   // Sync dark class on html root & persist in localStorage
@@ -152,6 +154,8 @@ export default function App() {
         onToggleFullscreen={handleToggleFullscreen}
         currentMode={appMode}
         onSelectMode={handleTitleBarSelectMode}
+        isCoverView={currentView === 'firstPage'}
+        onLaunchWorkspace={() => handleEnterWorkspace(appMode)}
       />
 
       {/* Main App Viewport */}

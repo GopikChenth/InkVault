@@ -1603,13 +1603,14 @@ export default function PDFViewer({
   };
 
   const tintStyle = useMemo(() => {
+    // 1. Reader Domain: Respect user circadian paper tone preferences
     if (initialAppMode === 'reader') {
       if (readerPaperTone === 'warm') {
         return {
           filter: 'sepia(0.22) contrast(0.98) brightness(0.98)',
         };
       }
-      if (readerPaperTone === 'dark') {
+      if (readerPaperTone === 'dark' || (darkMode && readerPaperTone !== 'original')) {
         return {
           filter: 'invert(0.90) hue-rotate(180deg) sepia(0.22) contrast(0.95)',
           backgroundColor: '#13110f',
@@ -1618,15 +1619,33 @@ export default function PDFViewer({
       return {};
     }
 
-    if (!isStudyMode || studyTint === 'default') return {};
-    if (studyTint === 'dark') {
+    // 2. Study Domain: Respect studyTint and system dark mode
+    if (isStudyMode) {
+      if (studyTint === 'dark' || (darkMode && studyTint !== 'default')) {
+        return {
+          filter: 'invert(0.92) hue-rotate(180deg) contrast(0.95)',
+          backgroundColor: '#121214',
+        };
+      }
+      if (darkMode) {
+        return {
+          filter: 'invert(0.92) hue-rotate(180deg) contrast(0.95)',
+          backgroundColor: '#121214',
+        };
+      }
+      return {};
+    }
+
+    // 3. Studio / General PDF Viewer: When dark mode is active, provide eye-strain reducing night-mode filter
+    if (darkMode) {
       return {
         filter: 'invert(0.92) hue-rotate(180deg) contrast(0.95)',
         backgroundColor: '#121214',
       };
     }
+
     return {};
-  }, [initialAppMode, readerPaperTone, isStudyMode, studyTint]);
+  }, [initialAppMode, readerPaperTone, isStudyMode, studyTint, darkMode]);
 
   // Keyboard Shortcuts (Esc closes open overlays/menus without closing PDF, ⌘Z undo, ⌘⇧Z redo, ⌘F search, ⌘B sidebar, Zen mode, Rotations)
   useEffect(() => {
@@ -2300,7 +2319,6 @@ export default function PDFViewer({
           }`}
           style={{ 
             WebkitOverflowScrolling: 'touch',
-            ...tintStyle
           }}
         >
           {loading ? (
@@ -2329,6 +2347,7 @@ export default function PDFViewer({
                       style={{
                         width: `${displayWidth}px`,
                         height: `${displayHeight}px`,
+                        ...tintStyle,
                       }}
                       className="relative bg-white rounded-md shadow-[0_8px_30px_rgba(0,0,0,0.1)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.5)] border border-black/10 dark:border-white/15 overflow-hidden flex-shrink-0"
                     >

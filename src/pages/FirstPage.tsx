@@ -11,8 +11,7 @@ import {
 } from 'lucide-react';
 import { AppMode } from '../types';
 import { 
-  FIRST_PAGE_CONSTRAINTS, 
-  VIEWPORT_CONSTRAINTS 
+  FIRST_PAGE_CONSTRAINTS 
 } from '../utils/layoutConstraints';
 
 interface FirstPageProps {
@@ -95,9 +94,12 @@ const WORKFLOW_MODES: ModeConfig[] = [
 
 export default function FirstPage({ 
   onEnterWorkspace, 
+  darkMode = true,
+  onToggleDarkMode,
   currentMode = 'editor',
   onSelectMode,
 }: FirstPageProps) {
+  const isDark = darkMode;
   const [internalMode, setInternalMode] = useState<AppMode>(currentMode || 'editor');
   const activeMode = onSelectMode && currentMode ? currentMode : internalMode;
 
@@ -111,7 +113,7 @@ export default function FirstPage({
 
   const activeModeConfig = WORKFLOW_MODES.find(m => m.id === activeMode) || WORKFLOW_MODES[0];
 
-  // Hotkeys: ⌘↵ / Ctrl+Enter to launch, 1/2/3 to switch modes, ⌘O to open file
+  // Hotkeys: ⌘↵ / Ctrl+Enter to launch, 1/2/3 to switch modes, ⌘O to open file, ⌘T to toggle theme
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
@@ -120,6 +122,9 @@ export default function FirstPage({
       } else if ((e.metaKey || e.ctrlKey) && (e.key === 'o' || e.key === 'O')) {
         e.preventDefault();
         onEnterWorkspace(activeMode);
+      } else if ((e.metaKey || e.ctrlKey) && (e.key === 't' || e.key === 'T')) {
+        e.preventDefault();
+        onToggleDarkMode?.();
       } else if (!e.metaKey && !e.ctrlKey && !e.altKey) {
         if (e.key === '1') handleSelectMode('editor');
         if (e.key === '2') handleSelectMode('study');
@@ -128,21 +133,24 @@ export default function FirstPage({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeMode, onEnterWorkspace]);
+  }, [activeMode, onEnterWorkspace, onToggleDarkMode]);
 
   return (
     <div 
       data-mode={activeMode} 
-      className="relative w-full h-full max-h-screen overflow-hidden bg-[#0d1012] text-zinc-100 flex flex-col justify-between select-none transition-colors duration-200"
+      className={`relative w-full h-full max-h-screen overflow-hidden ${
+        isDark ? 'bg-[#0d1012] text-zinc-100' : 'bg-[#f4fafb] text-zinc-900'
+      } flex flex-col justify-between select-none transition-colors duration-200`}
     >
       
       {/* 1. Cyberpunk Coordinate Grid & Diagonal Hatch Watermarks */}
       <div 
-        className="absolute inset-0 pointer-events-none opacity-[0.14]"
+        className="absolute inset-0 pointer-events-none transition-opacity duration-300"
         style={{
+          opacity: isDark ? 0.14 : 0.08,
           backgroundImage: `
-            linear-gradient(to right, rgba(255, 255, 255, 0.15) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(255, 255, 255, 0.15) 1px, transparent 1px)
+            linear-gradient(to right, ${isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 104, 116, 0.18)'} 1px, transparent 1px),
+            linear-gradient(to bottom, ${isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 104, 116, 0.18)'} 1px, transparent 1px)
           `,
           backgroundSize: '36px 36px',
         }}
@@ -200,89 +208,13 @@ export default function FirstPage({
         <div className="w-2.5 h-[1.5px] transition-colors duration-200" style={{ backgroundColor: activeModeConfig.accent }} />
       </div>
 
-      {/* 2. Top Navigation Bar — Constrained by VIEWPORT_CONSTRAINTS & FIRST_PAGE_CONSTRAINTS */}
-      <header 
-        style={{ 
-          maxWidth: `${FIRST_PAGE_CONSTRAINTS.MAX_CONTAINER_WIDTH_PX}px`,
-          minHeight: `${VIEWPORT_CONSTRAINTS.HEADER_HEIGHT_PX}px`,
-        }}
-        className="relative z-20 w-full mx-auto px-5 sm:px-8 py-2.5 flex items-center justify-between shrink-0"
-      >
-        
-        {/* Brand Insignia & Digital Barcode Ticker */}
-        <div className="flex items-center gap-3">
-          
-          {/* Logo Insignia: Color Theory Accent with High-Contrast On-Accent */}
-          <div 
-            className="h-7 w-7 flex items-center justify-center font-black [clip-path:polygon(0_0,calc(100%-8px)_0,100%_8px,100%_100%,0_100%)] transition-all duration-200"
-            style={{ 
-              backgroundColor: activeModeConfig.accent,
-              color: activeModeConfig.onAccent,
-              boxShadow: `0 0 16px ${activeModeConfig.glow}`
-            }}
-          >
-            <span className="font-mono text-sm leading-none font-black">✛</span>
-          </div>
-
-          <div className="flex items-center gap-2.5">
-            <span className="text-sm font-black tracking-tight text-white font-sans uppercase">
-              InkVault
-            </span>
-
-            {/* Barcode / Binary Ticker */}
-            <div className="hidden sm:flex items-center gap-1 opacity-90 pl-1">
-              <span className="w-2.5 h-1.5 bg-white" />
-              <span className="w-1 h-1.5 bg-white" />
-              <span className="w-1 h-1.5 bg-white" />
-              <span className="w-3.5 h-1.5 bg-white" />
-              <span className="w-1.5 h-1.5 bg-white" />
-              <span className="w-2.5 h-1.5 bg-white" />
-              <span className="w-1 h-1.5 bg-white" />
-              <span className="w-4 h-1.5 bg-white" />
-            </div>
-
-            <span 
-              className="text-[8.5px] font-mono font-bold px-1.5 py-0.5 bg-white/5 border-l-2 tracking-wider uppercase hidden md:inline-block transition-colors duration-200"
-              style={{ 
-                borderLeftColor: activeModeConfig.accent,
-                color: activeModeConfig.accent 
-              }}
-            >
-              AIR-GAPPED DESKTOP
-            </span>
-          </div>
-        </div>
-
-        {/* Right Keyboard Quick Hints & Mecha Action Button */}
-        <div className="flex items-center gap-2.5 font-mono text-[9.5px]">
-          <div className="hidden sm:flex items-center gap-1 px-2.5 py-1 bg-[#14181a] border border-white/10 [clip-path:polygon(0_0,calc(100%-6px)_0,100%_6px,100%_100%,0_100%)] text-zinc-400">
-            <span>MODES</span>
-            <span className="font-bold text-white">[1] [2] [3]</span>
-          </div>
-          
-          <button
-            type="button"
-            onClick={() => onEnterWorkspace(activeMode)}
-            className="group flex items-center gap-1.5 px-4 py-1.5 font-mono font-black [clip-path:polygon(0_0,calc(100%-10px)_0,100%_10px,100%_100%,10px_100%,0_calc(100%-10px))] cursor-pointer active:translate-y-0.5 transition-all duration-200"
-            style={{
-              backgroundColor: activeModeConfig.accent,
-              color: activeModeConfig.onAccent,
-              boxShadow: `0 0 16px ${activeModeConfig.glow}`,
-            }}
-          >
-            <span>LAUNCH</span>
-            <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
-          </button>
-        </div>
-      </header>
-
-      {/* 3. Main Mecha Interface Bay — Aligned strictly via FIRST_PAGE_CONSTRAINTS */}
+      {/* 2. Main Mecha Interface Bay — Aligned strictly via FIRST_PAGE_CONSTRAINTS */}
       <main 
         style={{ 
           maxWidth: `${FIRST_PAGE_CONSTRAINTS.MAX_CONTAINER_WIDTH_PX}px`,
           gap: `${FIRST_PAGE_CONSTRAINTS.GAP_RESPONSIVE_PX}px`,
         }}
-        className="relative z-10 w-full mx-auto px-5 sm:px-8 py-3 sm:py-5 flex-1 grid grid-cols-1 lg:grid-cols-12 items-stretch overflow-hidden min-h-0"
+        className="relative z-10 w-full mx-auto px-5 sm:px-8 py-4 sm:py-6 flex-1 grid grid-cols-1 lg:grid-cols-12 items-stretch overflow-hidden min-h-0"
       >
         
         {/* =========================================================================
@@ -292,7 +224,9 @@ export default function FirstPage({
           
           {/* Bold Confident Headline with Mode Color Accent */}
           <div className="space-y-2 shrink-0 pt-1">
-            <h1 className="text-3xl sm:text-4xl lg:text-[2.85rem] font-black tracking-tight text-white leading-[1.03] uppercase font-sans">
+            <h1 className={`text-3xl sm:text-4xl lg:text-[2.85rem] font-black tracking-tight leading-[1.03] uppercase font-sans ${
+              isDark ? 'text-white' : 'text-zinc-900'
+            }`}>
               Precision.<br />
               Air-Gapped.<br />
               <span 
@@ -304,7 +238,9 @@ export default function FirstPage({
             </h1>
 
             <p 
-              className="text-xs sm:text-sm text-zinc-400 max-w-xl leading-relaxed font-sans border-l-2 pl-3 py-0.5 transition-colors duration-200"
+              className={`text-xs sm:text-sm max-w-xl leading-relaxed font-sans border-l-2 pl-3 py-0.5 transition-colors duration-200 ${
+                isDark ? 'text-zinc-400' : 'text-zinc-600'
+              }`}
               style={{ borderLeftColor: `${activeModeConfig.accent}80` }}
             >
               Engineered for confidential legal contracts, academic coursework, and personal reading.
@@ -315,7 +251,9 @@ export default function FirstPage({
           {/* Mode Selector Placards (Each card respects MODE_CARD_MIN_HEIGHT_PX) */}
           <div className="space-y-1.5 shrink-0">
             <div className="flex items-center justify-between font-mono text-[9px]">
-              <span className="text-zinc-400 uppercase tracking-wider font-bold flex items-center gap-1.5">
+              <span className={`uppercase tracking-wider font-bold flex items-center gap-1.5 ${
+                isDark ? 'text-zinc-400' : 'text-zinc-600'
+              }`}>
                 <span className="font-black transition-colors duration-200" style={{ color: activeModeConfig.accent }}>▶</span>
                 SELECT WORKSPACE DOMAIN
               </span>
@@ -343,7 +281,7 @@ export default function FirstPage({
                     className="mecha-stepped-card transition-all duration-150 cursor-pointer active:translate-y-0.5"
                     style={{
                       padding: isSelected ? '1.5px' : '1px',
-                      backgroundColor: isSelected ? mode.accent : 'rgba(255, 255, 255, 0.1)',
+                      backgroundColor: isSelected ? mode.accent : (isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'),
                       boxShadow: isSelected ? `0 0 24px ${mode.glow}` : 'none',
                       minHeight: `${FIRST_PAGE_CONSTRAINTS.MODE_CARD_MIN_HEIGHT_PX}px`,
                     }}
@@ -351,8 +289,8 @@ export default function FirstPage({
                     <div 
                       className="w-full h-full mecha-stepped-card p-3 flex flex-col justify-between transition-colors duration-150"
                       style={{
-                        backgroundColor: isSelected ? mode.accent : '#121619',
-                        color: isSelected ? mode.onAccent : '#e0e3e4',
+                        backgroundColor: isSelected ? mode.accent : (isDark ? '#121619' : '#ffffff'),
+                        color: isSelected ? mode.onAccent : (isDark ? '#e0e3e4' : '#1e293b'),
                         minHeight: `${FIRST_PAGE_CONSTRAINTS.MODE_CARD_MIN_HEIGHT_PX}px`,
                       }}
                     >
@@ -364,7 +302,7 @@ export default function FirstPage({
                           style={{
                             backgroundColor: isSelected 
                               ? (mode.id === 'editor' ? '#00363d' : mode.id === 'study' ? '#072a18' : '#291402')
-                              : 'rgba(255, 255, 255, 0.06)',
+                              : (isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.04)'),
                             color: isSelected ? mode.accent : mode.accent,
                           }}
                         >
@@ -374,15 +312,15 @@ export default function FirstPage({
                         {/* Serial Badge with Inset */}
                         <div 
                           className="p-[1px] [clip-path:polygon(0_0,calc(100%-5px)_0,100%_5px,100%_100%,0_100%)] mr-1"
-                          style={{ backgroundColor: isSelected ? `${mode.onAccent}40` : 'rgba(255, 255, 255, 0.15)' }}
+                          style={{ backgroundColor: isSelected ? `${mode.onAccent}40` : (isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.1)') }}
                         >
                           <span 
                             className="px-1.5 py-0.5 font-mono text-[8.5px] font-black [clip-path:polygon(0_0,calc(100%-5px)_0,100%_5px,100%_100%,0_100%)] block"
                             style={{
                               backgroundColor: isSelected 
                                 ? (mode.id === 'editor' ? '#00363d' : mode.id === 'study' ? '#072a18' : '#291402')
-                                : '#0f1316',
-                              color: isSelected ? mode.accent : '#bec8ca',
+                                : (isDark ? '#0f1316' : '#f1f5f9'),
+                              color: isSelected ? mode.accent : (isDark ? '#bec8ca' : '#475569'),
                             }}
                           >
                             {mode.code}
@@ -471,11 +409,17 @@ export default function FirstPage({
             </div>
 
             {/* Secondary Open File Button (Beveled Slate Plate) */}
-            <div className="p-[1px] bg-white/10 hover:bg-white/25 [clip-path:polygon(0_0,calc(100%-12px)_0,100%_12px,100%_100%,12px_100%,0_calc(100%-12px))] transition-colors">
+            <div className={`p-[1px] [clip-path:polygon(0_0,calc(100%-12px)_0,100%_12px,100%_100%,12px_100%,0_calc(100%-12px))] transition-colors ${
+              isDark ? 'bg-white/10 hover:bg-white/25' : 'bg-black/10 hover:bg-black/20'
+            }`}>
               <button
                 type="button"
                 onClick={() => onEnterWorkspace(activeMode)}
-                className="w-full h-full [clip-path:polygon(0_0,calc(100%-12px)_0,100%_12px,100%_100%,12px_100%,0_calc(100%-12px))] bg-[#14181a] hover:bg-[#1a1f22] text-zinc-200 hover:text-white px-4 py-3 flex items-center justify-center gap-2 font-mono text-xs font-bold mecha-bevel-dark active:translate-y-0.5 cursor-pointer transition-all"
+                className={`w-full h-full [clip-path:polygon(0_0,calc(100%-12px)_0,100%_12px,100%_100%,12px_100%,0_calc(100%-12px))] px-4 py-3 flex items-center justify-center gap-2 font-mono text-xs font-bold active:translate-y-0.5 cursor-pointer transition-all ${
+                  isDark 
+                    ? 'bg-[#14181a] hover:bg-[#1a1f22] text-zinc-200 hover:text-white mecha-bevel-dark' 
+                    : 'bg-card hover:bg-surface text-zinc-800 hover:text-zinc-950 shadow-xs border border-border'
+                }`}
               >
                 <FolderOpen 
                   className="h-3.5 w-3.5 transition-colors duration-200" 
@@ -504,13 +448,17 @@ export default function FirstPage({
             className="flex-1 p-[1.5px] mecha-stepped-panel shadow-2xl flex flex-col min-h-0 transition-all duration-200"
             style={{
               backgroundColor: activeModeConfig.border,
-              boxShadow: `0 8px 32px rgba(0, 0, 0, 0.7)`,
+              boxShadow: isDark ? `0 8px 32px rgba(0, 0, 0, 0.7)` : `0 8px 24px rgba(0, 70, 80, 0.12)`,
             }}
           >
             <div 
-              className="w-full h-full mecha-stepped-panel bg-[#11151a] text-zinc-100 flex flex-col justify-between relative overflow-hidden transition-colors duration-200"
+              className={`w-full h-full mecha-stepped-panel flex flex-col justify-between relative overflow-hidden transition-colors duration-200 ${
+                isDark ? 'bg-[#11151a] text-zinc-100' : 'bg-card text-zinc-900'
+              }`}
               style={{
-                boxShadow: `inset 1px 1px 0 rgba(255, 255, 255, 0.08), inset -1px -1px 0 rgba(0, 0, 0, 0.7)`,
+                boxShadow: isDark 
+                  ? `inset 1px 1px 0 rgba(255, 255, 255, 0.08), inset -1px -1px 0 rgba(0, 0, 0, 0.7)`
+                  : `inset 1px 1px 0 rgba(255, 255, 255, 0.9), inset -1px -1px 0 rgba(0, 0, 0, 0.08)`,
               }}
             >
               
@@ -541,7 +489,9 @@ export default function FirstPage({
               </div>
 
               {/* Placard Header: Inset pr-7 so AIR-GAPPED badge NEVER touches top-right chamfer */}
-              <div className="flex items-center justify-between pl-4 pr-7 pt-3 pb-2 border-b border-white/10 font-mono">
+              <div className={`flex items-center justify-between pl-4 pr-7 pt-3 pb-2 border-b font-mono ${
+                isDark ? 'border-white/10' : 'border-border'
+              }`}>
                 <div className="flex items-center gap-2">
                   <span 
                     className="font-mono text-sm font-black transition-colors duration-200"
@@ -549,7 +499,7 @@ export default function FirstPage({
                   >
                     ✛
                   </span>
-                  <span className="font-black text-[11px] tracking-wider uppercase text-white">
+                  <span className={`font-black text-[11px] tracking-wider uppercase ${isDark ? 'text-white' : 'text-zinc-900'}`}>
                     SPECIFICATION // ISO 32000-2
                   </span>
                 </div>
@@ -593,7 +543,7 @@ export default function FirstPage({
                     />
 
                     {/* Precision Vector Drafting Lines */}
-                    <line x1="58" y1="36" x2="128" y2="36" stroke="white" strokeWidth="2" strokeOpacity="0.9" />
+                    <line x1="58" y1="36" x2="128" y2="36" stroke={activeModeConfig.accent} strokeWidth="2" strokeOpacity="0.95" />
                     <line x1="58" y1="48" x2="162" y2="48" stroke="white" strokeWidth="1" strokeOpacity="0.4" />
                     <line x1="58" y1="60" x2="162" y2="60" stroke="white" strokeWidth="1" strokeOpacity="0.4" />
                     <line x1="58" y1="72" x2="120" y2="72" stroke="white" strokeWidth="1" strokeOpacity="0.4" />
@@ -640,8 +590,10 @@ export default function FirstPage({
               </div>
 
               {/* Bottom Specification Badges */}
-              <div className="pt-2.5 pb-2.5 border-t border-white/10 flex items-center justify-between font-mono text-[8px] text-zinc-400 px-8">
-                <span className="flex items-center gap-1.5 font-bold text-white">
+              <div className={`pt-2.5 pb-2.5 border-t flex items-center justify-between font-mono text-[8px] px-8 ${
+                isDark ? 'border-white/10 text-zinc-400' : 'border-border text-zinc-600'
+              }`}>
+                <span className={`flex items-center gap-1.5 font-bold ${isDark ? 'text-white' : 'text-zinc-900'}`}>
                   <ShieldCheck 
                     className="h-3.5 w-3.5 transition-colors duration-200" 
                     style={{ color: activeModeConfig.accent }} 
@@ -660,9 +612,17 @@ export default function FirstPage({
             </div>
           </div>
 
-          {/* BOTTOM PLACARD: Mecha Feature Bay with 3 Exhaust Slots */}
-          <div className="p-[1px] bg-white/10 [clip-path:polygon(0_0,calc(100%-20px)_0,100%_20px,100%_100%,0_100%)] shadow-xl shrink-0">
-            <div className="w-full h-full [clip-path:polygon(0_0,calc(100%-20px)_0,100%_20px,100%_100%,0_100%)] bg-[#121518] p-3.5 flex flex-col justify-between gap-2.5 text-zinc-100 mecha-bevel-dark">
+          {/* BOTTOM PLACARD: Mecha Feature Bay with Mode Accent Detailing */}
+          <div 
+            className="p-[1.5px] [clip-path:polygon(0_0,calc(100%-20px)_0,100%_20px,100%_100%,0_100%)] shadow-xl shrink-0 transition-all duration-200"
+            style={{
+              backgroundColor: activeModeConfig.border,
+              boxShadow: isDark ? `0 8px 32px rgba(0, 0, 0, 0.7)` : `0 8px 24px rgba(0, 70, 80, 0.12)`,
+            }}
+          >
+            <div className={`w-full h-full [clip-path:polygon(0_0,calc(100%-20px)_0,100%_20px,100%_100%,0_100%)] p-3.5 flex flex-col justify-between gap-2.5 ${
+              isDark ? 'bg-[#121518] text-zinc-100 mecha-bevel-dark' : 'bg-card text-zinc-900 shadow-sm border border-border'
+            }`}>
               
               {/* Header: Mode Serial & Exhaust Lines */}
               <div className="flex items-center justify-between font-mono text-[9px] pr-5">
@@ -674,29 +634,53 @@ export default function FirstPage({
                       boxShadow: `0 0 8px ${activeModeConfig.glow}` 
                     }} 
                   />
-                  <span className="text-white font-black tracking-wider uppercase">
-                    {activeModeConfig.serial} // {activeModeConfig.title}
+                  <span className={`font-black tracking-wider uppercase ${isDark ? 'text-white' : 'text-zinc-900'}`}>
+                    <span style={{ color: activeModeConfig.accent }}>{activeModeConfig.serial}</span> // {activeModeConfig.title}
                   </span>
                 </div>
 
-                {/* Reference Image 3 Exhaust Lines */}
+                {/* Reference Image 3 Exhaust Lines in Mode Accent */}
                 <div className="flex flex-col gap-0.5 items-end">
                   <div className="flex items-center">
-                    <span className="w-8 h-[1.5px] bg-white/80" />
-                    <span className="w-2 h-1.5 bg-white/80 [clip-path:polygon(0_0,100%_0,100%_100%,45%_100%)] ml-0.5" />
+                    <span 
+                      className="w-8 h-[1.5px] transition-colors duration-200"
+                      style={{ 
+                        backgroundColor: activeModeConfig.accent,
+                        boxShadow: `0 0 6px ${activeModeConfig.glow}` 
+                      }} 
+                    />
+                    <span 
+                      className="w-2 h-1.5 [clip-path:polygon(0_0,100%_0,100%_100%,45%_100%)] ml-0.5 transition-colors duration-200"
+                      style={{ backgroundColor: activeModeConfig.accent }} 
+                    />
                   </div>
                   <div className="flex items-center">
-                    <span className="w-5 h-[1.5px] bg-white/80" />
-                    <span className="w-2 h-1.5 bg-white/80 [clip-path:polygon(0_0,100%_0,100%_100%,45%_100%)] ml-0.5" />
+                    <span 
+                      className="w-5 h-[1.5px] transition-colors duration-200"
+                      style={{ 
+                        backgroundColor: activeModeConfig.accent,
+                        boxShadow: `0 0 6px ${activeModeConfig.glow}` 
+                      }} 
+                    />
+                    <span 
+                      className="w-2 h-1.5 [clip-path:polygon(0_0,100%_0,100%_100%,45%_100%)] ml-0.5 transition-colors duration-200"
+                      style={{ backgroundColor: activeModeConfig.accent }} 
+                    />
                   </div>
                 </div>
               </div>
 
-              {/* Feature Chips with Chamfered Corners and Mode Accent */}
+              {/* Feature Chips with Chamfered Corners and Mode Accent Border */}
               <div className="flex flex-wrap gap-1.5">
                 {activeModeConfig.features.map((feature, idx) => (
-                  <div key={idx} className="p-[1px] bg-white/10 [clip-path:polygon(0_0,calc(100%-6px)_0,100%_6px,100%_100%,0_100%)]">
-                    <span className="px-2 py-0.5 bg-[#181d22] font-mono text-[8.5px] text-zinc-300 flex items-center gap-1 [clip-path:polygon(0_0,calc(100%-6px)_0,100%_6px,100%_100%,0_100%)]">
+                  <div 
+                    key={idx} 
+                    className="p-[1px] [clip-path:polygon(0_0,calc(100%-6px)_0,100%_6px,100%_100%,0_100%)] transition-colors duration-200"
+                    style={{ backgroundColor: `${activeModeConfig.accent}35` }}
+                  >
+                    <span className={`px-2 py-0.5 font-mono text-[8.5px] flex items-center gap-1 [clip-path:polygon(0_0,calc(100%-6px)_0,100%_6px,100%_100%,0_100%)] ${
+                      isDark ? 'bg-[#181d22] text-zinc-300' : 'bg-surface text-zinc-700'
+                    }`}>
                       <CornerDownRight 
                         className="h-2.5 w-2.5 transition-colors duration-200" 
                         style={{ color: activeModeConfig.accent }} 
@@ -708,7 +692,9 @@ export default function FirstPage({
               </div>
 
               {/* Bottom Guidance Prompt */}
-              <div className="pt-1.5 border-t border-white/10 flex items-center justify-between font-mono text-[8.5px] text-zinc-400">
+              <div className={`pt-1.5 border-t flex items-center justify-between font-mono text-[8.5px] ${
+                isDark ? 'border-white/10 text-zinc-400' : 'border-border text-zinc-600'
+              }`}>
                 <span className="flex items-center gap-1.5">
                   <FileText 
                     className="h-3 w-3 transition-colors duration-200" 
@@ -740,19 +726,21 @@ export default function FirstPage({
         style={{ 
           maxWidth: `${FIRST_PAGE_CONSTRAINTS.MAX_CONTAINER_WIDTH_PX}px`,
         }}
-        className="relative z-20 w-full mx-auto px-5 sm:px-8 py-2.5 border-t border-white/10 flex flex-wrap items-center justify-between text-[8.5px] font-mono text-zinc-500 gap-2 shrink-0"
+        className={`relative z-20 w-full mx-auto px-5 sm:px-8 py-2.5 border-t flex flex-wrap items-center justify-between text-[8.5px] font-mono gap-2 shrink-0 ${
+          isDark ? 'border-white/10 text-zinc-500' : 'border-border text-zinc-500'
+        }`}
       >
         <div className="flex items-center gap-3">
-          <span className="text-zinc-400 font-bold">
+          <span className={`font-bold ${isDark ? 'text-zinc-400' : 'text-zinc-700'}`}>
             LOCAL ENGINE // TAURI 2.0 / RUST 1.84
           </span>
-          <span className="text-zinc-700">/</span>
+          <span className={isDark ? 'text-zinc-700' : 'text-zinc-400'}>/</span>
           <span>ISO 32000-2 CONFORMANCE</span>
         </div>
 
         <div className="flex items-center gap-3">
-          <span className="text-zinc-500 hidden md:inline">NO TELEMETRY • NO CLOUD EGRESS</span>
-          <span className="text-zinc-700 hidden sm:inline">/</span>
+          <span className={`${isDark ? 'text-zinc-500' : 'text-zinc-600'} hidden md:inline`}>NO TELEMETRY • NO CLOUD EGRESS</span>
+          <span className={`${isDark ? 'text-zinc-700' : 'text-zinc-400'} hidden sm:inline`}>/</span>
           <div 
             className="px-2 py-0.5 font-mono font-black text-[8px] [clip-path:polygon(4px_0,100%_0,calc(100%-4px)_100%,0_100%)] transition-colors duration-200"
             style={{

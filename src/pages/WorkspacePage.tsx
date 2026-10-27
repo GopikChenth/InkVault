@@ -35,17 +35,17 @@ import {
   STUDIO_TOOL_ITEMS
 } from '../modes/studio';
 
-// Studio PDF manipulation tools (direct imports for instant tab switching)
-import MergeTool from '../modes/studio/components/tools/MergeTool';
-import SplitTool from '../modes/studio/components/tools/SplitTool';
-import CompressTool from '../modes/studio/components/tools/CompressTool';
-import WatermarkTool from '../modes/studio/components/tools/WatermarkTool';
-import BatesNumberingTool from '../modes/studio/components/tools/BatesNumberingTool';
-import FlattenTool from '../modes/studio/components/tools/FlattenTool';
-import ProtectTool from '../modes/studio/components/tools/ProtectTool';
-import DigitalSignTool from '../modes/studio/components/tools/DigitalSignTool';
-import PrepareFormTool from '../modes/studio/components/tools/PrepareFormTool';
-import OrganizePagesTool from '../modes/studio/components/tools/OrganizePagesTool';
+// Studio PDF manipulation tools (lazily loaded for instant startup and optimal memory footprint)
+const MergeTool = React.lazy(() => import('../modes/studio/components/tools/MergeTool'));
+const SplitTool = React.lazy(() => import('../modes/studio/components/tools/SplitTool'));
+const CompressTool = React.lazy(() => import('../modes/studio/components/tools/CompressTool'));
+const WatermarkTool = React.lazy(() => import('../modes/studio/components/tools/WatermarkTool'));
+const BatesNumberingTool = React.lazy(() => import('../modes/studio/components/tools/BatesNumberingTool'));
+const FlattenTool = React.lazy(() => import('../modes/studio/components/tools/FlattenTool'));
+const ProtectTool = React.lazy(() => import('../modes/studio/components/tools/ProtectTool'));
+const DigitalSignTool = React.lazy(() => import('../modes/studio/components/tools/DigitalSignTool'));
+const PrepareFormTool = React.lazy(() => import('../modes/studio/components/tools/PrepareFormTool'));
+const OrganizePagesTool = React.lazy(() => import('../modes/studio/components/tools/OrganizePagesTool'));
 
 import { 
   StudySidebar, 
@@ -835,27 +835,38 @@ export default function WorkspacePage({
                   onRemoveDoc={handleRemoveRecentDoc}
                   onTriggerOpenFile={handleTriggerOpenFile}
                 />
-              ) : studioActiveTab === 'organize' ? (
-                <OrganizePagesTool initialDoc={studioActiveDoc} onOpenOrganizedDoc={handleRegisterAndOpenDoc} />
-              ) : studioActiveTab === 'merge' ? (
-                <MergeTool initialDoc={studioActiveDoc} onOpenMergedDoc={handleRegisterAndOpenDoc} />
-              ) : studioActiveTab === 'split' ? (
-                <SplitTool initialDoc={studioActiveDoc} onOpenExtractedDoc={handleRegisterAndOpenDoc} />
-              ) : studioActiveTab === 'compress' ? (
-                <CompressTool initialDoc={studioActiveDoc} onOpenCompressedDoc={handleRegisterAndOpenDoc} />
-              ) : studioActiveTab === 'watermark' ? (
-                <WatermarkTool initialDoc={studioActiveDoc} onOpenWatermarkedDoc={handleRegisterAndOpenDoc} />
-              ) : studioActiveTab === 'bates' ? (
-                <BatesNumberingTool initialDoc={studioActiveDoc} onOpenBatesDoc={handleRegisterAndOpenDoc} />
-              ) : studioActiveTab === 'flatten' ? (
-                <FlattenTool initialDoc={studioActiveDoc} onOpenFlattenedDoc={handleRegisterAndOpenDoc} />
-              ) : studioActiveTab === 'protect' ? (
-                <ProtectTool initialDoc={studioActiveDoc} onOpenProtectedDoc={handleRegisterAndOpenDoc} />
-              ) : studioActiveTab === 'sign' ? (
-                <DigitalSignTool initialDoc={studioActiveDoc} onOpenSignedDoc={handleRegisterAndOpenDoc} />
-              ) : studioActiveTab === 'forms' ? (
-                <PrepareFormTool initialDoc={studioActiveDoc} onOpenFormDoc={handleRegisterAndOpenDoc} />
-              ) : null}
+              ) : (
+                <React.Suspense
+                  fallback={
+                    <div className="flex-1 flex flex-col items-center justify-center p-8 bg-surface">
+                      <div className="w-8 h-8 rounded-full border-2 border-accent border-t-transparent animate-spin mb-3" />
+                      <span className="text-xs font-mono text-muted">Loading Studio Tool…</span>
+                    </div>
+                  }
+                >
+                  {studioActiveTab === 'organize' ? (
+                    <OrganizePagesTool initialDoc={studioActiveDoc} onOpenOrganizedDoc={handleRegisterAndOpenDoc} />
+                  ) : studioActiveTab === 'merge' ? (
+                    <MergeTool initialDoc={studioActiveDoc} onOpenMergedDoc={handleRegisterAndOpenDoc} />
+                  ) : studioActiveTab === 'split' ? (
+                    <SplitTool initialDoc={studioActiveDoc} onOpenExtractedDoc={handleRegisterAndOpenDoc} />
+                  ) : studioActiveTab === 'compress' ? (
+                    <CompressTool initialDoc={studioActiveDoc} onOpenCompressedDoc={handleRegisterAndOpenDoc} />
+                  ) : studioActiveTab === 'watermark' ? (
+                    <WatermarkTool initialDoc={studioActiveDoc} onOpenWatermarkedDoc={handleRegisterAndOpenDoc} />
+                  ) : studioActiveTab === 'bates' ? (
+                    <BatesNumberingTool initialDoc={studioActiveDoc} onOpenBatesDoc={handleRegisterAndOpenDoc} />
+                  ) : studioActiveTab === 'flatten' ? (
+                    <FlattenTool initialDoc={studioActiveDoc} onOpenFlattenedDoc={handleRegisterAndOpenDoc} />
+                  ) : studioActiveTab === 'protect' ? (
+                    <ProtectTool initialDoc={studioActiveDoc} onOpenProtectedDoc={handleRegisterAndOpenDoc} />
+                  ) : studioActiveTab === 'sign' ? (
+                    <DigitalSignTool initialDoc={studioActiveDoc} onOpenSignedDoc={handleRegisterAndOpenDoc} />
+                  ) : studioActiveTab === 'forms' ? (
+                    <PrepareFormTool initialDoc={studioActiveDoc} onOpenFormDoc={handleRegisterAndOpenDoc} />
+                  ) : null}
+                </React.Suspense>
+              )}
             </div>
 
             {/* 2. STUDY VIEWPORT */}

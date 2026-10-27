@@ -18,7 +18,8 @@ import {
   Award,
   FormInput,
   Hash,
-  FileCheck2
+  FileCheck2,
+  ArrowRight
 } from 'lucide-react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { AppMode } from '../types';
@@ -34,6 +35,8 @@ interface TitleBarProps {
   onToggleFullscreen?: () => void;
   currentMode?: AppMode;
   onSelectMode?: (mode: AppMode) => void;
+  isCoverView?: boolean;
+  onLaunchWorkspace?: () => void;
 }
 
 export default function TitleBar({
@@ -47,6 +50,8 @@ export default function TitleBar({
   onToggleFullscreen,
   currentMode = 'editor',
   onSelectMode,
+  isCoverView = false,
+  onLaunchWorkspace,
 }: TitleBarProps) {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [isMaximized, setIsMaximized] = useState<boolean>(false);
@@ -143,33 +148,50 @@ export default function TitleBar({
   return (
     <div 
       ref={menuContainerRef}
-      className="h-8 w-full bg-surface/85 dark:bg-[#101415]/90 backdrop-blur-xl border-b border-border flex items-center justify-between px-2 select-none z-50 text-xs text-zinc-700 dark:text-zinc-300 flex-shrink-0"
+      className="h-10 w-full bg-surface/95 dark:bg-[#0e1417]/95 backdrop-blur-xl border-b border-border flex items-center justify-between px-3 sm:px-4 select-none z-50 text-xs text-zinc-900 dark:text-zinc-100 flex-shrink-0 transition-colors duration-200"
     >
       {/* 1. Left: Brand & Menu Items */}
-      <div className="flex items-center gap-1 min-w-0 flex-shrink-0">
+      <div className="flex items-center gap-1.5 min-w-0 flex-shrink-0">
         
-        {/* App Icon */}
+        {/* Chamfered Insignia matching FirstPage */}
         <div 
           onClick={onReturnToCover}
-          className="h-5 w-5 rounded-md bg-accent text-accent-on flex items-center justify-center font-black text-[9px] shadow-xs cursor-pointer hover:bg-accent-hover transition-colors mr-1"
-          title="Ink Vault Home"
+          className="h-6 w-6 flex items-center justify-center font-black [clip-path:polygon(0_0,calc(100%-6px)_0,100%_6px,100%_100%,0_100%)] bg-accent text-accent-on cursor-pointer hover:opacity-90 active:translate-y-0.5 transition-all mr-1 shadow-xs flex-shrink-0"
+          title="Ink Vault Cover / Return (⌘↵)"
         >
-          IV
+          <span className="font-mono text-xs leading-none font-black">✛</span>
         </div>
 
-        <span className="font-bold text-zinc-900 dark:text-zinc-100 text-[11px] mr-1 hidden sm:inline">
-          {title}
-        </span>
+        <div className="flex items-center gap-1.5 mr-2">
+          <span className="font-black text-zinc-950 dark:text-zinc-50 text-xs tracking-tight uppercase font-sans hidden sm:inline">
+            {title}
+          </span>
+
+          {/* Barcode Ticker directly matching FirstPage */}
+          <div className="hidden md:flex items-center gap-0.5 opacity-90 pl-0.5">
+            <span className="w-2 h-1.5 bg-zinc-900 dark:bg-white" />
+            <span className="w-0.5 h-1.5 bg-zinc-900 dark:bg-white" />
+            <span className="w-0.5 h-1.5 bg-zinc-900 dark:bg-white" />
+            <span className="w-2.5 h-1.5 bg-zinc-900 dark:bg-white" />
+            <span className="w-1 h-1.5 bg-zinc-900 dark:bg-white" />
+            <span className="w-1.5 h-1.5 bg-zinc-900 dark:bg-white" />
+          </div>
+
+          {/* Chamfered Air-Gapped Chip */}
+          <span className="text-[8px] font-mono font-black px-1.5 py-0.5 bg-accent/15 border-l-2 border-accent text-accent tracking-wider uppercase hidden lg:inline-block">
+            AIR-GAPPED
+          </span>
+        </div>
 
         {/* Menu 1: File */}
         <div className="relative">
           <button
             onClick={() => toggleMenu('file')}
             onMouseEnter={() => handleMenuHover('file')}
-            className={`px-2 py-0.5 rounded text-[11px] font-medium outline-none focus:outline-none select-none transition-colors ${
+            className={`px-2 py-0.5 rounded text-[11px] font-bold outline-none focus:outline-none select-none transition-colors ${
               activeMenu === 'file' 
-                ? 'bg-surface-container text-on-surface font-semibold' 
-                : 'hover:bg-surface-container/60 text-on-surface-variant'
+                ? 'bg-accent/15 text-accent' 
+                : 'hover:bg-black/5 dark:hover:bg-white/10 text-zinc-900 dark:text-zinc-200 hover:text-black dark:hover:text-white'
             }`}
           >
             File
@@ -309,10 +331,10 @@ export default function TitleBar({
           <button
             onClick={() => toggleMenu('edit')}
             onMouseEnter={() => handleMenuHover('edit')}
-            className={`px-2 py-0.5 rounded text-[11px] font-medium outline-none focus:outline-none select-none transition-colors ${
+            className={`px-2 py-0.5 rounded text-[11px] font-bold outline-none focus:outline-none select-none transition-colors ${
               activeMenu === 'edit' 
-                ? 'bg-surface-container text-on-surface font-semibold' 
-                : 'hover:bg-surface-container/60 text-on-surface-variant'
+                ? 'bg-accent/15 text-accent' 
+                : 'hover:bg-black/5 dark:hover:bg-white/10 text-zinc-900 dark:text-zinc-200 hover:text-black dark:hover:text-white'
             }`}
           >
             Edit
@@ -341,10 +363,10 @@ export default function TitleBar({
           <button
             onClick={() => toggleMenu('view')}
             onMouseEnter={() => handleMenuHover('view')}
-            className={`px-2 py-0.5 rounded text-[11px] font-medium outline-none focus:outline-none select-none transition-colors ${
+            className={`px-2 py-0.5 rounded text-[11px] font-bold outline-none focus:outline-none select-none transition-colors ${
               activeMenu === 'view' 
-                ? 'bg-surface-container text-on-surface font-semibold' 
-                : 'hover:bg-surface-container/60 text-on-surface-variant'
+                ? 'bg-accent/15 text-accent' 
+                : 'hover:bg-black/5 dark:hover:bg-white/10 text-zinc-900 dark:text-zinc-200 hover:text-black dark:hover:text-white'
             }`}
           >
             View
@@ -429,10 +451,10 @@ export default function TitleBar({
           <button
             onClick={() => toggleMenu('window')}
             onMouseEnter={() => handleMenuHover('window')}
-            className={`px-2 py-0.5 rounded text-[11px] font-medium outline-none focus:outline-none select-none transition-colors ${
+            className={`px-2 py-0.5 rounded text-[11px] font-bold outline-none focus:outline-none select-none transition-colors ${
               activeMenu === 'window' 
-                ? 'bg-surface-container text-on-surface font-semibold' 
-                : 'hover:bg-surface-container/60 text-on-surface-variant'
+                ? 'bg-accent/15 text-accent' 
+                : 'hover:bg-black/5 dark:hover:bg-white/10 text-zinc-900 dark:text-zinc-200 hover:text-black dark:hover:text-white'
             }`}
           >
             Window
@@ -476,10 +498,10 @@ export default function TitleBar({
           <button
             onClick={() => toggleMenu('help')}
             onMouseEnter={() => handleMenuHover('help')}
-            className={`px-2 py-0.5 rounded text-[11px] font-medium outline-none focus:outline-none select-none transition-colors ${
+            className={`px-2 py-0.5 rounded text-[11px] font-bold outline-none focus:outline-none select-none transition-colors ${
               activeMenu === 'help' 
-                ? 'bg-surface-container text-on-surface font-semibold' 
-                : 'hover:bg-surface-container/60 text-on-surface-variant'
+                ? 'bg-accent/15 text-accent' 
+                : 'hover:bg-black/5 dark:hover:bg-white/10 text-zinc-900 dark:text-zinc-200 hover:text-black dark:hover:text-white'
             }`}
           >
             Help
@@ -522,94 +544,108 @@ export default function TitleBar({
 
       </div>
 
-      {/* 2. Center: Active Document Title */}
+      {/* 2. Center: Active Document Title or Air-Gapped Status — Single line, no vertical overflow */}
       <div 
-        className="hidden md:flex flex-1 items-center justify-center min-w-0 px-4 h-full cursor-default pointer-events-none select-none"
+        className="hidden lg:flex flex-1 items-center justify-center min-w-0 px-3 h-full cursor-default select-none"
       >
-        <div className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400 truncate max-w-sm lg:max-w-md font-medium">
-          {activeDocName ? (
-            <>
-              {activeDocName.includes('/') ? (
-                <span className="text-zinc-400 dark:text-zinc-500 truncate">
-                  {activeDocName.substring(0, activeDocName.lastIndexOf('/'))} /
-                </span>
-              ) : null}
-              <span className="text-zinc-800 dark:text-zinc-200 truncate font-semibold">
-                {activeDocName.split('/').pop() || activeDocName}
-              </span>
-            </>
-          ) : (
-            <span className="font-semibold text-zinc-700 dark:text-zinc-300">{title}</span>
-          )}
-        </div>
+        {activeDocName ? (
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded border border-border/80 bg-black/[0.04] dark:bg-white/[0.04] max-w-sm shadow-2xs whitespace-nowrap overflow-hidden">
+            <span className="font-mono text-xs font-black text-accent shrink-0">✛</span>
+            <span className="text-zinc-950 dark:text-zinc-50 truncate font-bold font-mono text-[11px]">
+              {activeDocName.split('/').pop() || activeDocName}
+            </span>
+            <span className="text-zinc-600 dark:text-zinc-400 text-[9px] uppercase font-semibold shrink-0">
+              // ISO 32000-2
+            </span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded border border-border/60 bg-black/[0.02] dark:bg-white/[0.03] text-[9.5px] font-mono font-bold text-zinc-600 dark:text-zinc-400 uppercase tracking-widest whitespace-nowrap">
+            <span className="text-accent">✛</span> AIR-GAPPED // LOCAL WORKSPACE
+          </div>
+        )}
       </div>
 
-      {/* 3. Right: Quick Mode Switcher, Theme & Fullscreen */}
-      <div className="flex items-center gap-1.5 h-full flex-shrink-0">
+      {/* 3. Right: Quick Mode Switcher, Launch, Theme & Fullscreen */}
+      <div className="flex items-center gap-2 h-full flex-shrink-0">
 
-        {/* 3-Mode Segmented Control */}
+        {/* FirstPage-style Chamfered Mode Segmented Control */}
         {onSelectMode && (
-          <div className="flex items-center gap-0.5 bg-surface-container dark:bg-[#181c1d] border border-border p-0.5 rounded-full text-[10px] font-medium mr-1.5 shadow-2xs">
+          <div className="flex items-center gap-1 p-0.5 bg-black/[0.04] dark:bg-white/[0.06] border border-border [clip-path:polygon(4px_0,100%_0,calc(100%-4px)_100%,0_100%)] text-[10.5px] font-mono font-bold shadow-2xs">
             <button
               onClick={() => onSelectMode('editor')}
               title="Studio Editor (⌘1)"
-              className={`flex items-center gap-1 px-2.5 py-0.5 rounded-full transition-all ${
+              className={`flex items-center gap-1.5 px-2.5 py-1 transition-all [clip-path:polygon(3px_0,100%_0,calc(100%-3px)_100%,0_100%)] ${
                 currentMode === 'editor'
-                  ? 'bg-accent text-accent-on font-bold shadow-2xs'
-                  : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+                  ? 'bg-accent text-accent-on font-black shadow-xs'
+                  : 'text-zinc-900 dark:text-zinc-200 hover:text-black dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10'
               }`}
             >
               <Layers className="h-3 w-3" />
               <span className="hidden sm:inline">Studio</span>
+              <span className="text-[8.5px] opacity-75 font-mono ml-0.5 hidden md:inline">01</span>
             </button>
             <button
               onClick={() => onSelectMode('study')}
               title="Study Mode (⌘2)"
-              className={`flex items-center gap-1 px-2.5 py-0.5 rounded-full transition-all ${
+              className={`flex items-center gap-1.5 px-2.5 py-1 transition-all [clip-path:polygon(3px_0,100%_0,calc(100%-3px)_100%,0_100%)] ${
                 currentMode === 'study'
-                  ? 'bg-accent text-accent-on font-bold shadow-2xs'
-                  : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+                  ? 'bg-accent text-accent-on font-black shadow-xs'
+                  : 'text-zinc-900 dark:text-zinc-200 hover:text-black dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10'
               }`}
             >
               <GraduationCap className="h-3 w-3" />
               <span className="hidden sm:inline">Study</span>
+              <span className="text-[8.5px] opacity-75 font-mono ml-0.5 hidden md:inline">02</span>
             </button>
             <button
               onClick={() => onSelectMode('reader')}
               title="Books & Comics (⌘3)"
-              className={`flex items-center gap-1 px-2.5 py-0.5 rounded-full transition-all ${
+              className={`flex items-center gap-1.5 px-2.5 py-1 transition-all [clip-path:polygon(3px_0,100%_0,calc(100%-3px)_100%,0_100%)] ${
                 currentMode === 'reader'
-                  ? 'bg-accent text-accent-on font-bold shadow-2xs'
-                  : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+                  ? 'bg-accent text-accent-on font-black shadow-xs'
+                  : 'text-zinc-900 dark:text-zinc-200 hover:text-black dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10'
               }`}
             >
               <BookOpen className="h-3 w-3" />
               <span className="hidden sm:inline">Reader</span>
+              <span className="text-[8.5px] opacity-75 font-mono ml-0.5 hidden md:inline">03</span>
             </button>
           </div>
         )}
-        
-        {/* Quick Theme Toggle */}
+
+        {/* If on Cover View, integrate the direct LAUNCH action button! */}
+        {isCoverView && onLaunchWorkspace && (
+          <button
+            type="button"
+            onClick={onLaunchWorkspace}
+            className="hidden sm:flex items-center gap-1.5 px-3 py-1 font-mono font-black text-[10px] [clip-path:polygon(0_0,calc(100%-8px)_0,100%_8px,100%_100%,8px_100%,0_calc(100%-8px))] cursor-pointer active:translate-y-0.5 transition-all duration-200 bg-accent text-accent-on shadow-xs shrink-0"
+            title="Launch Workspace (⌘↵)"
+          >
+            <span>LAUNCH</span>
+            <ArrowRight className="h-3 w-3" />
+          </button>
+        )}
+
+        {/* Quick Theme Toggle — Chamfered Mecha Button */}
         <button
           onClick={onToggleDarkMode}
           title={darkMode ? 'Switch to Light Mode (⌘T)' : 'Switch to Dark Mode (⌘T)'}
-          className="h-6 w-6 rounded hover:bg-surface dark:hover:bg-surface flex items-center justify-center text-zinc-600 dark:text-zinc-300 transition-colors"
+          className="h-6 w-6 [clip-path:polygon(3px_0,100%_0,calc(100%-3px)_100%,0_100%)] bg-black/[0.04] dark:bg-white/[0.06] border border-border hover:bg-black/10 dark:hover:bg-white/15 flex items-center justify-center text-zinc-950 dark:text-zinc-50 transition-colors shadow-2xs shrink-0"
         >
-          {darkMode ? <Sun className="h-3.5 w-3.5 text-amber-400" /> : <Moon className="h-3.5 w-3.5 text-zinc-600" />}
+          {darkMode ? <Sun className="h-3.5 w-3.5 text-amber-400" /> : <Moon className="h-3.5 w-3.5 text-zinc-950" />}
         </button>
 
         {onToggleFullscreen && (
           <button
             onClick={onToggleFullscreen}
             title="Toggle Fullscreen (F11)"
-            className="h-6 w-6 rounded hover:bg-surface dark:hover:bg-surface flex items-center justify-center text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors hidden sm:flex"
+            className="h-6 w-6 [clip-path:polygon(3px_0,100%_0,calc(100%-3px)_100%,0_100%)] bg-black/[0.04] dark:bg-white/[0.06] border border-border hover:bg-black/10 dark:hover:bg-white/15 flex items-center justify-center text-zinc-900 dark:text-zinc-100 hover:text-black dark:hover:text-white transition-colors hidden sm:flex shadow-2xs shrink-0"
           >
             <Maximize2 className="h-3 w-3" />
           </button>
         )}
 
       </div>
-
     </div>
   );
 }

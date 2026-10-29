@@ -24,36 +24,51 @@ export default function EmptyState({
   shortcut,
 }: EmptyStateProps) {
   return (
-    <div className="flex-1 w-full h-full flex items-center justify-center p-6 sm:p-8">
-      <div className="max-w-md w-full p-8 sm:p-10 rounded-2xl border border-border bg-card shadow-sm flex flex-col items-center text-center select-none animate-in fade-in zoom-in-95 duration-200">
-        {/* Uniform Icon Box */}
-        <div className="h-16 w-16 rounded-2xl bg-accent/10 border border-accent/20 text-accent flex items-center justify-center mb-4 shadow-2xs">
-          <Icon className="h-8 w-8" />
+    <div className="flex-1 w-full h-full flex items-center justify-center p-6 sm:p-8 relative select-none">
+      {/* Subtle corner reticles in canvas */}
+      <div className="absolute top-6 left-8 font-mono text-[9px] text-accent/30 pointer-events-none hidden md:block select-none">+</div>
+      <div className="absolute top-6 right-8 font-mono text-[9px] text-accent/30 pointer-events-none hidden md:block select-none">+</div>
+      <div className="absolute bottom-6 left-8 font-mono text-[9px] text-accent/30 pointer-events-none hidden md:block select-none">+</div>
+      <div className="absolute bottom-6 right-8 font-mono text-[9px] text-accent/30 pointer-events-none hidden md:block select-none">+</div>
+
+      <div className="max-w-md w-full p-7 sm:p-8 rounded-xl border border-border/80 bg-card/90 backdrop-blur-sm shadow-xl [clip-path:polygon(0_0,calc(100%-14px)_0,100%_14px,100%_100%,14px_100%,0_calc(100%-14px))] flex flex-col items-center text-center animate-in fade-in zoom-in-95 duration-200 relative">
+        {/* Micro Tech Header matching FirstPage */}
+        <div className="w-full flex items-center justify-between pb-3.5 mb-4 border-b border-border/60 font-mono text-[9px] text-zinc-400">
+          <div className="flex items-center gap-1.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
+            <span className="uppercase tracking-widest text-zinc-600 dark:text-zinc-400 font-bold">AIR-GAPPED BUFFER</span>
+          </div>
+          <span className="tracking-widest uppercase opacity-60">// ISO 32000-2</span>
         </div>
 
-        {/* Uniform Title */}
-        <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
+        {/* Chamfered Mecha Icon Box */}
+        <div className="h-14 w-14 [clip-path:polygon(0_0,calc(100%-8px)_0,100%_8px,100%_100%,8px_100%,0_calc(100%-8px))] bg-accent/10 border border-accent/30 text-accent flex items-center justify-center mb-3.5 shadow-2xs">
+          <Icon className="h-6 w-6" />
+        </div>
+
+        {/* Title */}
+        <h3 className="text-base font-bold text-zinc-950 dark:text-zinc-50 tracking-tight font-sans">
           {title}
         </h3>
 
-        {/* Uniform Description */}
-        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2 max-w-xs leading-relaxed">
+        {/* Description */}
+        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 max-w-xs leading-relaxed font-mono">
           {description}
         </p>
 
-        {/* Uniform Action Button */}
+        {/* Chamfered Mecha Action Button */}
         {actionLabel && onAction && (
-          <div className="mt-6 w-full flex justify-center">
+          <div className="mt-5 w-full flex justify-center">
             <button
               type="button"
               onClick={onAction}
-              className="flex items-center gap-2.5 px-6 py-3 rounded-xl bg-accent hover:bg-accent-hover text-white dark:text-zinc-900 text-xs font-semibold shadow-md active:scale-95 transition-all group"
+              className="flex items-center gap-2 px-5 py-2.5 [clip-path:polygon(0_0,calc(100%-8px)_0,100%_8px,100%_100%,8px_100%,0_calc(100%-8px))] bg-accent hover:opacity-90 active:translate-y-0.5 text-accent-on font-mono font-black text-xs shadow-sm transition-all group cursor-pointer"
             >
-              <ActionIcon className="h-4 w-4 group-hover:scale-110 transition-transform" />
+              <ActionIcon className="h-3.5 w-3.5 group-hover:scale-110 transition-transform" />
               <span>{actionLabel}</span>
-              {shortcut && (
-                <span className="text-[10px] font-mono opacity-70 bg-black/20 dark:bg-black/10 px-1.5 py-0.5 rounded ml-0.5">
-                  {shortcut}
+              {(shortcut || '⌘O') && (
+                <span className="text-[9px] font-mono opacity-80 border px-1.5 py-0.5 ml-1" style={{ borderColor: 'currentColor' }}>
+                  {shortcut || '⌘O'}
                 </span>
               )}
             </button>
@@ -62,8 +77,8 @@ export default function EmptyState({
 
         {/* Divider & Drag and Drop Hint */}
         {hint && (
-          <div className="mt-6 pt-4 border-t border-border w-full flex items-center justify-center gap-1.5 text-[11px] text-zinc-400 font-mono">
-            <HintIcon className="h-3.5 w-3.5 text-accent" />
+          <div className="mt-5 pt-3.5 border-t border-border/60 w-full flex items-center justify-center gap-1.5 text-[10px] text-zinc-400 font-mono">
+            <HintIcon className="h-3 w-3 text-accent" />
             <span>{hint}</span>
           </div>
         )}

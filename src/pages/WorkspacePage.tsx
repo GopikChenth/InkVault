@@ -705,23 +705,23 @@ export default function WorkspacePage({
 
             </div>
 
-            {/* Sidebar Footer */}
-            <div className="flex flex-col gap-2 pt-3 pb-1 border-t border-border flex-shrink-0">
+            {/* Sidebar Footer — Chamfered Mecha Controls */}
+            <div className="flex flex-col gap-2 pt-3 pb-1 border-t border-border flex-shrink-0 font-mono">
               <div className="flex items-center justify-between gap-2 px-1">
                 <button
                   type="button"
                   onClick={onToggleDarkMode}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-mono bg-card border border-border hover:bg-surface dark:hover:bg-surface transition-colors shadow-xs"
+                  className="h-7 flex items-center gap-1.5 px-2.5 [clip-path:polygon(3px_0,100%_0,calc(100%-3px)_100%,0_100%)] text-xs font-mono font-bold bg-card border border-border hover:bg-black/5 dark:hover:bg-white/10 text-zinc-800 dark:text-zinc-200 transition-colors shadow-2xs cursor-pointer"
                 >
-                  {darkMode ? <Sun className="h-3.5 w-3.5 text-amber-400" /> : <Moon className="h-3.5 w-3.5 text-zinc-600" />}
+                  {darkMode ? <Sun className="h-3.5 w-3.5 text-amber-400" /> : <Moon className="h-3.5 w-3.5 text-zinc-950" />}
                   <span>{darkMode ? 'Light' : 'Dark'}</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={onReturnToCover}
-                  className="flex items-center gap-1 text-[11px] font-mono text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors px-2 py-1 rounded hover:bg-card"
-                  title="Return to Presentation Cover"
+                  className="h-7 flex items-center gap-1.5 text-[11px] font-mono font-bold text-zinc-500 hover:text-accent transition-colors px-2 rounded hover:bg-card cursor-pointer"
+                  title="Return to Presentation Cover (⌘↵)"
                 >
                   <Home className="h-3.5 w-3.5" />
                   <span>Cover</span>
@@ -749,13 +749,13 @@ export default function WorkspacePage({
           )}
 
           {!(activeTab === 'viewer' && activeDoc) && (
-            <header className="h-10 border-b border-border flex items-center justify-between px-3 sm:px-6 bg-surface dark:bg-surface flex-shrink-0 z-20">
-              <div className="flex items-center gap-2 sm:gap-2.5 text-xs font-mono text-on-surface-variant min-w-0">
+            <header className="h-10 border-b border-border flex items-center justify-between px-3 sm:px-4 bg-surface dark:bg-surface flex-shrink-0 z-20 select-none">
+              <div className="flex items-center gap-1.5 sm:gap-2 text-xs font-mono text-zinc-500 min-w-0">
                 <button
                   type="button"
                   onClick={() => setIsSidebarOpen((prev) => !prev)}
                   title={isSidebarOpen ? "Collapse Sidebar" : "Expand Sidebar"}
-                  className="h-7 w-7 rounded-lg border border-border flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-card transition-colors flex-shrink-0 mr-0.5"
+                  className="h-7 w-7 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] border border-border flex items-center justify-center text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white hover:bg-card transition-colors flex-shrink-0 mr-1 shadow-2xs cursor-pointer"
                 >
                   {isSidebarOpen ? <PanelLeftClose className="h-3.5 w-3.5" /> : <PanelLeftOpen className="h-3.5 w-3.5" />}
                 </button>
@@ -763,25 +763,33 @@ export default function WorkspacePage({
                 <button 
                   type="button"
                   onClick={onReturnToCover}
-                  className="flex items-center gap-1 text-on-surface-variant hover:text-on-surface transition-colors flex-shrink-0"
+                  className="flex items-center gap-1 text-zinc-600 dark:text-zinc-400 hover:text-accent transition-colors flex-shrink-0 font-bold"
+                  title="Return to Cover (⌘↵)"
                 >
                   <Home className="h-3.5 w-3.5" />
                   <span className="hidden sm:inline">Cover</span>
                 </button>
-                <span>/</span>
-                <span className="font-semibold text-on-surface flex-shrink-0">Workspace</span>
-                <span>/</span>
-                <span className="capitalize truncate">{activeTab.replace('-', ' ')}</span>
+                <span className="opacity-40">/</span>
+                <span className="text-zinc-700 dark:text-zinc-300 font-bold flex-shrink-0 uppercase text-[11px] tracking-wider">Workspace</span>
+                <span className="opacity-40">/</span>
+                <div className="flex items-center gap-1 font-bold text-accent truncate uppercase text-[11px] tracking-wider">
+                  <span className="text-[9px]">▶</span>
+                  <span>{activeTab.replace('-', ' ')}</span>
+                </div>
               </div>
 
               {currentMode !== 'reader' && (
                 <button
                   type="button"
                   onClick={currentMode === 'study' ? handleTriggerImportFolder : handleTriggerOpenFile}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container border border-border text-on-surface hover:bg-surface-high text-xs font-semibold transition-colors shadow-2xs"
+                  className="h-7 flex items-center gap-1.5 px-3 [clip-path:polygon(0_0,calc(100%-6px)_0,100%_6px,100%_100%,6px_100%,0_calc(100%-6px))] bg-accent text-accent-on font-mono font-bold text-xs hover:opacity-90 active:translate-y-0.5 transition-all shadow-xs cursor-pointer"
+                  title={currentMode === 'study' ? 'Import Folder' : 'Open PDF (⌘O)'}
                 >
                   {currentMode === 'study' ? <FolderUp className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
                   <span>{currentMode === 'study' ? 'Import Folder' : 'Open PDF'}</span>
+                  {currentMode !== 'study' && (
+                    <span className="text-[9px] opacity-75 font-mono ml-0.5 hidden sm:inline">⌘O</span>
+                  )}
                 </button>
               )}
             </header>
@@ -789,6 +797,19 @@ export default function WorkspacePage({
 
           {/* Workspace Canvas Area: Strict Domain-Isolated Viewports */}
           <div className="flex-1 overflow-hidden relative flex flex-col p-0 m-0">
+
+            {/* Subtle Blueprint Grid Background matching FirstPage (Non-Aggressive) */}
+            <div 
+              className="absolute inset-0 pointer-events-none transition-opacity duration-300"
+              style={{
+                opacity: darkMode ? 0.05 : 0.03,
+                backgroundImage: `
+                  linear-gradient(to right, ${darkMode ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 104, 116, 0.18)'} 1px, transparent 1px),
+                  linear-gradient(to bottom, ${darkMode ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 104, 116, 0.18)'} 1px, transparent 1px)
+                `,
+                backgroundSize: '36px 36px',
+              }}
+            />
 
             {/* 1. STUDIO VIEWPORT */}
             <div className={`w-full h-full flex flex-col ${currentMode === 'editor' ? 'relative flex-1' : 'absolute inset-0 invisible pointer-events-none -z-10'}`}>

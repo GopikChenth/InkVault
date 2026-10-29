@@ -80,36 +80,37 @@ export const StudySidebar: React.FC<StudySidebarProps> = ({
       );
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Primary Action Button */}
+    <div className="flex flex-col gap-5 select-none">
+      {/* Primary Action Button — Cyber Chamfer Cut */}
       <button
         type="button"
         onClick={onTriggerImportFolder}
-        className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-zinc-100 dark:text-zinc-900 text-xs font-semibold hover:bg-accent hover:text-accent-on transition-all shadow-sm group active:scale-[0.98]"
+        className="w-full flex items-center justify-between px-3.5 py-2.5 [clip-path:polygon(0_0,calc(100%-8px)_0,100%_8px,100%_100%,8px_100%,0_calc(100%-8px))] bg-accent hover:opacity-95 text-accent-on font-mono font-black text-xs uppercase tracking-wider shadow-xs active:translate-y-0.5 transition-all cursor-pointer group"
       >
         <span className="flex items-center gap-2">
           <FolderUp className="h-4 w-4" />
           <span>Import Folder</span>
         </span>
-        <span className="text-[10px] font-mono opacity-60 bg-black/20 dark:bg-white/20 px-1.5 py-0.5 rounded">
+        <span className="text-[9px] font-mono opacity-80 border px-1.5 py-0.5" style={{ borderColor: 'currentColor' }}>
           ⌘O
         </span>
       </button>
 
       {/* Main Academics Navigation */}
       <div className="flex flex-col gap-1">
-        <span className="px-2 text-[10px] font-mono uppercase tracking-wider text-zinc-400 font-semibold mb-1">
-          Academics
+        <span className="px-2 text-[10px] font-mono uppercase tracking-wider text-zinc-400 font-bold mb-1 flex items-center gap-1.5">
+          <span className="text-accent font-black text-[9px]">▶</span>
+          <span>Academics</span>
         </span>
 
         {/* Study Reader */}
         <button
           type="button"
           onClick={() => onSelectTab('viewer')}
-          className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium outline-none focus:outline-none select-none transition-colors duration-75 ${
+          className={`w-full flex items-center justify-between px-3 py-2 text-xs font-mono font-bold outline-none focus:outline-none select-none transition-all duration-100 ${
             activeTab === 'viewer'
-              ? 'bg-card text-zinc-900 dark:text-zinc-100 shadow-sm border border-border font-semibold'
-              : 'text-zinc-600 dark:text-zinc-400 hover:bg-card/70 hover:text-zinc-900 dark:hover:text-zinc-100 border border-transparent'
+              ? 'bg-accent/15 text-accent border-l-2 border-accent [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] shadow-2xs'
+              : 'text-zinc-600 dark:text-zinc-400 hover:bg-black/5 dark:hover:bg-white/5 hover:text-zinc-950 dark:hover:text-zinc-100 border-l-2 border-transparent'
           }`}
         >
           <span className="flex items-center gap-2.5">
@@ -117,7 +118,9 @@ export const StudySidebar: React.FC<StudySidebarProps> = ({
             <span>Study Reader</span>
           </span>
           {openDocsCount > 0 && (
-            <span className="text-[10px] font-mono bg-zinc-200/80 dark:bg-surface px-1.5 py-0.5 rounded text-zinc-600 dark:text-zinc-300">
+            <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
+              activeTab === 'viewer' ? 'bg-accent/20 text-accent font-bold' : 'bg-zinc-200/80 dark:bg-white/10 text-zinc-600 dark:text-zinc-300'
+            }`}>
               {openDocsCount}
             </span>
           )}
@@ -127,10 +130,10 @@ export const StudySidebar: React.FC<StudySidebarProps> = ({
         <button
           type="button"
           onClick={() => onSelectTab('recent')}
-          className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium outline-none focus:outline-none select-none transition-colors duration-75 ${
+          className={`w-full flex items-center justify-between px-3 py-2 text-xs font-mono font-bold outline-none focus:outline-none select-none transition-all duration-100 ${
             activeTab === 'recent'
-              ? 'bg-card text-zinc-900 dark:text-zinc-100 shadow-sm border border-border font-semibold'
-              : 'text-zinc-600 dark:text-zinc-400 hover:bg-card/70 hover:text-zinc-900 dark:hover:text-zinc-100 border border-transparent'
+              ? 'bg-accent/15 text-accent border-l-2 border-accent [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] shadow-2xs'
+              : 'text-zinc-600 dark:text-zinc-400 hover:bg-black/5 dark:hover:bg-white/5 hover:text-zinc-950 dark:hover:text-zinc-100 border-l-2 border-transparent'
           }`}
         >
           <span className="flex items-center gap-2.5">
@@ -138,7 +141,9 @@ export const StudySidebar: React.FC<StudySidebarProps> = ({
             <span>Study Subjects</span>
           </span>
           {recentDocsCount > 0 && (
-            <span className="text-[10px] font-mono bg-zinc-200/80 dark:bg-surface px-1.5 py-0.5 rounded text-zinc-600 dark:text-zinc-300">
+            <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
+              activeTab === 'recent' ? 'bg-accent/20 text-accent font-bold' : 'bg-zinc-200/80 dark:bg-white/10 text-zinc-600 dark:text-zinc-300'
+            }`}>
               {recentDocsCount}
             </span>
           )}

@@ -49,36 +49,37 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
   };
 
   return (
-    <div className="flex flex-col gap-5">
-      {/* Primary Action Button */}
+    <div className="flex flex-col gap-5 select-none">
+      {/* Primary Action Button — Cyber Chamfer Cut */}
       <button
         type="button"
         onClick={onTriggerOpenFile}
-        className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-accent-on text-xs font-semibold bg-accent hover:bg-accent-hover shadow-sm group active:scale-[0.98] transition-all"
+        className="w-full flex items-center justify-between px-3.5 py-2.5 [clip-path:polygon(0_0,calc(100%-8px)_0,100%_8px,100%_100%,8px_100%,0_calc(100%-8px))] bg-accent hover:opacity-95 text-accent-on font-mono font-black text-xs uppercase tracking-wider shadow-xs active:translate-y-0.5 transition-all cursor-pointer group"
       >
         <span className="flex items-center gap-2">
           <Plus className="h-4 w-4" />
           <span>Add Book / Comic</span>
         </span>
-        <span className="text-[10px] font-mono opacity-60 bg-black/20 px-1.5 py-0.5 rounded">
+        <span className="text-[9px] font-mono opacity-80 border px-1.5 py-0.5" style={{ borderColor: 'currentColor' }}>
           ⌘O
         </span>
       </button>
 
       {/* Bookshelf Navigation */}
       <div className="flex flex-col gap-1">
-        <span className="px-2 text-[10px] font-mono uppercase tracking-wider text-on-surface-variant font-semibold mb-1">
-          Bookshelf
+        <span className="px-2 text-[10px] font-mono uppercase tracking-wider text-zinc-400 font-bold mb-1 flex items-center gap-1.5">
+          <span className="text-accent font-black text-[9px]">▶</span>
+          <span>Bookshelf</span>
         </span>
 
         {/* Books & Comics Library Navigation */}
         <button
           type="button"
           onClick={() => onSelectTab('recent')}
-          className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium outline-none focus:outline-none select-none transition-colors duration-75 ${
+          className={`w-full flex items-center justify-between px-3 py-2 text-xs font-mono font-bold outline-none focus:outline-none select-none transition-all duration-100 ${
             activeTab === 'recent'
-              ? 'bg-accent/15 text-accent border border-accent/30 font-semibold shadow-2xs'
-              : 'text-on-surface-variant hover:bg-card/70 hover:text-on-surface border border-transparent'
+              ? 'bg-accent/15 text-accent border-l-2 border-accent [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] shadow-2xs'
+              : 'text-zinc-600 dark:text-zinc-400 hover:bg-black/5 dark:hover:bg-white/5 hover:text-zinc-950 dark:hover:text-zinc-100 border-l-2 border-transparent'
           }`}
         >
           <span className="flex items-center gap-2.5">
@@ -86,7 +87,9 @@ export const ReaderSidebar: React.FC<ReaderSidebarProps> = ({
             <span>Books & Comics</span>
           </span>
           {totalCount > 0 && (
-            <span className="text-[10px] font-mono bg-surface-container px-1.5 py-0.5 rounded text-on-surface-variant">
+            <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
+              activeTab === 'recent' ? 'bg-accent/20 text-accent font-bold' : 'bg-zinc-200/80 dark:bg-white/10 text-zinc-600 dark:text-zinc-300'
+            }`}>
               {totalCount}
             </span>
           )}

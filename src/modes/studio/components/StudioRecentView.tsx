@@ -41,17 +41,12 @@ export const StudioRecentView: React.FC<StudioRecentViewProps> = ({
         <div className="space-y-4">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-border pb-3">
-            <div>
-              <h2 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5 font-sans">
-                <span className="text-accent font-black text-[9px]">▶</span>
-                <span>Session Documents</span>
-              </h2>
-              <p className="text-xs text-zinc-500 font-mono mt-0.5">
-                // In-memory air-gapped PDF session buffer
-              </p>
-            </div>
+            <h2 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5 font-sans">
+              <span className="text-accent font-black text-[9px]">▶</span>
+              <span>Session Documents</span>
+            </h2>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-mono font-bold text-accent px-2 py-0.5 rounded bg-accent/15 border border-accent/25">
+              <span className="text-xs font-mono font-bold text-accent px-2 py-0.5 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] bg-accent/15 border border-accent/25">
                 {docs.length} {docs.length === 1 ? 'FILE' : 'FILES'}
               </span>
             </div>

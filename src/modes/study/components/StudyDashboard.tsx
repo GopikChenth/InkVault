@@ -15,7 +15,7 @@ import {
 import { LoadedPDF } from '../../../types';
 import { StudySubject, StudyExplorerView } from '../types';
 import FolderTreeExplorer from './FolderTreeExplorer';
-import StudySubjectSetupCard from './StudySubjectSetupCard';
+import EmptyState from '../../../components/EmptyState';
 
 export interface StudyDashboardProps {
   studySubjects: StudySubject[];
@@ -42,9 +42,7 @@ export const StudyDashboard: React.FC<StudyDashboardProps> = ({
 }) => {
   const [studyExplorerView, setStudyExplorerView] = useState<StudyExplorerView>('tree');
 
-  if (studySubjects.length === 0 && recentDocs.length === 0) {
-    return <StudySubjectSetupCard onTriggerImportFolder={onTriggerImportFolder} />;
-  }
+  const isLibraryEmpty = studySubjects.length === 0 && recentDocs.length === 0;
 
   const activeSubject = activeSubjectId !== 'all' 
     ? studySubjects.find((s) => s.id === activeSubjectId) 
@@ -57,136 +55,147 @@ export const StudyDashboard: React.FC<StudyDashboardProps> = ({
       );
 
   return (
-    <div className="flex-1 overflow-y-auto p-6 sm:p-8 max-w-4xl mx-auto w-full">
-      <div className="space-y-4 select-none">
-        {/* Header */}
-        <div className="flex flex-col gap-3 pb-3 border-b border-border">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="h-7 w-7 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] bg-accent/15 border border-accent/30 text-accent flex items-center justify-center shadow-2xs flex-shrink-0">
-                <GraduationCap className="h-3.5 w-3.5" />
-              </div>
-              <div className="min-w-0">
-                <h2 className="text-xs font-bold text-zinc-950 dark:text-zinc-50 truncate flex items-center gap-1.5 font-sans">
-                  <span className="text-accent font-black text-[9px]">▶</span>
-                  <span>{activeSubject ? activeSubject.name : 'Study Subjects & Coursework'}</span>
-                </h2>
-                <p className="text-[10px] font-mono text-zinc-500 truncate">
-                  {activeSubject
-                    ? `// Imported subject directory • ${displayedDocs.length} documents`
-                    : '// Organized local folders & study materials for distraction-free revision'}
-                </p>
-              </div>
-            </div>
+    <div className="flex-1 w-full h-full overflow-hidden bg-background text-zinc-900 dark:text-zinc-100 flex flex-col select-none">
+      {/* 1. Constraint-Aligned Mecha Header Bar (NO SUBTEXT) */}
+      <header className="px-4 sm:px-6 md:px-8 h-11 border-b border-border bg-surface/95 dark:bg-surface/95 backdrop-blur-md flex items-center justify-between gap-3 flex-shrink-0 z-20 select-none">
+        {/* Left: Icon + Title + Count Badge */}
+        <div className="flex items-center gap-2.5 min-w-0 flex-shrink-0">
+          <div className="h-7 w-7 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] bg-accent/15 border border-accent/30 text-accent flex items-center justify-center shadow-2xs flex-shrink-0">
+            <GraduationCap className="h-3.5 w-3.5" />
+          </div>
+          <div className="flex items-center gap-2 min-w-0">
+            <h1 className="text-xs sm:text-sm font-bold text-zinc-950 dark:text-zinc-50 tracking-tight whitespace-nowrap flex items-center gap-1.5 font-sans">
+              <span className="text-accent font-black text-[9px]">▶</span>
+              <span>{activeSubject ? activeSubject.name : 'Study Subjects & Coursework'}</span>
+            </h1>
+            <span className="text-[10px] font-mono font-bold px-2 py-0.5 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] bg-accent/15 border border-accent/25 text-accent flex-shrink-0">
+              {displayedDocs.length} {displayedDocs.length === 1 ? 'DOC' : 'DOCS'}
+            </span>
+          </div>
+        </div>
 
-            <div className="flex items-center gap-2 flex-shrink-0 font-mono">
-              {/* Tree / Cards View Toggle */}
-              <div className="flex items-center gap-0.5 bg-surface dark:bg-card border border-border p-0.5 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] shadow-2xs">
-                <button
-                  type="button"
-                  onClick={() => setStudyExplorerView('tree')}
-                  title="VS Code Folder Structure View"
-                  className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono font-bold transition-all cursor-pointer ${
-                    studyExplorerView === 'tree'
-                      ? 'bg-accent text-accent-on shadow-2xs [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)]'
-                      : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
-                  }`}
-                >
-                  <FolderTree className="h-3.5 w-3.5" />
-                  <span>Tree</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStudyExplorerView('cards')}
-                  title="Cards List View"
-                  className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono font-bold transition-all cursor-pointer ${
-                    studyExplorerView === 'cards'
-                      ? 'bg-accent text-accent-on shadow-2xs [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)]'
-                      : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
-                  }`}
-                >
-                  <LayoutGrid className="h-3.5 w-3.5" />
-                  <span>Cards</span>
-                </button>
-              </div>
-
-              <button
-                type="button"
-                onClick={onTriggerImportFolder}
-                className="h-7 flex items-center gap-1.5 px-3.5 [clip-path:polygon(0_0,calc(100%-6px)_0,100%_6px,100%_100%,6px_100%,0_calc(100%-6px))] bg-accent hover:opacity-90 active:translate-y-0.5 text-accent-on font-mono font-black text-xs transition-all shadow-xs cursor-pointer"
-                title="Select an entire folder from your computer to import as a subject"
-              >
-                <FolderUp className="h-3.5 w-3.5" />
-                <span>Import Folder</span>
-              </button>
-            </div>
+        {/* Right: Actions */}
+        <div className="flex items-center gap-2 flex-shrink-0 font-mono">
+          {/* Tree / Cards View Toggle */}
+          <div className="flex items-center gap-0.5 bg-surface dark:bg-card border border-border p-0.5 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] shadow-2xs">
+            <button
+              type="button"
+              onClick={() => setStudyExplorerView('tree')}
+              title="Tree Folder View"
+              className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono font-bold transition-all cursor-pointer ${
+                studyExplorerView === 'tree'
+                  ? 'bg-accent text-accent-on shadow-2xs [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)]'
+                  : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+              }`}
+            >
+              <FolderTree className="h-3.5 w-3.5" />
+              <span>Tree</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setStudyExplorerView('cards')}
+              title="Cards List View"
+              className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono font-bold transition-all cursor-pointer ${
+                studyExplorerView === 'cards'
+                  ? 'bg-accent text-accent-on shadow-2xs [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)]'
+                  : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+              }`}
+            >
+              <LayoutGrid className="h-3.5 w-3.5" />
+              <span>Cards</span>
+            </button>
           </div>
 
-          {/* Subject Filter Pills */}
-          {studySubjects.length > 0 && (
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1 font-mono">
+          <button
+            type="button"
+            onClick={onTriggerImportFolder}
+            className="h-7 flex items-center gap-1.5 px-3.5 [clip-path:polygon(0_0,calc(100%-6px)_0,100%_6px,100%_100%,6px_100%,0_calc(100%-6px))] bg-accent hover:opacity-90 active:translate-y-0.5 text-accent-on font-mono font-bold text-xs transition-all shadow-xs cursor-pointer"
+            title="Import Subject Folder (⌘O)"
+          >
+            <FolderUp className="h-3.5 w-3.5" />
+            <span>Import Folder</span>
+          </button>
+        </div>
+      </header>
+
+      {/* 2. Responsive Subject Filter Pills Bar */}
+      {studySubjects.length > 0 && (
+        <div className="px-4 sm:px-6 md:px-8 py-2 border-b border-border bg-surface/60 flex items-center gap-1.5 overflow-x-auto no-scrollbar flex-shrink-0 text-xs font-mono">
+          <button
+            type="button"
+            onClick={() => onSelectSubject('all')}
+            className={`flex items-center gap-1.5 px-3 py-1 [clip-path:polygon(3px_0,100%_0,calc(100%-3px)_100%,0_100%)] text-xs font-bold transition-all cursor-pointer ${
+              activeSubjectId === 'all'
+                ? 'bg-accent text-accent-on shadow-2xs'
+                : 'bg-surface hover:bg-card text-zinc-600 dark:text-zinc-400 border border-border'
+            }`}
+          >
+            <span>ALL</span>
+            <span className="text-[10px] opacity-70">({recentDocs.length})</span>
+          </button>
+
+          {studySubjects.map((sub) => {
+            const isSelected = activeSubjectId === sub.id;
+            const count = recentDocs.filter(
+              (d) => d.subjectId === sub.id || d.subjectName === sub.name
+            ).length;
+            return (
               <button
+                key={sub.id}
                 type="button"
-                onClick={() => onSelectSubject('all')}
-                className={`flex items-center gap-1.5 px-3 py-1 [clip-path:polygon(3px_0,100%_0,calc(100%-3px)_100%,0_100%)] text-xs font-bold transition-all cursor-pointer ${
-                  activeSubjectId === 'all'
-                    ? 'bg-accent text-accent-on shadow-2xs'
+                onClick={() => onSelectSubject(sub.id)}
+                className={`flex items-center gap-1.5 px-3 py-1 [clip-path:polygon(3px_0,100%_0,calc(100%-3px)_100%,0_100%)] text-xs font-bold transition-all flex-shrink-0 cursor-pointer ${
+                  isSelected
+                    ? 'bg-card text-zinc-900 dark:text-zinc-100 border border-border shadow-2xs'
                     : 'bg-surface hover:bg-card text-zinc-600 dark:text-zinc-400 border border-border'
                 }`}
               >
-                <span>ALL</span>
-                <span className="text-[10px] opacity-70">({recentDocs.length})</span>
+                <span
+                  className="w-2 h-2 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: sub.color }}
+                />
+                <span>{sub.name}</span>
+                <span className="text-[10px] opacity-70">({count})</span>
               </button>
-
-              {studySubjects.map((sub) => {
-                const isSelected = activeSubjectId === sub.id;
-                const count = recentDocs.filter(
-                  (d) => d.subjectId === sub.id || d.subjectName === sub.name
-                ).length;
-                return (
-                  <button
-                    key={sub.id}
-                    type="button"
-                    onClick={() => onSelectSubject(sub.id)}
-                    className={`flex items-center gap-1.5 px-3 py-1 [clip-path:polygon(3px_0,100%_0,calc(100%-3px)_100%,0_100%)] text-xs font-bold transition-all flex-shrink-0 cursor-pointer ${
-                      isSelected
-                        ? 'bg-card text-zinc-900 dark:text-zinc-100 border border-border shadow-2xs'
-                        : 'bg-surface hover:bg-card text-zinc-600 dark:text-zinc-400 border border-border'
-                    }`}
-                  >
-                    <span
-                      className="w-2 h-2 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: sub.color }}
-                    />
-                    <span>{sub.name}</span>
-                    <span className="text-[10px] opacity-70">({count})</span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
+            );
+          })}
         </div>
+      )}
 
-        {/* Content Area */}
-        {displayedDocs.length === 0 ? (
-          <div className="py-16 text-center flex flex-col items-center select-none animate-in fade-in duration-150">
+      {/* 3. Main Viewport Canvas */}
+      <main className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 w-full max-w-5xl mx-auto flex flex-col">
+        {isLibraryEmpty ? (
+          <div className="flex-1 flex items-center justify-center">
+            <EmptyState
+              icon={GraduationCap}
+              title="Import Subject Folder"
+              description="Select a folder to organize coursework, notes, and textbook PDFs."
+              actionLabel="Select Folder from Computer"
+              actionIcon={FolderUp}
+              onAction={onTriggerImportFolder}
+              hint="Or drag & drop folder here"
+              hintIcon={Folder}
+            />
+          </div>
+        ) : displayedDocs.length === 0 ? (
+          <div className="my-auto py-12 text-center flex flex-col items-center select-none animate-in fade-in duration-150 [clip-path:polygon(0_0,calc(100%-12px)_0,100%_12px,100%_100%,12px_100%,0_calc(100%-12px))] border border-border bg-card/60 p-8 max-w-md mx-auto">
             <div 
-              className="h-12 w-12 rounded-2xl flex items-center justify-center mb-3 shadow-2xs text-white"
-              style={{ backgroundColor: activeSubject ? activeSubject.color : '#6366f1' }}
+              className="h-12 w-12 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] flex items-center justify-center mb-3 shadow-2xs text-white"
+              style={{ backgroundColor: activeSubject ? activeSubject.color : 'var(--color-accent, #6366f1)' }}
             >
               <Folder className="h-6 w-6" />
             </div>
-            <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
+            <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 font-sans">
               No documents in {activeSubject ? `"${activeSubject.name}"` : 'this category'} yet
             </h3>
-            <p className="text-xs text-zinc-500 mt-1 max-w-sm">
-              Select a folder from your computer or open documents to organize them under this subject.
+            <p className="text-xs text-zinc-500 font-mono mt-1 max-w-sm">
+              Select a folder from your computer or add documents to organize them under this subject.
             </p>
-            <div className="mt-4 flex items-center gap-2.5">
+            <div className="mt-4 flex items-center gap-2.5 font-mono">
               <button
                 type="button"
                 onClick={onTriggerImportFolder}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-accent text-white text-xs font-semibold hover:bg-accent-hover transition-colors shadow-2xs"
+                className="flex items-center gap-1.5 px-3.5 py-1.5 [clip-path:polygon(0_0,calc(100%-6px)_0,100%_6px,100%_100%,6px_100%,0_calc(100%-6px))] bg-accent text-accent-on text-xs font-bold hover:opacity-90 active:translate-y-0.5 transition-all shadow-xs cursor-pointer"
               >
                 <FolderUp className="h-3.5 w-3.5" />
                 <span>Import Folder</span>
@@ -194,7 +203,7 @@ export const StudyDashboard: React.FC<StudyDashboardProps> = ({
               <button
                 type="button"
                 onClick={onTriggerOpenFile}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-border bg-surface text-zinc-800 dark:text-zinc-200 text-xs font-semibold hover:bg-card transition-colors shadow-2xs"
+                className="flex items-center gap-1.5 px-3.5 py-1.5 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] border border-border bg-surface text-zinc-800 dark:text-zinc-200 text-xs font-bold hover:bg-card transition-colors shadow-2xs cursor-pointer"
               >
                 <Plus className="h-3.5 w-3.5" />
                 <span>Add PDF</span>
@@ -202,7 +211,7 @@ export const StudyDashboard: React.FC<StudyDashboardProps> = ({
             </div>
           </div>
         ) : studyExplorerView === 'tree' ? (
-          <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
+          <div className="bg-card border border-border [clip-path:polygon(0_0,calc(100%-12px)_0,100%_12px,100%_100%,12px_100%,0_calc(100%-12px))] p-4 shadow-sm">
             <FolderTreeExplorer
               docs={displayedDocs}
               activeDocId={activeDocId || undefined}
@@ -249,7 +258,7 @@ export const StudyDashboard: React.FC<StudyDashboardProps> = ({
                         </h4>
                         {doc.subjectName && (
                           <span
-                            className="inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded border flex-shrink-0"
+                            className="inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] border flex-shrink-0"
                             style={{
                               backgroundColor: subColor ? `${subColor}15` : 'rgba(99, 102, 241, 0.1)',
                               borderColor: subColor ? `${subColor}35` : 'rgba(99, 102, 241, 0.25)',
@@ -264,7 +273,7 @@ export const StudyDashboard: React.FC<StudyDashboardProps> = ({
                           </span>
                         )}
                         {isCurrentlyActive && (
-                          <span className="flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-bold">
+                          <span className="flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-bold">
                             <CheckCircle2 className="h-3 w-3" /> ACTIVE
                           </span>
                         )}
@@ -285,7 +294,7 @@ export const StudyDashboard: React.FC<StudyDashboardProps> = ({
                       type="button"
                       onClick={(e) => onRemoveDoc(doc.id, e)}
                       title="Remove from session"
-                      className="h-7 w-7 rounded hover:bg-rose-500/10 hover:text-rose-500 flex items-center justify-center text-zinc-400 transition-colors cursor-pointer"
+                      className="h-7 w-7 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] hover:bg-rose-500/10 hover:text-rose-500 flex items-center justify-center text-zinc-400 transition-colors cursor-pointer"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
@@ -304,7 +313,7 @@ export const StudyDashboard: React.FC<StudyDashboardProps> = ({
             })}
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 };

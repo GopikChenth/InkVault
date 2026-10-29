@@ -250,7 +250,7 @@ export const FolderTreeExplorer: React.FC<FolderTreeExplorerProps> = ({
               </span>
             </div>
 
-            <span className="text-[10px] font-mono text-zinc-400 bg-zinc-200/60 dark:bg-surface px-1.5 py-0.5 rounded-full flex-shrink-0">
+            <span className="text-[10px] font-mono text-zinc-400 bg-surface border border-border px-1.5 py-0.5 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] flex-shrink-0">
               {folder.totalFileCount}
             </span>
           </div>
@@ -279,7 +279,7 @@ export const FolderTreeExplorer: React.FC<FolderTreeExplorerProps> = ({
                   style={{
                     paddingLeft: `${(file.depth - 1) * (isCompact ? 10 : 14) + (isCompact ? 6 : 8)}px`,
                   }}
-                  className={`group/file flex items-center justify-between py-1.5 px-2.5 rounded-lg cursor-pointer transition-all ${
+                  className={`group/file flex items-center justify-between py-1.5 px-2.5 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] cursor-pointer transition-all ${
                     isActive
                       ? 'bg-accent/10 border border-accent/30 text-accent font-semibold'
                       : isCompact
@@ -290,19 +290,19 @@ export const FolderTreeExplorer: React.FC<FolderTreeExplorerProps> = ({
                 >
                   <div className="flex-1 min-w-0 flex items-center gap-2">
                     {getFileIcon(file.name)}
-                    <span className="truncate text-xs group-hover/file:text-accent transition-colors">
+                    <span className="truncate text-xs group-hover/file:text-accent transition-colors font-sans">
                       {cleanFileName}
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-1.5 flex-shrink-0 ml-1.5">
+                  <div className="flex items-center gap-1.5 flex-shrink-0 ml-1.5 font-mono">
                     {isActive ? (
-                      <span className="inline-flex items-center gap-1 text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 shrink-0">
+                      <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
                         <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        <span>Active</span>
+                        <span>ACTIVE</span>
                       </span>
                     ) : (
-                      <span className="text-[10px] font-mono text-zinc-400">
+                      <span className="text-[10px] text-zinc-400">
                         {file.doc.size}
                       </span>
                     )}
@@ -315,7 +315,7 @@ export const FolderTreeExplorer: React.FC<FolderTreeExplorerProps> = ({
                           onRemoveDoc(file.id, e);
                         }}
                         title={`Remove ${file.name}`}
-                        className="opacity-0 group-hover/file:opacity-100 p-1 hover:text-rose-500 text-zinc-400 transition-opacity rounded hover:bg-rose-500/10"
+                        className="opacity-0 group-hover/file:opacity-100 h-6 w-6 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] flex items-center justify-center hover:text-rose-500 text-zinc-400 transition-opacity hover:bg-rose-500/10 cursor-pointer"
                       >
                         <Trash2 className="h-3 w-3" />
                       </button>
@@ -338,7 +338,7 @@ export const FolderTreeExplorer: React.FC<FolderTreeExplorerProps> = ({
     <div className={`flex flex-col w-full ${className}`}>
       {/* Controls Bar: Search & Expand/Collapse */}
       {showControls && (
-        <div className="flex items-center justify-between gap-2 pb-2.5 mb-2 border-b border-border">
+        <div className="flex items-center justify-between gap-2 pb-2.5 mb-2 border-b border-border font-mono">
           {/* Search Input */}
           <div className="relative flex-1 min-w-0">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400 pointer-events-none" />
@@ -347,7 +347,7 @@ export const FolderTreeExplorer: React.FC<FolderTreeExplorerProps> = ({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Filter files..."
-              className="w-full pl-8 pr-7 py-1 text-xs rounded-lg bg-surface border border-border focus:outline-none focus:border-accent text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 transition-colors"
+              className="w-full pl-8 pr-7 py-1 text-xs [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] bg-surface border border-border focus:outline-none focus:border-accent text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 transition-colors shadow-2xs"
             />
             {searchQuery && (
               <button
@@ -366,7 +366,7 @@ export const FolderTreeExplorer: React.FC<FolderTreeExplorerProps> = ({
               type="button"
               onClick={expandAll}
               title="Expand All Folders"
-              className="p-1.5 rounded-md hover:bg-surface text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors"
+              className="h-7 w-7 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] border border-border flex items-center justify-center hover:bg-surface text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors shadow-2xs cursor-pointer"
             >
               <Maximize2 className="h-3.5 w-3.5" />
             </button>
@@ -374,7 +374,7 @@ export const FolderTreeExplorer: React.FC<FolderTreeExplorerProps> = ({
               type="button"
               onClick={collapseAll}
               title="Collapse All Folders"
-              className="p-1.5 rounded-md hover:bg-surface text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors"
+              className="h-7 w-7 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] border border-border flex items-center justify-center hover:bg-surface text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors shadow-2xs cursor-pointer"
             >
               <Minimize2 className="h-3.5 w-3.5" />
             </button>

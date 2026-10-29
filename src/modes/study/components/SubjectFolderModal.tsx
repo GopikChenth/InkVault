@@ -70,42 +70,40 @@ export default function SubjectFolderModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150 select-none">
       <div 
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-md bg-card border border-border rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150 text-zinc-900 dark:text-zinc-100"
+        className="relative w-full max-w-md bg-card border border-border [clip-path:polygon(0_0,calc(100%-12px)_0,100%_12px,100%_100%,12px_100%,0_calc(100%-12px))] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150 text-zinc-900 dark:text-zinc-100"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-surface/50">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-border bg-surface/80">
           <div className="flex items-center gap-2.5">
             <div 
-              className="h-8 w-8 rounded-xl flex items-center justify-center shadow-xs text-white"
+              className="h-8 w-8 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] flex items-center justify-center shadow-xs text-white"
               style={{ backgroundColor: selectedColor }}
             >
               <FolderPlus className="h-4 w-4" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
-                Add Study Subject
+              <h2 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5 font-sans">
+                <span className="text-accent font-black text-[9px]">▶</span>
+                <span>Add Study Subject</span>
               </h2>
-              <p className="text-[11px] text-zinc-500">
-                Categorize your lecture notes, slides, and textbooks
-              </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="h-7 w-7 rounded-lg flex items-center justify-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-surface transition-colors"
+            className="h-7 w-7 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] flex items-center justify-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-surface border border-transparent hover:border-border transition-colors cursor-pointer"
           >
-            <X className="h-4 w-4" />
+            <X className="h-3.5 w-3.5" />
           </button>
         </div>
 
         {/* Body Form */}
-        <form onSubmit={handleSubmit} className="p-5 space-y-5">
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
           {/* Subject Name Input */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+          <div className="space-y-1.5 font-mono">
+            <label className="text-xs font-bold text-zinc-700 dark:text-zinc-300">
               Subject Name
             </label>
             <input
@@ -113,15 +111,15 @@ export default function SubjectFolderModal({
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Advanced Calculus, Organic Chem, Machine Learning"
-              className="w-full px-3.5 py-2 rounded-xl border border-border bg-surface dark:bg-background text-xs text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-accent"
+              placeholder="e.g. Advanced Calculus, Machine Learning"
+              className="w-full px-3 py-2 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] border border-border bg-surface dark:bg-background text-xs text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:border-accent"
               maxLength={40}
             />
           </div>
 
           {/* Quick Preset Suggestions */}
-          <div className="space-y-1.5">
-            <span className="text-[11px] font-mono uppercase tracking-wider text-zinc-400 font-semibold flex items-center gap-1.5">
+          <div className="space-y-1.5 font-mono">
+            <span className="text-[10px] uppercase tracking-wider text-zinc-400 font-bold flex items-center gap-1.5">
               <Sparkles className="h-3 w-3 text-accent" /> Suggestions
             </span>
             <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pr-1">
@@ -130,9 +128,9 @@ export default function SubjectFolderModal({
                   key={preset}
                   type="button"
                   onClick={() => setName(preset)}
-                  className={`text-[11px] px-2.5 py-1 rounded-lg border transition-all ${
+                  className={`text-[11px] px-2.5 py-1 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] border transition-all cursor-pointer ${
                     name === preset
-                      ? 'border-accent bg-accent/15 text-accent font-semibold'
+                      ? 'border-accent bg-accent/15 text-accent font-bold'
                       : 'border-border bg-surface/60 hover:bg-surface text-zinc-600 dark:text-zinc-400'
                   }`}
                 >
@@ -144,7 +142,7 @@ export default function SubjectFolderModal({
 
           {/* Color Selection */}
           <div className="space-y-2">
-            <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+            <label className="text-xs font-bold text-zinc-700 dark:text-zinc-300 font-mono">
               Folder Color
             </label>
             <div className="flex items-center gap-2.5">
@@ -155,7 +153,7 @@ export default function SubjectFolderModal({
                   title={col.name}
                   onClick={() => setSelectedColor(col.value)}
                   style={{ backgroundColor: col.value }}
-                  className="h-6 w-6 rounded-full flex items-center justify-center text-white transition-transform hover:scale-110 shadow-xs"
+                  className="h-6 w-6 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] flex items-center justify-center text-white transition-transform hover:scale-110 shadow-xs cursor-pointer"
                 >
                   {selectedColor === col.value && <Check className="h-3.5 w-3.5" />}
                 </button>
@@ -164,18 +162,18 @@ export default function SubjectFolderModal({
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-border font-mono">
             <button
               type="button"
               onClick={onClose}
-              className="px-3.5 py-2 rounded-xl text-xs font-semibold hover:bg-surface transition-colors text-zinc-600 dark:text-zinc-400"
+              className="px-3.5 py-1.5 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] text-xs font-bold hover:bg-surface border border-border transition-colors text-zinc-600 dark:text-zinc-400 cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={!name.trim()}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-accent text-white hover:bg-accent-hover text-xs font-semibold shadow-xs disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-98"
+              className="flex items-center gap-1.5 px-4 py-1.5 [clip-path:polygon(0_0,calc(100%-6px)_0,100%_6px,100%_100%,6px_100%,0_calc(100%-6px))] bg-accent text-accent-on text-xs font-bold shadow-xs disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
             >
               <FolderPlus className="h-3.5 w-3.5" />
               <span>Save Subject</span>

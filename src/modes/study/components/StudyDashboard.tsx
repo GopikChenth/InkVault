@@ -58,36 +58,37 @@ export const StudyDashboard: React.FC<StudyDashboardProps> = ({
 
   return (
     <div className="flex-1 overflow-y-auto p-6 sm:p-8 max-w-4xl mx-auto w-full">
-      <div className="space-y-4">
+      <div className="space-y-4 select-none">
         {/* Header */}
         <div className="flex flex-col gap-3 pb-3 border-b border-border">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="h-8 w-8 rounded-xl bg-accent text-white flex items-center justify-center shadow-2xs flex-shrink-0">
-                <GraduationCap className="h-4 w-4" />
+              <div className="h-7 w-7 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] bg-accent/15 border border-accent/30 text-accent flex items-center justify-center shadow-2xs flex-shrink-0">
+                <GraduationCap className="h-3.5 w-3.5" />
               </div>
               <div className="min-w-0">
-                <h2 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 truncate">
-                  {activeSubject ? activeSubject.name : 'Study Subjects & Coursework'}
+                <h2 className="text-xs font-bold text-zinc-950 dark:text-zinc-50 truncate flex items-center gap-1.5 font-sans">
+                  <span className="text-accent font-black text-[9px]">▶</span>
+                  <span>{activeSubject ? activeSubject.name : 'Study Subjects & Coursework'}</span>
                 </h2>
-                <p className="text-xs text-zinc-500 truncate">
+                <p className="text-[10px] font-mono text-zinc-500 truncate">
                   {activeSubject
-                    ? `Imported subject directory • ${displayedDocs.length} documents`
-                    : 'Organized local folders & study materials for distraction-free revision'}
+                    ? `// Imported subject directory • ${displayedDocs.length} documents`
+                    : '// Organized local folders & study materials for distraction-free revision'}
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-2 flex-shrink-0 font-mono">
               {/* Tree / Cards View Toggle */}
-              <div className="flex items-center gap-0.5 bg-surface dark:bg-card border border-border p-0.5 rounded-lg shadow-2xs">
+              <div className="flex items-center gap-0.5 bg-surface dark:bg-card border border-border p-0.5 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] shadow-2xs">
                 <button
                   type="button"
                   onClick={() => setStudyExplorerView('tree')}
                   title="VS Code Folder Structure View"
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+                  className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono font-bold transition-all cursor-pointer ${
                     studyExplorerView === 'tree'
-                      ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-semibold shadow-2xs'
+                      ? 'bg-accent text-accent-on shadow-2xs [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)]'
                       : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
                   }`}
                 >
@@ -98,9 +99,9 @@ export const StudyDashboard: React.FC<StudyDashboardProps> = ({
                   type="button"
                   onClick={() => setStudyExplorerView('cards')}
                   title="Cards List View"
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+                  className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono font-bold transition-all cursor-pointer ${
                     studyExplorerView === 'cards'
-                      ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-semibold shadow-2xs'
+                      ? 'bg-accent text-accent-on shadow-2xs [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)]'
                       : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
                   }`}
                 >
@@ -112,7 +113,7 @@ export const StudyDashboard: React.FC<StudyDashboardProps> = ({
               <button
                 type="button"
                 onClick={onTriggerImportFolder}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-accent hover:bg-accent-hover text-white text-xs font-semibold shadow-2xs transition-colors"
+                className="h-7 flex items-center gap-1.5 px-3.5 [clip-path:polygon(0_0,calc(100%-6px)_0,100%_6px,100%_100%,6px_100%,0_calc(100%-6px))] bg-accent hover:opacity-90 active:translate-y-0.5 text-accent-on font-mono font-black text-xs transition-all shadow-xs cursor-pointer"
                 title="Select an entire folder from your computer to import as a subject"
               >
                 <FolderUp className="h-3.5 w-3.5" />
@@ -123,18 +124,18 @@ export const StudyDashboard: React.FC<StudyDashboardProps> = ({
 
           {/* Subject Filter Pills */}
           {studySubjects.length > 0 && (
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1">
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1 font-mono">
               <button
                 type="button"
                 onClick={() => onSelectSubject('all')}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1 [clip-path:polygon(3px_0,100%_0,calc(100%-3px)_100%,0_100%)] text-xs font-bold transition-all cursor-pointer ${
                   activeSubjectId === 'all'
-                    ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 font-semibold shadow-2xs'
+                    ? 'bg-accent text-accent-on shadow-2xs'
                     : 'bg-surface hover:bg-card text-zinc-600 dark:text-zinc-400 border border-border'
                 }`}
               >
-                <span>All</span>
-                <span className="text-[10px] opacity-70 font-mono">({recentDocs.length})</span>
+                <span>ALL</span>
+                <span className="text-[10px] opacity-70">({recentDocs.length})</span>
               </button>
 
               {studySubjects.map((sub) => {
@@ -147,9 +148,9 @@ export const StudyDashboard: React.FC<StudyDashboardProps> = ({
                     key={sub.id}
                     type="button"
                     onClick={() => onSelectSubject(sub.id)}
-                    className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all flex-shrink-0 ${
+                    className={`flex items-center gap-1.5 px-3 py-1 [clip-path:polygon(3px_0,100%_0,calc(100%-3px)_100%,0_100%)] text-xs font-bold transition-all flex-shrink-0 cursor-pointer ${
                       isSelected
-                        ? 'bg-card text-zinc-900 dark:text-zinc-100 border border-border shadow-2xs font-semibold'
+                        ? 'bg-card text-zinc-900 dark:text-zinc-100 border border-border shadow-2xs'
                         : 'bg-surface hover:bg-card text-zinc-600 dark:text-zinc-400 border border-border'
                     }`}
                   >
@@ -158,7 +159,7 @@ export const StudyDashboard: React.FC<StudyDashboardProps> = ({
                       style={{ backgroundColor: sub.color }}
                     />
                     <span>{sub.name}</span>
-                    <span className="text-[10px] opacity-70 font-mono">({count})</span>
+                    <span className="text-[10px] opacity-70">({count})</span>
                   </button>
                 );
               })}
@@ -227,28 +228,28 @@ export const StudyDashboard: React.FC<StudyDashboardProps> = ({
                 <div
                   key={doc.id}
                   onClick={() => onOpenDoc(doc)}
-                  className={`flex items-center justify-between p-4 rounded-xl bg-card border transition-all shadow-sm cursor-pointer group [content-visibility:auto] ${
+                  className={`flex items-center justify-between p-3.5 rounded-lg [clip-path:polygon(0_0,calc(100%-8px)_0,100%_8px,100%_100%,8px_100%,0_calc(100%-8px))] bg-card border transition-all shadow-sm cursor-pointer group [content-visibility:auto] ${
                     isCurrentlyActive 
-                      ? 'border-accent/60 bg-accent/[0.03]' 
-                      : 'border-border hover:border-accent/40'
+                      ? 'border-accent/60 bg-accent/[0.04]' 
+                      : 'border-border hover:border-accent/40 hover:bg-black/[0.02] dark:hover:bg-white/[0.02]'
                   }`}
                 >
                   <div className="flex items-center gap-3.5 min-w-0">
-                    <div className={`h-10 w-10 rounded-lg flex items-center justify-center font-bold text-xs flex-shrink-0 transition-colors ${
+                    <div className={`h-10 w-10 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] flex items-center justify-center font-bold text-xs flex-shrink-0 transition-colors ${
                       isCurrentlyActive 
-                        ? 'bg-accent text-white' 
-                        : 'bg-surface text-zinc-700 dark:text-zinc-300 group-hover:bg-accent/10 group-hover:text-accent'
+                        ? 'bg-accent text-accent-on' 
+                        : 'bg-surface text-zinc-700 dark:text-zinc-300 group-hover:bg-accent/15 group-hover:text-accent'
                     }`}>
                       <FileText className="h-5 w-5" />
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h4 className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 group-hover:text-accent transition-colors truncate">
+                        <h4 className="text-xs font-bold text-zinc-900 dark:text-zinc-100 group-hover:text-accent transition-colors truncate font-sans">
                           {doc.name}
                         </h4>
                         {doc.subjectName && (
                           <span
-                            className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-md border flex-shrink-0"
+                            className="inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded border flex-shrink-0"
                             style={{
                               backgroundColor: subColor ? `${subColor}15` : 'rgba(99, 102, 241, 0.1)',
                               borderColor: subColor ? `${subColor}35` : 'rgba(99, 102, 241, 0.25)',
@@ -263,8 +264,8 @@ export const StudyDashboard: React.FC<StudyDashboardProps> = ({
                           </span>
                         )}
                         {isCurrentlyActive && (
-                          <span className="flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                            <CheckCircle2 className="h-3 w-3" /> Active
+                          <span className="flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-bold">
+                            <CheckCircle2 className="h-3 w-3" /> ACTIVE
                           </span>
                         )}
                       </div>
@@ -279,22 +280,22 @@ export const StudyDashboard: React.FC<StudyDashboardProps> = ({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="flex items-center gap-2 flex-shrink-0 font-mono">
                     <button
                       type="button"
                       onClick={(e) => onRemoveDoc(doc.id, e)}
                       title="Remove from session"
-                      className="h-8 w-8 rounded-lg hover:bg-rose-500/10 hover:text-rose-500 flex items-center justify-center text-zinc-400 transition-colors"
+                      className="h-7 w-7 rounded hover:bg-rose-500/10 hover:text-rose-500 flex items-center justify-center text-zinc-400 transition-colors cursor-pointer"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-3.5 w-3.5" />
                     </button>
 
                     <button 
                       type="button"
                       onClick={() => onOpenDoc(doc)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-zinc-100 dark:text-zinc-900 text-xs font-semibold hover:bg-accent dark:hover:bg-accent dark:hover:text-white transition-colors"
+                      className="h-7 flex items-center gap-1 px-3 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] bg-accent text-accent-on text-xs font-bold hover:opacity-90 active:translate-y-0.5 transition-all cursor-pointer shadow-2xs"
                     >
-                      <span>{isCurrentlyActive ? 'View' : 'Open'}</span>
+                      <span>{isCurrentlyActive ? 'VIEW' : 'OPEN'}</span>
                       <ArrowRight className="h-3.5 w-3.5" />
                     </button>
                   </div>

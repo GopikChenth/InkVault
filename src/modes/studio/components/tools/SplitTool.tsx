@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { LoadedPDF } from '../../../../types';
 import EmptyState from '../../../../components/EmptyState';
+import ToolHeader from './ToolHeader';
 import { nativeSplitPDF } from '../../../../utils/nativePdfBridge';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
@@ -203,50 +204,43 @@ export default function SplitTool({ initialDoc, onOpenExtractedDoc }: SplitToolP
         className="hidden"
       />
 
-      {/* Top Toolbar */}
-      <div className="h-12 border-b border-border bg-surface dark:bg-surface px-4 sm:px-6 flex items-center justify-between gap-3 flex-shrink-0">
-        <div className="flex items-center gap-2.5">
-          <div className="h-7 w-7 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 flex items-center justify-center shadow-xs">
-            <Scissors className="h-3.5 w-3.5" />
-          </div>
-          <div>
-            <h2 className="text-xs font-bold text-zinc-900 dark:text-zinc-100">Split & Extract Pages</h2>
-            <p className="text-[10px] font-mono text-zinc-400">
-              {doc ? `${doc.name} • ${numPages} Pages` : 'Extract custom page ranges into standalone PDFs'}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface dark:bg-card border border-border hover:bg-card text-xs font-semibold transition-colors shadow-sm"
-          >
-            <FolderOpen className="h-3.5 w-3.5" />
-            <span>{doc ? 'Change File' : 'Select PDF'}</span>
-          </button>
-
-          {doc && (
+      {/* Top Toolbar — Chamfered Mecha Layout */}
+      <ToolHeader
+        icon={Scissors}
+        title="Split & Extract Pages"
+        description={doc ? `${doc.name} • ${numPages} Pages` : 'Extract custom page ranges into standalone PDFs'}
+        actions={
+          <>
             <button
-              onClick={() => handleExecuteSplit(true)}
-              disabled={processing}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-zinc-100 dark:text-zinc-900 text-xs font-semibold hover:bg-accent dark:hover:bg-accent dark:hover:text-white transition-all shadow-sm active:scale-95 disabled:opacity-40"
+              onClick={() => fileInputRef.current?.click()}
+              className="h-7 flex items-center gap-1.5 px-3 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] bg-card border border-border hover:bg-black/5 dark:hover:bg-white/10 text-xs font-mono font-bold text-zinc-800 dark:text-zinc-200 transition-colors shadow-2xs cursor-pointer"
             >
-              {processing ? (
-                <>
-                  <div className="h-3.5 w-3.5 rounded-full border-2 border-current border-t-transparent animate-spin" />
-                  <span>Extracting...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-3.5 w-3.5" />
-                  <span>Extract & View</span>
-                </>
-              )}
+              <FolderOpen className="h-3.5 w-3.5" />
+              <span>{doc ? 'Change File' : 'Select PDF'}</span>
             </button>
-          )}
-        </div>
-      </div>
+
+            {doc && (
+              <button
+                onClick={() => handleExecuteSplit(true)}
+                disabled={processing}
+                className="h-7 flex items-center gap-1.5 px-3.5 [clip-path:polygon(0_0,calc(100%-6px)_0,100%_6px,100%_100%,6px_100%,0_calc(100%-6px))] bg-accent hover:opacity-90 active:translate-y-0.5 text-accent-on font-mono font-black text-xs transition-all shadow-xs cursor-pointer disabled:opacity-40"
+              >
+                {processing ? (
+                  <>
+                    <div className="h-3.5 w-3.5 rounded-full border-2 border-current border-t-transparent animate-spin" />
+                    <span>Extracting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-3.5 w-3.5" />
+                    <span>Extract & View</span>
+                  </>
+                )}
+              </button>
+            )}
+          </>
+        }
+      />
 
       {/* Main Canvas Area */}
       <div className="flex-1 overflow-auto p-6 sm:p-8 flex flex-col items-center">

@@ -395,38 +395,39 @@ function BookComicHub({
   return (
     <div className="flex-1 w-full h-full overflow-hidden bg-background text-on-surface flex flex-col select-none">
       
-      {/* 1. Constraint-Aligned Responsive Header Bar */}
-      <header className="px-4 sm:px-6 md:px-8 h-10 border-b border-border bg-surface flex items-center justify-between gap-3 sm:gap-4 flex-shrink-0 z-20">
+      {/* 1. Constraint-Aligned Responsive Header Bar — Chamfered Mecha Layout */}
+      <header className="px-4 sm:px-6 md:px-8 h-10 border-b border-border bg-surface flex items-center justify-between gap-3 sm:gap-4 flex-shrink-0 z-20 select-none">
         
         {/* Left: Library Title & Count Badge */}
         <div className="flex items-center gap-2.5 min-w-0 flex-shrink-0">
-          <div className="h-7 w-7 rounded-xl bg-accent/15 border border-accent/30 text-accent flex items-center justify-center shadow-2xs flex-shrink-0">
+          <div className="h-7 w-7 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] bg-accent/15 border border-accent/30 text-accent flex items-center justify-center shadow-2xs flex-shrink-0">
             <BookOpen className="h-3.5 w-3.5" />
           </div>
           <div className="flex items-center gap-2 min-w-0">
-            <h1 className="text-xs sm:text-sm font-bold text-on-surface tracking-tight whitespace-nowrap">
-              Books & Comics
+            <h1 className="text-xs sm:text-sm font-bold text-on-surface tracking-tight whitespace-nowrap flex items-center gap-1.5 font-sans">
+              <span className="text-accent font-black text-[9px]">▶</span>
+              <span>Books & Comics</span>
             </h1>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-surface-container border border-border text-on-surface-variant font-semibold flex-shrink-0">
+            <span className="text-[10px] font-mono font-bold px-2 py-0.5 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] bg-accent/15 border border-accent/25 text-accent flex-shrink-0">
               {enrichedDocs.length}
             </span>
           </div>
         </div>
 
         {/* Center: Constrained Search Input */}
-        <div className="flex-1 max-w-xs sm:max-w-sm md:max-w-md min-w-[120px] relative flex items-center">
-          <Search className="absolute left-3 h-3.5 w-3.5 text-on-surface-variant/60 pointer-events-none" />
+        <div className="flex-1 max-w-xs sm:max-w-sm md:max-w-md min-w-[120px] relative flex items-center font-mono">
+          <Search className="absolute left-2.5 h-3.5 w-3.5 text-on-surface-variant/60 pointer-events-none" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search title, subject, format..."
-            className="w-full bg-surface-container border border-border rounded-xl pl-9 pr-8 py-1.5 text-xs text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:ring-1 focus:ring-accent focus:border-accent transition-colors shadow-2xs"
+            placeholder="Search title, format..."
+            className="w-full bg-surface-container border border-border [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] pl-8 pr-7 py-1 text-xs text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:ring-1 focus:ring-accent focus:border-accent transition-colors shadow-2xs"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
-              className="absolute right-2.5 text-[10px] font-mono text-on-surface-variant hover:text-on-surface"
+              className="absolute right-2 text-[10px] font-mono text-on-surface-variant hover:text-on-surface"
             >
               ✕
             </button>
@@ -434,10 +435,10 @@ function BookComicHub({
         </div>
 
         {/* Right: Quick Action Buttons */}
-        <div className="flex items-center gap-2 flex-shrink-0 justify-end">
+        <div className="flex items-center gap-2 flex-shrink-0 justify-end font-mono">
           <button
             onClick={() => setShowHelpModal(true)}
-            className="h-8 w-8 rounded-xl bg-surface-container border border-border flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-high transition-colors shadow-2xs"
+            className="h-7 w-7 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] bg-card border border-border flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-black/5 dark:hover:bg-white/10 transition-colors shadow-2xs cursor-pointer"
             title="Shortcuts & Format Guide"
             aria-label="Shortcuts & Format Guide"
           >
@@ -447,12 +448,12 @@ function BookComicHub({
           {/* Add Book / Comic Button */}
           <button
             onClick={onImportBook}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-accent hover:bg-accent-hover text-accent-on text-xs font-semibold shadow-xs transition-all active:scale-95"
+            className="h-7 flex items-center gap-1.5 px-3 [clip-path:polygon(0_0,calc(100%-6px)_0,100%_6px,100%_100%,6px_100%,0_calc(100%-6px))] bg-accent hover:opacity-90 active:translate-y-0.5 text-accent-on text-xs font-bold shadow-xs transition-all cursor-pointer"
             title="Import Comic (.cbz, .cbr), Book (.epub), or PDF (⌘O)"
           >
             <Plus className="h-3.5 w-3.5" />
             <span>Add <span className="hidden md:inline">Book / Comic</span></span>
-            <span className="text-[10px] font-mono opacity-70 bg-black/20 px-1 py-0.5 rounded ml-0.5 hidden sm:inline">
+            <span className="text-[9px] opacity-75 font-mono ml-0.5 hidden sm:inline">
               ⌘O
             </span>
           </button>

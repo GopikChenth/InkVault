@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { LoadedPDF } from '../../../../types';
 import EmptyState from '../../../../components/EmptyState';
+import ToolHeader from './ToolHeader';
 import { nativeFlattenPDF } from '../../../../utils/nativePdfBridge';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
@@ -191,38 +192,27 @@ export default function FlattenTool({ initialDoc, onOpenFlattenedDoc }: FlattenT
 
   return (
     <div className="flex-1 flex flex-col h-full bg-surface dark:bg-surface overflow-hidden">
-      {/* Top Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-card">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-accent/10 text-accent">
-            <FileCheck2 className="w-5 h-5" />
-          </div>
-          <div>
-            <h1 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-              Flatten PDF Document
-            </h1>
-            <p className="text-xs text-muted">
-              Convert interactive forms, signatures, and annotations into permanent, immutable page content
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {doc && (
+      {/* Top Header — Chamfered Mecha Layout */}
+      <ToolHeader
+        icon={FileCheck2}
+        title="Flatten PDF Document"
+        description="Convert interactive forms, signatures, and annotations into permanent, immutable page content"
+        actions={
+          doc && (
             <>
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="px-3 py-1.5 rounded-lg border border-border text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-card/70 transition-colors flex items-center gap-1.5"
+                className="h-7 flex items-center gap-1.5 px-3 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] bg-card border border-border hover:bg-black/5 dark:hover:bg-white/10 text-xs font-mono font-bold text-zinc-800 dark:text-zinc-200 transition-colors shadow-2xs cursor-pointer"
               >
                 <FolderOpen className="w-3.5 h-3.5" />
-                Change File
+                <span>Change File</span>
               </button>
               <button
                 type="button"
                 disabled={applying || (!flattenForms && !flattenAnnotations)}
                 onClick={handleFlatten}
-                className="px-4 py-1.5 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-zinc-100 dark:text-zinc-900 text-xs font-semibold hover:bg-accent hover:text-accent-on transition-colors shadow-sm disabled:opacity-50 flex items-center gap-1.5"
+                className="h-7 flex items-center gap-1.5 px-3.5 [clip-path:polygon(0_0,calc(100%-6px)_0,100%_6px,100%_100%,6px_100%,0_calc(100%-6px))] bg-accent hover:opacity-90 active:translate-y-0.5 text-accent-on font-mono font-black text-xs transition-all shadow-xs cursor-pointer disabled:opacity-40"
               >
                 {applying ? (
                   <>
@@ -237,9 +227,9 @@ export default function FlattenTool({ initialDoc, onOpenFlattenedDoc }: FlattenT
                 )}
               </button>
             </>
-          )}
-        </div>
-      </div>
+          )
+        }
+      />
 
       <input
         ref={fileInputRef}

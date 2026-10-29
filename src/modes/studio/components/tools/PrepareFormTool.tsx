@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { LoadedPDF } from '../../../../types';
 import EmptyState from '../../../../components/EmptyState';
+import ToolHeader from './ToolHeader';
 import { 
   nativeCreateForms, 
   nativeDetectFormFields, 
@@ -225,28 +226,22 @@ export default function PrepareFormTool({ initialDoc, onOpenFormDoc }: PrepareFo
         className="hidden"
       />
 
-      {/* Top Toolbar */}
-      <div className="h-12 border-b border-border bg-surface dark:bg-surface px-4 sm:px-6 flex items-center justify-between gap-3 flex-shrink-0">
-        <div className="flex items-center gap-2.5">
-          <div className="h-7 w-7 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 flex items-center justify-center shadow-xs">
-            <FormInput className="h-3.5 w-3.5" />
-          </div>
-          <div>
-            <h2 className="text-xs font-bold text-zinc-900 dark:text-zinc-100">Prepare Interactive Form</h2>
-            <p className="text-[10px] font-mono text-zinc-400">
-              AcroForm authoring palette with real field widgets & appearance regeneration
-            </p>
-          </div>
-        </div>
-
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface dark:bg-card border border-border hover:bg-card text-xs font-semibold transition-colors shadow-sm"
-        >
-          <FolderOpen className="h-3.5 w-3.5" />
-          <span>{doc ? 'Change File' : 'Select PDF'}</span>
-        </button>
-      </div>
+      {/* Top Toolbar — Chamfered Mecha Layout */}
+      <ToolHeader
+        icon={FormInput}
+        title="Prepare Interactive Form"
+        description="AcroForm authoring palette with real field widgets & appearance regeneration"
+        badge="AcroForms"
+        actions={
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="h-7 flex items-center gap-1.5 px-3 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] bg-card border border-border hover:bg-black/5 dark:hover:bg-white/10 text-xs font-mono font-bold text-zinc-800 dark:text-zinc-200 transition-colors shadow-2xs cursor-pointer"
+          >
+            <FolderOpen className="h-3.5 w-3.5" />
+            <span>{doc ? 'Change File' : 'Select PDF'}</span>
+          </button>
+        }
+      />
 
       {/* Main Content Area */}
       <div className="flex-1 overflow-auto p-6 sm:p-8 flex flex-col items-center">

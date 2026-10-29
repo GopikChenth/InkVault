@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { LoadedPDF } from '../../../../types';
 import EmptyState from '../../../../components/EmptyState';
+import ToolHeader from './ToolHeader';
 import { nativeOrganizePDF, PageOrganizeItem } from '../../../../utils/nativePdfBridge';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
@@ -313,54 +314,45 @@ export default function OrganizePagesTool({ initialDoc, onOpenOrganizedDoc }: Or
         className="hidden"
       />
 
-      {/* Header Toolbar */}
-      <div className="h-12 border-b border-border bg-surface dark:bg-surface px-4 sm:px-6 flex items-center justify-between gap-3 flex-shrink-0">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div className="h-7 w-7 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 flex items-center justify-center shadow-xs flex-shrink-0">
-            <LayoutGrid className="h-3.5 w-3.5" />
-          </div>
-          <div className="min-w-0">
-            <h2 className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">
-              Organize Pages
-            </h2>
-            <p className="text-[10px] font-mono text-zinc-400 hidden sm:block truncate">
-              Reorder, rotate, and prune pages atomically • ArcadeLabs Native Engine
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface dark:bg-card border border-border hover:bg-card text-xs font-semibold transition-colors shadow-sm"
-          >
-            <FolderOpen className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">{doc ? 'Change PDF' : 'Select PDF'}</span>
-          </button>
-
-          {doc && pages.length > 0 && (
+      {/* Header Toolbar — Chamfered Mecha Layout */}
+      <ToolHeader
+        icon={LayoutGrid}
+        title="Organize Pages"
+        description="Reorder, rotate, and prune pages atomically • ArcadeLabs Native Engine"
+        actions={
+          <>
             <button
               type="button"
-              onClick={() => handleSaveOrganized(true)}
-              disabled={saving}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-zinc-100 dark:text-zinc-900 text-xs font-semibold hover:bg-accent dark:hover:bg-accent dark:hover:text-white transition-all shadow-sm active:scale-95 disabled:opacity-40"
+              onClick={() => fileInputRef.current?.click()}
+              className="h-7 flex items-center gap-1.5 px-3 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] bg-card border border-border hover:bg-black/5 dark:hover:bg-white/10 text-xs font-mono font-bold text-zinc-800 dark:text-zinc-200 transition-colors shadow-2xs cursor-pointer"
             >
-              {saving ? (
-                <>
-                  <div className="h-3.5 w-3.5 rounded-full border-2 border-current border-t-transparent animate-spin" />
-                  <span>Saving...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-3.5 w-3.5" />
-                  <span>Save & Open</span>
-                </>
-              )}
+              <FolderOpen className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">{doc ? 'Change PDF' : 'Select PDF'}</span>
             </button>
-          )}
-        </div>
-      </div>
+
+            {doc && pages.length > 0 && (
+              <button
+                type="button"
+                onClick={() => handleSaveOrganized(true)}
+                disabled={saving}
+                className="h-7 flex items-center gap-1.5 px-3.5 [clip-path:polygon(0_0,calc(100%-6px)_0,100%_6px,100%_100%,6px_100%,0_calc(100%-6px))] bg-accent hover:opacity-90 active:translate-y-0.5 text-accent-on font-mono font-black text-xs transition-all shadow-xs cursor-pointer disabled:opacity-40"
+              >
+                {saving ? (
+                  <>
+                    <div className="h-3.5 w-3.5 rounded-full border-2 border-current border-t-transparent animate-spin" />
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-3.5 w-3.5" />
+                    <span>Save & Open</span>
+                  </>
+                )}
+              </button>
+            )}
+          </>
+        }
+      />
 
       {/* Main Content Area */}
       {!doc ? (
@@ -375,14 +367,14 @@ export default function OrganizePagesTool({ initialDoc, onOpenOrganizedDoc }: Or
         </div>
       ) : (
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Action Ribbon */}
-          <div className="border-b border-border bg-card/60 px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3 flex-wrap flex-shrink-0">
+          {/* Action Ribbon — Chamfered Batch Controls */}
+          <div className="border-b border-border bg-card/60 px-4 sm:px-6 py-2 flex items-center justify-between gap-3 flex-wrap flex-shrink-0 select-none">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100">
-                {pages.length} Pages
+              <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100 font-mono">
+                {pages.length} PAGES
               </span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-surface border border-border text-zinc-500">
-                {selectedIds.size} Selected
+              <span className="text-[10px] font-mono font-bold px-2 py-0.5 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] bg-accent/15 text-accent border border-accent/25">
+                {selectedIds.size} SELECTED
               </span>
               {loadingThumbnails && (
                 <span className="flex items-center gap-1.5 text-[10px] font-mono text-zinc-400">
@@ -393,11 +385,11 @@ export default function OrganizePagesTool({ initialDoc, onOpenOrganizedDoc }: Or
             </div>
 
             {/* Batch Controls */}
-            <div className="flex items-center gap-1.5 flex-wrap">
+            <div className="flex items-center gap-1.5 flex-wrap font-mono">
               <button
                 type="button"
                 onClick={selectedIds.size === pages.length ? deselectAll : selectAll}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-surface hover:bg-surface-container border border-border transition-colors"
+                className="h-6 flex items-center gap-1 px-2.5 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] text-xs font-bold bg-surface hover:bg-black/5 dark:hover:bg-white/10 border border-border transition-colors shadow-2xs cursor-pointer"
               >
                 {selectedIds.size === pages.length ? (
                   <>
@@ -416,7 +408,7 @@ export default function OrganizePagesTool({ initialDoc, onOpenOrganizedDoc }: Or
                 type="button"
                 onClick={() => rotateSelected(90)}
                 disabled={selectedIds.size === 0}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-surface hover:bg-surface-container border border-border transition-colors disabled:opacity-40"
+                className="h-6 flex items-center gap-1 px-2.5 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] text-xs font-bold bg-surface hover:bg-black/5 dark:hover:bg-white/10 border border-border transition-colors disabled:opacity-40 shadow-2xs cursor-pointer"
                 title="Rotate Selected 90° Clockwise"
               >
                 <RotateCw className="h-3.5 w-3.5 text-accent" />
@@ -427,7 +419,7 @@ export default function OrganizePagesTool({ initialDoc, onOpenOrganizedDoc }: Or
                 type="button"
                 onClick={() => rotateSelected(-90)}
                 disabled={selectedIds.size === 0}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-surface hover:bg-surface-container border border-border transition-colors disabled:opacity-40"
+                className="h-6 flex items-center gap-1 px-2.5 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] text-xs font-bold bg-surface hover:bg-black/5 dark:hover:bg-white/10 border border-border transition-colors disabled:opacity-40 shadow-2xs cursor-pointer"
                 title="Rotate Selected 90° Counter-Clockwise"
               >
                 <RotateCcw className="h-3.5 w-3.5 text-accent" />
@@ -438,7 +430,7 @@ export default function OrganizePagesTool({ initialDoc, onOpenOrganizedDoc }: Or
                 type="button"
                 onClick={deleteSelected}
                 disabled={selectedIds.size === 0 || pages.length <= selectedIds.size}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30 transition-colors disabled:opacity-40"
+                className="h-6 flex items-center gap-1 px-2.5 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] text-xs font-bold bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30 transition-colors disabled:opacity-40 shadow-2xs cursor-pointer"
                 title="Delete Selected Pages"
               >
                 <Trash2 className="h-3.5 w-3.5" />
@@ -448,7 +440,7 @@ export default function OrganizePagesTool({ initialDoc, onOpenOrganizedDoc }: Or
               <button
                 type="button"
                 onClick={resetToOriginal}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors ml-1"
+                className="h-6 flex items-center gap-1 px-2.5 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] text-xs font-bold text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors ml-1 cursor-pointer"
                 title="Reset to Original Order"
               >
                 <RefreshCw className="h-3 w-3" />

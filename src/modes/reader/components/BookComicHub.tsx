@@ -396,7 +396,7 @@ function BookComicHub({
     <div className="flex-1 w-full h-full overflow-hidden bg-background text-on-surface flex flex-col select-none">
       
       {/* 1. Constraint-Aligned Responsive Header Bar */}
-      <header className="px-4 sm:px-6 md:px-8 h-12 border-b border-border bg-surface flex items-center justify-between gap-3 sm:gap-4 flex-shrink-0 z-20">
+      <header className="px-4 sm:px-6 md:px-8 h-10 border-b border-border bg-surface flex items-center justify-between gap-3 sm:gap-4 flex-shrink-0 z-20">
         
         {/* Left: Library Title & Count Badge */}
         <div className="flex items-center gap-2.5 min-w-0 flex-shrink-0">

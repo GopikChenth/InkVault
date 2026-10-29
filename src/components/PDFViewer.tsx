@@ -1947,7 +1947,7 @@ export default function PDFViewer({
           </div>
         </>
       ) : (
-        <header className={`h-12 border-b border-outline/20 bg-surface/85 backdrop-blur-xl px-3 sm:px-4 flex items-center justify-between gap-3 flex-shrink-0 z-20 transition-all duration-300 ease-caelestia-decel select-none ${
+        <header className={`h-10 border-b border-outline/20 bg-surface/85 backdrop-blur-xl px-3 sm:px-4 flex items-center justify-between gap-3 flex-shrink-0 z-20 transition-all duration-300 ease-caelestia-decel select-none ${
           focusMode ? 'opacity-20 hover:opacity-100' : 'opacity-100'
         }`}>
         

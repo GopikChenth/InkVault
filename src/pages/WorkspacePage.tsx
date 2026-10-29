@@ -749,7 +749,7 @@ export default function WorkspacePage({
           )}
 
           {!(activeTab === 'viewer' && activeDoc) && (
-            <header className="h-12 border-b border-border flex items-center justify-between px-3 sm:px-6 bg-surface dark:bg-surface flex-shrink-0 z-20">
+            <header className="h-10 border-b border-border flex items-center justify-between px-3 sm:px-6 bg-surface dark:bg-surface flex-shrink-0 z-20">
               <div className="flex items-center gap-2 sm:gap-2.5 text-xs font-mono text-on-surface-variant min-w-0">
                 <button
                   type="button"

@@ -18,8 +18,7 @@ import {
   Award,
   FormInput,
   Hash,
-  FileCheck2,
-  ArrowRight
+  FileCheck2
 } from 'lucide-react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { AppMode } from '../types';
@@ -35,8 +34,6 @@ interface TitleBarProps {
   onToggleFullscreen?: () => void;
   currentMode?: AppMode;
   onSelectMode?: (mode: AppMode) => void;
-  isCoverView?: boolean;
-  onLaunchWorkspace?: () => void;
 }
 
 export default function TitleBar({
@@ -50,8 +47,6 @@ export default function TitleBar({
   onToggleFullscreen,
   currentMode = 'editor',
   onSelectMode,
-  isCoverView = false,
-  onLaunchWorkspace,
 }: TitleBarProps) {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [isMaximized, setIsMaximized] = useState<boolean>(false);
@@ -611,19 +606,6 @@ export default function TitleBar({
               <span className="text-[9px] opacity-75 font-mono ml-0.5 hidden md:inline">03</span>
             </button>
           </div>
-        )}
-
-        {/* If on Cover View, integrate the direct LAUNCH action button! */}
-        {isCoverView && onLaunchWorkspace && (
-          <button
-            type="button"
-            onClick={onLaunchWorkspace}
-            className="h-7 hidden sm:flex items-center gap-1.5 px-3 font-mono font-black text-xs [clip-path:polygon(0_0,calc(100%-8px)_0,100%_8px,100%_100%,8px_100%,0_calc(100%-8px))] cursor-pointer active:translate-y-0.5 transition-all duration-200 bg-accent text-accent-on shadow-xs shrink-0"
-            title="Launch Workspace (⌘↵)"
-          >
-            <span>LAUNCH</span>
-            <ArrowRight className="h-3.5 w-3.5" />
-          </button>
         )}
 
         {/* Quick Theme Toggle — Chamfered Mecha Button */}

@@ -154,8 +154,6 @@ export default function App() {
         onToggleFullscreen={handleToggleFullscreen}
         currentMode={appMode}
         onSelectMode={handleTitleBarSelectMode}
-        isCoverView={currentView === 'firstPage'}
-        onLaunchWorkspace={() => handleEnterWorkspace(appMode)}
       />
 
       {/* Main App Viewport */}

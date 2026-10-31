@@ -309,7 +309,7 @@ export default function MergeTool({ initialDoc, onOpenMergedDoc }: MergeToolProp
                       <span className="h-6 w-6 rounded-md bg-surface font-mono text-[11px] font-bold text-zinc-500 flex items-center justify-center flex-shrink-0">
                         {index + 1}
                       </span>
-                      <div className="h-9 w-9 rounded-lg bg-surface flex items-center justify-center text-zinc-700 dark:text-zinc-300 font-bold text-xs flex-shrink-0">
+                      <div className="h-9 w-9 rounded-lg bg-rose-500/10 flex items-center justify-center text-rose-500 dark:text-rose-400 font-bold text-xs flex-shrink-0">
                         <FileText className="h-4 w-4" />
                       </div>
                       <div className="min-w-0">

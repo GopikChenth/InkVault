@@ -367,7 +367,7 @@ export default function SplitTool({ initialDoc, onOpenExtractedDoc }: SplitToolP
             {/* Action Bar */}
             <div className="p-4 rounded-xl bg-card border border-border flex items-center justify-between shadow-sm">
               <div className="flex items-center gap-2 text-xs font-mono text-zinc-500">
-                <FileText className="h-4 w-4 text-zinc-400" />
+                <FileText className="h-4 w-4 text-rose-500 dark:text-rose-400" />
                 <span>Output: {doc.name.replace(/\.pdf$/i, '')}_Extracted.pdf</span>
               </div>
 

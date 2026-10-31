@@ -51,7 +51,7 @@ const DocumentTabItem = React.memo(function DocumentTabItem({
 
       {/* Document Icon */}
       <div className={`h-4 w-4 flex-shrink-0 flex items-center justify-center rounded transition-colors ${
-        isActive ? 'text-accent' : 'text-zinc-400 group-hover:text-zinc-600 dark:group-hover:text-zinc-300'
+        isActive ? 'text-accent' : 'text-rose-500/80 group-hover:text-rose-500 dark:text-rose-400'
       }`}>
         <FileText className="h-3.5 w-3.5" />
       </div>

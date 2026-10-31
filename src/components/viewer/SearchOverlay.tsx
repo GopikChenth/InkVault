@@ -100,7 +100,7 @@ function SearchOverlay({
       {/* Search Input Row */}
       <div className="flex items-center gap-1.5 w-full">
         <div className="relative flex items-center flex-1 w-full min-w-0">
-          <Search className="absolute left-2.5 h-3.5 w-3.5 text-zinc-400 pointer-events-none" />
+          <Search className="absolute left-2.5 h-3.5 w-3.5 text-zinc-500 dark:text-zinc-300 pointer-events-none" />
           <input
             ref={inputRef}
             type="text"
@@ -108,7 +108,7 @@ function SearchOverlay({
             onChange={(e) => onQueryChange(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={isRegex ? 'Search with Regex pattern...' : isMultiDoc ? 'Search across all open files...' : 'Find in document...'}
-            className={`w-full h-8 pl-8 pr-16 rounded-full bg-surface-container dark:bg-[#181c1d] border text-xs text-on-surface placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-accent font-sans transition-all ${
+            className={`w-full h-8 pl-8 pr-16 rounded-full bg-surface-container dark:bg-[#181c1d] border text-xs text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-accent font-sans transition-all ${
               regexError ? 'border-rose-500 ring-1 ring-rose-500' : 'border-border'
             }`}
           />
@@ -134,9 +134,9 @@ function SearchOverlay({
           onClick={onPrevMatch}
           disabled={totalMatches === 0}
           title="Previous Match (Shift+Enter)"
-          className="h-8 w-8 rounded-full border border-border bg-surface-container hover:bg-surface-container-high disabled:opacity-30 flex items-center justify-center text-zinc-600 dark:text-zinc-300 transition-colors"
+          className="h-8 w-8 rounded-full border border-border bg-surface-container hover:bg-surface-container-high disabled:opacity-30 flex items-center justify-center text-zinc-800 dark:text-zinc-100 transition-colors"
         >
-          <ChevronUp className="h-3.5 w-3.5" />
+          <ChevronUp className="h-4 w-4" />
         </button>
 
         {/* Next Match Button */}
@@ -144,9 +144,9 @@ function SearchOverlay({
           onClick={onNextMatch}
           disabled={totalMatches === 0}
           title="Next Match (Enter)"
-          className="h-8 w-8 rounded-full border border-border bg-surface-container hover:bg-surface-container-high disabled:opacity-30 flex items-center justify-center text-zinc-600 dark:text-zinc-300 transition-colors"
+          className="h-8 w-8 rounded-full border border-border bg-surface-container hover:bg-surface-container-high disabled:opacity-30 flex items-center justify-center text-zinc-800 dark:text-zinc-100 transition-colors"
         >
-          <ChevronDown className="h-3.5 w-3.5" />
+          <ChevronDown className="h-4 w-4" />
         </button>
 
         <div className="w-[1px] h-4 bg-border mx-0.5" />
@@ -155,27 +155,27 @@ function SearchOverlay({
         <button
           onClick={onClose}
           title="Close (Esc)"
-          className="h-8 w-8 rounded-full hover:bg-surface-container flex items-center justify-center text-zinc-500 hover:text-on-surface transition-colors"
+          className="h-8 w-8 rounded-full hover:bg-surface-container flex items-center justify-center text-zinc-700 dark:text-zinc-200 hover:text-zinc-950 dark:hover:text-white transition-colors"
         >
-          <X className="h-3.5 w-3.5" />
+          <X className="h-4 w-4" />
         </button>
       </div>
 
       {/* Search Filter Toggles Row */}
-      <div className="flex items-center justify-between px-1 pt-1 border-t border-border text-xs">
-        <div className="flex items-center gap-1">
+      <div className="flex items-center justify-between px-1 pt-1.5 border-t border-border text-xs">
+        <div className="flex items-center gap-1.5">
           
           {/* Case Sensitivity */}
           <button
             onClick={onToggleCaseSensitive}
             title="Match Case (Alt+C)"
-            className={`h-6 px-2.5 rounded-full flex items-center gap-1 text-[10px] font-mono transition-all ${
+            className={`h-6 px-2.5 rounded-full flex items-center gap-1.5 text-[11px] font-mono transition-all ${
               isCaseSensitive 
                 ? 'bg-accent text-accent-on font-bold shadow-xs' 
-                : 'text-zinc-500 hover:bg-surface-container hover:text-on-surface'
+                : 'text-zinc-700 dark:text-zinc-200 hover:bg-surface-container hover:text-zinc-950 dark:hover:text-white'
             }`}
           >
-            <CaseSensitive className="h-3 w-3" />
+            <CaseSensitive className="h-3.5 w-3.5 text-zinc-600 dark:text-zinc-300" />
             <span>Match Case</span>
           </button>
 
@@ -184,13 +184,13 @@ function SearchOverlay({
             onClick={onToggleWholeWord}
             disabled={isRegex}
             title="Match Whole Word (Alt+W)"
-            className={`h-6 px-2.5 rounded-full flex items-center gap-1 text-[10px] font-mono transition-all disabled:opacity-30 ${
+            className={`h-6 px-2.5 rounded-full flex items-center gap-1.5 text-[11px] font-mono transition-all disabled:opacity-30 ${
               isWholeWord && !isRegex
                 ? 'bg-accent text-accent-on font-bold shadow-xs' 
-                : 'text-zinc-500 hover:bg-surface-container hover:text-on-surface'
+                : 'text-zinc-700 dark:text-zinc-200 hover:bg-surface-container hover:text-zinc-950 dark:hover:text-white'
             }`}
           >
-            <WholeWord className="h-3 w-3" />
+            <WholeWord className="h-3.5 w-3.5 text-zinc-600 dark:text-zinc-300" />
             <span>Whole Word</span>
           </button>
 
@@ -198,13 +198,13 @@ function SearchOverlay({
           <button
             onClick={onToggleRegex}
             title="Use Regular Expression (Alt+R)"
-            className={`h-6 px-2.5 rounded-full flex items-center gap-1 text-[10px] font-mono transition-all ${
+            className={`h-6 px-2.5 rounded-full flex items-center gap-1.5 text-[11px] font-mono transition-all ${
               isRegex 
                 ? 'bg-accent text-accent-on font-bold shadow-xs' 
-                : 'text-zinc-500 hover:bg-surface-container hover:text-on-surface'
+                : 'text-zinc-700 dark:text-zinc-200 hover:bg-surface-container hover:text-zinc-950 dark:hover:text-white'
             }`}
           >
-            <Regex className="h-3 w-3" />
+            <Regex className="h-3.5 w-3.5 text-zinc-600 dark:text-zinc-300" />
             <span>Regex</span>
           </button>
         </div>
@@ -213,13 +213,13 @@ function SearchOverlay({
         <button
           onClick={onToggleMultiDoc}
           title="Search across all open documents in session"
-          className={`h-6 px-2.5 rounded-full flex items-center gap-1 text-[10px] font-mono transition-all ${
+          className={`h-6 px-2.5 rounded-full flex items-center gap-1.5 text-[11px] font-mono transition-all ${
             isMultiDoc 
               ? 'bg-tertiary text-white shadow-xs font-bold' 
-              : 'text-zinc-500 hover:bg-surface-container hover:text-on-surface'
+              : 'text-zinc-700 dark:text-zinc-200 hover:bg-surface-container hover:text-zinc-950 dark:hover:text-white'
           }`}
         >
-          <FileStack className="h-3 w-3" />
+          <FileStack className="h-3.5 w-3.5 text-zinc-600 dark:text-zinc-300" />
           <span>All Open Docs</span>
         </button>
       </div>

@@ -50,12 +50,12 @@ export interface TreeFolderNode {
 function getFileIcon(fileName: string) {
   const lower = fileName.toLowerCase();
   if (lower.endsWith('.epub')) {
-    return <BookOpen className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0" />;
+    return <BookOpen className="h-3.5 w-3.5 text-emerald-500 dark:text-emerald-400 flex-shrink-0" />;
   }
   if (lower.endsWith('.cbz') || lower.endsWith('.cbr') || lower.endsWith('.cbn')) {
-    return <Sparkles className="h-3.5 w-3.5 text-purple-500 flex-shrink-0" />;
+    return <Sparkles className="h-3.5 w-3.5 text-purple-500 dark:text-purple-400 flex-shrink-0" />;
   }
-  return <FileText className="h-3.5 w-3.5 text-zinc-400 group-hover/file:text-accent flex-shrink-0 transition-colors" />;
+  return <FileText className="h-3.5 w-3.5 text-rose-500 dark:text-rose-400 flex-shrink-0" />;
 }
 
 export const FolderTreeExplorer: React.FC<FolderTreeExplorerProps> = ({

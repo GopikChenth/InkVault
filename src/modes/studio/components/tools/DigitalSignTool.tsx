@@ -188,7 +188,7 @@ export default function DigitalSignTool({ initialDoc, onOpenSignedDoc }: Digital
             {/* Active Document Info Card */}
             <div className="p-4 rounded-xl bg-card border border-border flex items-center justify-between shadow-sm">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-surface flex items-center justify-center text-zinc-700 dark:text-zinc-300 font-bold text-xs">
+                <div className="h-10 w-10 rounded-lg bg-rose-500/10 flex items-center justify-center text-rose-500 dark:text-rose-400 font-bold text-xs">
                   <FileText className="h-5 w-5" />
                 </div>
                 <div>

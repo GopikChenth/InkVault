@@ -200,7 +200,7 @@ export const StudyDashboard: React.FC<StudyDashboardProps> = ({
                     <div className={`h-8 w-8 rounded flex items-center justify-center font-bold text-xs flex-shrink-0 transition-colors ${
                       isCurrentlyActive 
                         ? 'bg-accent text-accent-on' 
-                        : 'bg-surface text-zinc-600 dark:text-zinc-400 group-hover:bg-accent/15 group-hover:text-accent'
+                        : 'bg-rose-500/10 text-rose-500 dark:text-rose-400 group-hover:bg-rose-500/20'
                     }`}>
                       <FileText className="h-4 w-4" />
                     </div>

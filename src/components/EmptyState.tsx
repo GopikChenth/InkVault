@@ -31,7 +31,7 @@ export default function EmptyState({
       <div className="absolute bottom-6 left-8 font-mono text-[9px] text-accent/30 pointer-events-none hidden md:block select-none">+</div>
       <div className="absolute bottom-6 right-8 font-mono text-[9px] text-accent/30 pointer-events-none hidden md:block select-none">+</div>
 
-      <div className="max-w-md w-full p-7 sm:p-8 rounded-xl border border-border/80 bg-card/90 backdrop-blur-sm shadow-xl [clip-path:polygon(0_0,calc(100%-14px)_0,100%_14px,100%_100%,14px_100%,0_calc(100%-14px))] flex flex-col items-center text-center animate-in fade-in zoom-in-95 duration-200 relative">
+      <div className="max-w-md w-full p-7 sm:p-8 rounded-xl border border-border/80 bg-card/90 backdrop-blur-sm shadow-xl flex flex-col items-center text-center animate-in fade-in zoom-in-95 duration-200 relative">
         {/* Micro Tech Header matching FirstPage */}
         <div className="w-full flex items-center justify-between pb-3.5 mb-4 border-b border-border/60 font-mono text-[9px] text-zinc-400">
           <div className="flex items-center gap-1.5">
@@ -41,8 +41,8 @@ export default function EmptyState({
           <span className="tracking-widest uppercase opacity-60">// ISO 32000-2</span>
         </div>
 
-        {/* Chamfered Mecha Icon Box */}
-        <div className="h-14 w-14 [clip-path:polygon(0_0,calc(100%-8px)_0,100%_8px,100%_100%,8px_100%,0_calc(100%-8px))] bg-accent/10 border border-accent/30 text-accent flex items-center justify-center mb-3.5 shadow-2xs">
+        {/* Icon Box */}
+        <div className="h-12 w-12 rounded-xl bg-accent/10 border border-accent/25 text-accent flex items-center justify-center mb-3.5 shadow-2xs">
           <Icon className="h-6 w-6" />
         </div>
 
@@ -56,18 +56,18 @@ export default function EmptyState({
           {description}
         </p>
 
-        {/* Chamfered Mecha Action Button */}
+        {/* Action Button */}
         {actionLabel && onAction && (
           <div className="mt-5 w-full flex justify-center">
             <button
               type="button"
               onClick={onAction}
-              className="flex items-center gap-2 px-5 py-2.5 [clip-path:polygon(0_0,calc(100%-8px)_0,100%_8px,100%_100%,8px_100%,0_calc(100%-8px))] bg-accent hover:opacity-90 active:translate-y-0.5 text-accent-on font-mono font-black text-xs shadow-sm transition-all group cursor-pointer"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-md bg-accent hover:opacity-90 active:translate-y-0.5 text-accent-on font-mono font-bold text-xs shadow-sm transition-all group cursor-pointer"
             >
               <ActionIcon className="h-3.5 w-3.5 group-hover:scale-110 transition-transform" />
               <span>{actionLabel}</span>
               {(shortcut || '⌘O') && (
-                <span className="text-[9px] font-mono opacity-80 border px-1.5 py-0.5 ml-1" style={{ borderColor: 'currentColor' }}>
+                <span className="text-[9px] font-mono opacity-80 border px-1.5 py-0.5 ml-1 rounded" style={{ borderColor: 'currentColor' }}>
                   {shortcut || '⌘O'}
                 </span>
               )}

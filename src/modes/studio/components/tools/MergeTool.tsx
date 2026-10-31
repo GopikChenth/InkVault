@@ -234,7 +234,7 @@ export default function MergeTool({ initialDoc, onOpenMergedDoc }: MergeToolProp
           <>
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="h-7 flex items-center gap-1.5 px-3 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] bg-card border border-border hover:bg-black/5 dark:hover:bg-white/10 text-xs font-mono font-bold text-zinc-800 dark:text-zinc-200 transition-colors shadow-2xs cursor-pointer"
+              className="h-7 flex items-center gap-1.5 px-3 rounded-md bg-card border border-border hover:bg-black/5 dark:hover:bg-white/10 text-xs font-mono font-bold text-zinc-800 dark:text-zinc-200 transition-colors shadow-2xs cursor-pointer"
             >
               <Plus className="h-3.5 w-3.5" />
               <span>Add Files</span>
@@ -243,7 +243,7 @@ export default function MergeTool({ initialDoc, onOpenMergedDoc }: MergeToolProp
             <button
               onClick={() => handleExecuteMerge(true)}
               disabled={items.length < 2 || merging}
-              className="h-7 flex items-center gap-1.5 px-3.5 [clip-path:polygon(0_0,calc(100%-6px)_0,100%_6px,100%_100%,6px_100%,0_calc(100%-6px))] bg-accent hover:opacity-90 active:translate-y-0.5 text-accent-on font-mono font-black text-xs transition-all shadow-xs cursor-pointer disabled:opacity-40"
+              className="h-7 flex items-center gap-1.5 px-3.5 rounded-md bg-accent hover:opacity-90 active:translate-y-0.5 text-accent-on font-mono font-bold text-xs transition-all shadow-xs cursor-pointer disabled:opacity-40"
             >
               {merging ? (
                 <>

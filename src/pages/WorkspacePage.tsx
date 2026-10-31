@@ -755,7 +755,7 @@ export default function WorkspacePage({
                   type="button"
                   onClick={() => setIsSidebarOpen((prev) => !prev)}
                   title={isSidebarOpen ? "Collapse Sidebar" : "Expand Sidebar"}
-                  className="h-7 w-7 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] border border-border flex items-center justify-center text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white hover:bg-card transition-colors flex-shrink-0 mr-1 shadow-2xs cursor-pointer"
+                  className="h-7 w-7 rounded-md border border-border flex items-center justify-center text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white hover:bg-card transition-colors flex-shrink-0 mr-1 shadow-2xs cursor-pointer"
                 >
                   {isSidebarOpen ? <PanelLeftClose className="h-3.5 w-3.5" /> : <PanelLeftOpen className="h-3.5 w-3.5" />}
                 </button>
@@ -777,23 +777,25 @@ export default function WorkspacePage({
                   <span>
                     {currentMode === 'study' && activeTab === 'recent'
                       ? 'STUDY SUBJECTS'
+                      : currentMode === 'reader' && activeTab === 'recent'
+                      ? 'BOOKS & COMICS'
+                      : currentMode === 'editor' && activeTab === 'recent'
+                      ? 'SESSION DOCUMENTS'
                       : activeTab.replace('-', ' ')}
                   </span>
                 </div>
               </div>
 
-              {currentMode !== 'reader' && (
+              {activeTab === 'recent' && currentMode !== 'reader' && (
                 <button
                   type="button"
                   onClick={currentMode === 'study' ? handleTriggerImportFolder : handleTriggerOpenFile}
-                  className="h-7 flex items-center gap-1.5 px-3 [clip-path:polygon(0_0,calc(100%-6px)_0,100%_6px,100%_100%,6px_100%,0_calc(100%-6px))] bg-accent text-accent-on font-mono font-bold text-xs hover:opacity-90 active:translate-y-0.5 transition-all shadow-xs cursor-pointer"
-                  title={currentMode === 'study' ? 'Import Folder' : 'Open PDF (⌘O)'}
+                  className="h-7 flex items-center gap-1.5 px-3 rounded-md bg-accent text-accent-on font-mono font-bold text-xs hover:opacity-90 active:translate-y-0.5 transition-all shadow-xs cursor-pointer"
+                  title={currentMode === 'study' ? 'Import Folder (⌘O)' : 'Open PDF (⌘O)'}
                 >
                   {currentMode === 'study' ? <FolderUp className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
                   <span>{currentMode === 'study' ? 'Import Folder' : 'Open PDF'}</span>
-                  {currentMode !== 'study' && (
-                    <span className="text-[9px] opacity-75 font-mono ml-0.5 hidden sm:inline">⌘O</span>
-                  )}
+                  <span className="text-[9px] opacity-75 font-mono ml-0.5 hidden sm:inline">⌘O</span>
                 </button>
               )}
             </header>

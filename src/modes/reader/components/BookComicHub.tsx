@@ -395,20 +395,17 @@ function BookComicHub({
   return (
     <div className="flex-1 w-full h-full overflow-hidden bg-background text-on-surface flex flex-col select-none">
       
-      {/* 1. Constraint-Aligned Responsive Header Bar — Chamfered Mecha Layout */}
-      <header className="px-4 sm:px-6 md:px-8 h-10 border-b border-border bg-surface flex items-center justify-between gap-3 sm:gap-4 flex-shrink-0 z-20 select-none">
+      {/* 1. Constraint-Aligned Responsive Header Bar */}
+      <header className="px-3 sm:px-4 h-10 border-b border-border bg-surface flex items-center justify-between gap-3 sm:gap-4 flex-shrink-0 z-20 select-none">
         
         {/* Left: Library Title & Count Badge */}
-        <div className="flex items-center gap-2.5 min-w-0 flex-shrink-0">
-          <div className="h-7 w-7 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] bg-accent/15 border border-accent/30 text-accent flex items-center justify-center shadow-2xs flex-shrink-0">
-            <BookOpen className="h-3.5 w-3.5" />
-          </div>
+        <div className="flex items-center gap-2 min-w-0 flex-shrink-0">
+          <BookOpen className="h-4 w-4 text-zinc-500 dark:text-zinc-400 flex-shrink-0" />
           <div className="flex items-center gap-2 min-w-0">
-            <h1 className="text-xs sm:text-sm font-bold text-on-surface tracking-tight whitespace-nowrap flex items-center gap-1.5 font-sans">
-              <span className="text-accent font-black text-[9px]">▶</span>
-              <span>Books & Comics</span>
+            <h1 className="text-xs sm:text-sm font-semibold text-on-surface tracking-tight whitespace-nowrap font-sans">
+              Books & Comics
             </h1>
-            <span className="text-[10px] font-mono font-bold px-2 py-0.5 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] bg-accent/15 border border-accent/25 text-accent flex-shrink-0">
+            <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-accent/15 border border-accent/25 text-accent flex-shrink-0">
               {enrichedDocs.length}
             </span>
           </div>
@@ -422,7 +419,7 @@ function BookComicHub({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search title, format..."
-            className="w-full bg-surface-container border border-border [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] pl-8 pr-7 py-1 text-xs text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:ring-1 focus:ring-accent focus:border-accent transition-colors shadow-2xs"
+            className="w-full bg-surface-container border border-border rounded-md pl-8 pr-7 py-1 text-xs text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:ring-1 focus:ring-accent focus:border-accent transition-colors shadow-2xs"
           />
           {searchQuery && (
             <button
@@ -438,7 +435,7 @@ function BookComicHub({
         <div className="flex items-center gap-2 flex-shrink-0 justify-end font-mono">
           <button
             onClick={() => setShowHelpModal(true)}
-            className="h-7 w-7 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] bg-card border border-border flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-black/5 dark:hover:bg-white/10 transition-colors shadow-2xs cursor-pointer"
+            className="h-7 w-7 rounded-md bg-card border border-border flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-black/5 dark:hover:bg-white/10 transition-colors shadow-2xs cursor-pointer"
             title="Shortcuts & Format Guide"
             aria-label="Shortcuts & Format Guide"
           >
@@ -448,7 +445,7 @@ function BookComicHub({
           {/* Add Book / Comic Button */}
           <button
             onClick={onImportBook}
-            className="h-7 flex items-center gap-1.5 px-3 [clip-path:polygon(0_0,calc(100%-6px)_0,100%_6px,100%_100%,6px_100%,0_calc(100%-6px))] bg-accent hover:opacity-90 active:translate-y-0.5 text-accent-on text-xs font-bold shadow-xs transition-all cursor-pointer"
+            className="h-7 flex items-center gap-1.5 px-3 rounded-md bg-accent hover:opacity-90 active:translate-y-0.5 text-accent-on text-xs font-bold shadow-xs transition-all cursor-pointer"
             title="Import Comic (.cbz, .cbr), Book (.epub), or PDF (⌘O)"
           >
             <Plus className="h-3.5 w-3.5" />
@@ -462,7 +459,7 @@ function BookComicHub({
       </header>
 
       {/* 2. Responsive Filters & Sorting Bar */}
-      <div className="px-4 sm:px-6 md:px-8 py-2 border-b border-border bg-surface/60 flex items-center justify-between gap-3 flex-shrink-0 text-xs">
+      <div className="px-3 sm:px-4 py-2 border-b border-border bg-surface/60 flex items-center justify-between gap-3 flex-shrink-0 text-xs">
         
         {/* Left: Scrollable Filter Pills with responsive labels to avoid clipping */}
         <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 min-w-0 flex-1 pr-2">
@@ -540,7 +537,7 @@ function BookComicHub({
       </div>
 
       {/* 3. Main Bookshelf Canvas across entire page */}
-      <main className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 w-full">
+      <main className="flex-1 overflow-y-auto px-3 sm:px-4 py-4 w-full">
         {/* Reading Streak & Weekly Momentum Showcase (Bibliophile Amber & Nordic Vellum) */}
         {enrichedDocs.length > 0 && !searchQuery && activeFilter === 'all' && (
           <div className="mb-6 p-4 rounded-2xl bg-card border border-border shadow-xs flex flex-wrap items-center justify-between gap-4 transition-colors">

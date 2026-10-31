@@ -324,7 +324,7 @@ export default function OrganizePagesTool({ initialDoc, onOpenOrganizedDoc }: Or
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="h-7 flex items-center gap-1.5 px-3 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] bg-card border border-border hover:bg-black/5 dark:hover:bg-white/10 text-xs font-mono font-bold text-zinc-800 dark:text-zinc-200 transition-colors shadow-2xs cursor-pointer"
+              className="h-7 flex items-center gap-1.5 px-3 rounded-md bg-card border border-border hover:bg-black/5 dark:hover:bg-white/10 text-xs font-mono font-bold text-zinc-800 dark:text-zinc-200 transition-colors shadow-2xs cursor-pointer"
             >
               <FolderOpen className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">{doc ? 'Change PDF' : 'Select PDF'}</span>
@@ -335,7 +335,7 @@ export default function OrganizePagesTool({ initialDoc, onOpenOrganizedDoc }: Or
                 type="button"
                 onClick={() => handleSaveOrganized(true)}
                 disabled={saving}
-                className="h-7 flex items-center gap-1.5 px-3.5 [clip-path:polygon(0_0,calc(100%-6px)_0,100%_6px,100%_100%,6px_100%,0_calc(100%-6px))] bg-accent hover:opacity-90 active:translate-y-0.5 text-accent-on font-mono font-black text-xs transition-all shadow-xs cursor-pointer disabled:opacity-40"
+                className="h-7 flex items-center gap-1.5 px-3.5 rounded-md bg-accent hover:opacity-90 active:translate-y-0.5 text-accent-on font-mono font-bold text-xs transition-all shadow-xs cursor-pointer disabled:opacity-40"
               >
                 {saving ? (
                   <>
@@ -356,7 +356,7 @@ export default function OrganizePagesTool({ initialDoc, onOpenOrganizedDoc }: Or
 
       {/* Main Content Area */}
       {!doc ? (
-        <div className="flex-1 overflow-auto p-6 sm:p-8 flex flex-col items-center justify-center">
+        <div className="flex-1 overflow-auto px-3 sm:px-4 py-6 flex flex-col items-center justify-center">
           <EmptyState
             icon={LayoutGrid}
             title="Organize Pages"
@@ -367,13 +367,13 @@ export default function OrganizePagesTool({ initialDoc, onOpenOrganizedDoc }: Or
         </div>
       ) : (
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Action Ribbon — Chamfered Batch Controls */}
-          <div className="border-b border-border bg-card/60 px-4 sm:px-6 py-2 flex items-center justify-between gap-3 flex-wrap flex-shrink-0 select-none">
+          {/* Action Ribbon — Clean Batch Controls */}
+          <div className="border-b border-border bg-card/60 px-3 sm:px-4 py-2 flex items-center justify-between gap-3 flex-wrap flex-shrink-0 select-none">
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100 font-mono">
                 {pages.length} PAGES
               </span>
-              <span className="text-[10px] font-mono font-bold px-2 py-0.5 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] bg-accent/15 text-accent border border-accent/25">
+              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-accent/15 text-accent border border-accent/25">
                 {selectedIds.size} SELECTED
               </span>
               {loadingThumbnails && (
@@ -389,7 +389,7 @@ export default function OrganizePagesTool({ initialDoc, onOpenOrganizedDoc }: Or
               <button
                 type="button"
                 onClick={selectedIds.size === pages.length ? deselectAll : selectAll}
-                className="h-6 flex items-center gap-1 px-2.5 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] text-xs font-bold bg-surface hover:bg-black/5 dark:hover:bg-white/10 border border-border transition-colors shadow-2xs cursor-pointer"
+                className="h-6 flex items-center gap-1 px-2.5 rounded-md text-xs font-bold bg-surface hover:bg-black/5 dark:hover:bg-white/10 border border-border transition-colors shadow-2xs cursor-pointer"
               >
                 {selectedIds.size === pages.length ? (
                   <>
@@ -408,7 +408,7 @@ export default function OrganizePagesTool({ initialDoc, onOpenOrganizedDoc }: Or
                 type="button"
                 onClick={() => rotateSelected(90)}
                 disabled={selectedIds.size === 0}
-                className="h-6 flex items-center gap-1 px-2.5 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] text-xs font-bold bg-surface hover:bg-black/5 dark:hover:bg-white/10 border border-border transition-colors disabled:opacity-40 shadow-2xs cursor-pointer"
+                className="h-6 flex items-center gap-1 px-2.5 rounded-md text-xs font-bold bg-surface hover:bg-black/5 dark:hover:bg-white/10 border border-border transition-colors disabled:opacity-40 shadow-2xs cursor-pointer"
                 title="Rotate Selected 90° Clockwise"
               >
                 <RotateCw className="h-3.5 w-3.5 text-accent" />
@@ -419,7 +419,7 @@ export default function OrganizePagesTool({ initialDoc, onOpenOrganizedDoc }: Or
                 type="button"
                 onClick={() => rotateSelected(-90)}
                 disabled={selectedIds.size === 0}
-                className="h-6 flex items-center gap-1 px-2.5 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] text-xs font-bold bg-surface hover:bg-black/5 dark:hover:bg-white/10 border border-border transition-colors disabled:opacity-40 shadow-2xs cursor-pointer"
+                className="h-6 flex items-center gap-1 px-2.5 rounded-md text-xs font-bold bg-surface hover:bg-black/5 dark:hover:bg-white/10 border border-border transition-colors disabled:opacity-40 shadow-2xs cursor-pointer"
                 title="Rotate Selected 90° Counter-Clockwise"
               >
                 <RotateCcw className="h-3.5 w-3.5 text-accent" />
@@ -430,7 +430,7 @@ export default function OrganizePagesTool({ initialDoc, onOpenOrganizedDoc }: Or
                 type="button"
                 onClick={deleteSelected}
                 disabled={selectedIds.size === 0 || pages.length <= selectedIds.size}
-                className="h-6 flex items-center gap-1 px-2.5 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] text-xs font-bold bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30 transition-colors disabled:opacity-40 shadow-2xs cursor-pointer"
+                className="h-6 flex items-center gap-1 px-2.5 rounded-md text-xs font-bold bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30 transition-colors disabled:opacity-40 shadow-2xs cursor-pointer"
                 title="Delete Selected Pages"
               >
                 <Trash2 className="h-3.5 w-3.5" />
@@ -440,7 +440,7 @@ export default function OrganizePagesTool({ initialDoc, onOpenOrganizedDoc }: Or
               <button
                 type="button"
                 onClick={resetToOriginal}
-                className="h-6 flex items-center gap-1 px-2.5 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] text-xs font-bold text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors ml-1 cursor-pointer"
+                className="h-6 flex items-center gap-1 px-2.5 rounded-md text-xs font-bold text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors ml-1 cursor-pointer"
                 title="Reset to Original Order"
               >
                 <RefreshCw className="h-3 w-3" />

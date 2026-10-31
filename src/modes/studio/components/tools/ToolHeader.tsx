@@ -17,18 +17,15 @@ export const ToolHeader: React.FC<ToolHeaderProps> = ({
   actions,
 }) => {
   return (
-    <div className="h-11 border-b border-border bg-surface/95 dark:bg-surface/95 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between gap-3 flex-shrink-0 select-none">
+    <div className="h-10 border-b border-border bg-surface/95 dark:bg-surface/95 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between gap-3 flex-shrink-0 select-none">
       <div className="flex items-center gap-2.5 min-w-0">
-        <div className="h-7 w-7 [clip-path:polygon(2px_0,100%_0,calc(100%-2px)_100%,0_100%)] bg-accent/15 border border-accent/30 text-accent flex items-center justify-center shadow-2xs flex-shrink-0">
-          <Icon className="h-3.5 w-3.5" />
-        </div>
+        <Icon className="h-4 w-4 text-zinc-500 dark:text-zinc-400 flex-shrink-0" />
         <div className="flex items-center gap-2 min-w-0">
-          <h2 className="text-xs font-bold text-zinc-950 dark:text-zinc-50 truncate flex items-center gap-1.5 font-sans">
-            <span className="text-accent font-black text-[9px]">▶</span>
-            <span>{title}</span>
+          <h2 className="text-xs sm:text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate font-sans">
+            {title}
           </h2>
           {badge && (
-            <span className="text-[9px] font-mono px-1.5 py-0.2 bg-black/[0.04] dark:bg-white/[0.06] border border-border text-zinc-500 rounded hidden md:inline">
+            <span className="text-[10px] font-mono px-1.5 py-0.5 bg-surface border border-border text-zinc-500 rounded hidden md:inline">
               {badge}
             </span>
           )}

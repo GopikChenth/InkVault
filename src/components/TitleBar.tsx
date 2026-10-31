@@ -148,10 +148,10 @@ export default function TitleBar({
       {/* 1. Left: Brand & Menu Items */}
       <div className="flex items-center gap-1.5 min-w-0 flex-shrink-0">
         
-        {/* Chamfered Insignia matching FirstPage */}
+        {/* App Insignia */}
         <div 
           onClick={onReturnToCover}
-          className="h-7 w-7 flex items-center justify-center font-black [clip-path:polygon(0_0,calc(100%-6px)_0,100%_6px,100%_100%,0_100%)] bg-accent text-accent-on cursor-pointer hover:opacity-90 active:translate-y-0.5 transition-all mr-1 shadow-xs flex-shrink-0"
+          className="h-7 w-7 rounded-md flex items-center justify-center font-black bg-accent text-accent-on cursor-pointer hover:opacity-90 active:translate-y-0.5 transition-all mr-1 shadow-xs flex-shrink-0"
           title="Ink Vault Cover / Return (⌘↵)"
         >
           <span className="font-mono text-xs leading-none font-black">✛</span>
@@ -563,13 +563,13 @@ export default function TitleBar({
       {/* 3. Right: Quick Mode Switcher, Launch, Theme & Fullscreen — All unified to h-7 size */}
       <div className="flex items-center gap-2 h-full flex-shrink-0">
 
-        {/* FirstPage-style Chamfered Mode Segmented Control */}
+        {/* Mode Segmented Control */}
         {onSelectMode && (
-          <div className="h-7 flex items-center gap-0.5 p-0.5 bg-black/[0.04] dark:bg-white/[0.06] border border-border [clip-path:polygon(4px_0,100%_0,calc(100%-4px)_100%,0_100%)] text-xs font-mono font-bold shadow-2xs">
+          <div className="h-7 flex items-center gap-0.5 p-0.5 bg-black/[0.04] dark:bg-white/[0.06] border border-border rounded-md text-xs font-mono font-bold shadow-2xs">
             <button
               onClick={() => onSelectMode('editor')}
               title="Studio Editor (⌘1)"
-              className={`h-full flex items-center gap-1.5 px-2.5 transition-all [clip-path:polygon(3px_0,100%_0,calc(100%-3px)_100%,0_100%)] ${
+              className={`h-full flex items-center gap-1.5 px-2.5 transition-all rounded ${
                 currentMode === 'editor'
                   ? 'bg-accent text-accent-on font-black shadow-xs'
                   : 'text-zinc-900 dark:text-zinc-200 hover:text-black dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10'
@@ -582,7 +582,7 @@ export default function TitleBar({
             <button
               onClick={() => onSelectMode('study')}
               title="Study Mode (⌘2)"
-              className={`h-full flex items-center gap-1.5 px-2.5 transition-all [clip-path:polygon(3px_0,100%_0,calc(100%-3px)_100%,0_100%)] ${
+              className={`h-full flex items-center gap-1.5 px-2.5 transition-all rounded ${
                 currentMode === 'study'
                   ? 'bg-accent text-accent-on font-black shadow-xs'
                   : 'text-zinc-900 dark:text-zinc-200 hover:text-black dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10'
@@ -595,7 +595,7 @@ export default function TitleBar({
             <button
               onClick={() => onSelectMode('reader')}
               title="Books & Comics (⌘3)"
-              className={`h-full flex items-center gap-1.5 px-2.5 transition-all [clip-path:polygon(3px_0,100%_0,calc(100%-3px)_100%,0_100%)] ${
+              className={`h-full flex items-center gap-1.5 px-2.5 transition-all rounded ${
                 currentMode === 'reader'
                   ? 'bg-accent text-accent-on font-black shadow-xs'
                   : 'text-zinc-900 dark:text-zinc-200 hover:text-black dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10'
@@ -608,11 +608,11 @@ export default function TitleBar({
           </div>
         )}
 
-        {/* Quick Theme Toggle — Chamfered Mecha Button */}
+        {/* Quick Theme Toggle */}
         <button
           onClick={onToggleDarkMode}
           title={darkMode ? 'Switch to Light Mode (⌘T)' : 'Switch to Dark Mode (⌘T)'}
-          className="h-7 w-7 [clip-path:polygon(3px_0,100%_0,calc(100%-3px)_100%,0_100%)] bg-black/[0.04] dark:bg-white/[0.06] border border-border hover:bg-black/10 dark:hover:bg-white/15 flex items-center justify-center text-zinc-950 dark:text-zinc-50 transition-colors shadow-2xs shrink-0"
+          className="h-7 w-7 rounded-md bg-black/[0.04] dark:bg-white/[0.06] border border-border hover:bg-black/10 dark:hover:bg-white/15 flex items-center justify-center text-zinc-950 dark:text-zinc-50 transition-colors shadow-2xs shrink-0"
         >
           {darkMode ? <Sun className="h-3.5 w-3.5 text-amber-400" /> : <Moon className="h-3.5 w-3.5 text-zinc-950" />}
         </button>
@@ -621,7 +621,7 @@ export default function TitleBar({
           <button
             onClick={onToggleFullscreen}
             title="Toggle Fullscreen (F11)"
-            className="h-7 w-7 [clip-path:polygon(3px_0,100%_0,calc(100%-3px)_100%,0_100%)] bg-black/[0.04] dark:bg-white/[0.06] border border-border hover:bg-black/10 dark:hover:bg-white/15 flex items-center justify-center text-zinc-900 dark:text-zinc-100 hover:text-black dark:hover:text-white transition-colors hidden sm:flex shadow-2xs shrink-0"
+            className="h-7 w-7 rounded-md bg-black/[0.04] dark:bg-white/[0.06] border border-border hover:bg-black/10 dark:hover:bg-white/15 flex items-center justify-center text-zinc-900 dark:text-zinc-100 hover:text-black dark:hover:text-white transition-colors hidden sm:flex shadow-2xs shrink-0"
           >
             <Maximize2 className="h-3.5 w-3.5" />
           </button>

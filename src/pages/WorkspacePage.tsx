@@ -711,7 +711,7 @@ export default function WorkspacePage({
                 <button
                   type="button"
                   onClick={onToggleDarkMode}
-                  className="h-7 flex items-center gap-1.5 px-2.5 [clip-path:polygon(3px_0,100%_0,calc(100%-3px)_100%,0_100%)] text-xs font-mono font-bold bg-card border border-border hover:bg-black/5 dark:hover:bg-white/10 text-zinc-800 dark:text-zinc-200 transition-colors shadow-2xs cursor-pointer"
+                  className="h-7 flex items-center gap-1.5 px-2.5 rounded-md text-xs font-mono font-bold bg-card border border-border hover:bg-black/5 dark:hover:bg-white/10 text-zinc-800 dark:text-zinc-200 transition-colors shadow-2xs cursor-pointer"
                 >
                   {darkMode ? <Sun className="h-3.5 w-3.5 text-amber-400" /> : <Moon className="h-3.5 w-3.5 text-zinc-950" />}
                   <span>{darkMode ? 'Light' : 'Dark'}</span>
@@ -773,7 +773,6 @@ export default function WorkspacePage({
                 <span className="text-zinc-700 dark:text-zinc-300 font-bold flex-shrink-0 uppercase text-[11px] tracking-wider">Workspace</span>
                 <span className="opacity-40">/</span>
                 <div className="flex items-center gap-1 font-bold text-accent truncate uppercase text-[11px] tracking-wider">
-                  <span className="text-[9px]">▶</span>
                   <span>
                     {currentMode === 'study' && activeTab === 'recent'
                       ? 'STUDY SUBJECTS'

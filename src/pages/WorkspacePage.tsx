@@ -774,7 +774,11 @@ export default function WorkspacePage({
                 <span className="opacity-40">/</span>
                 <div className="flex items-center gap-1 font-bold text-accent truncate uppercase text-[11px] tracking-wider">
                   <span className="text-[9px]">▶</span>
-                  <span>{activeTab.replace('-', ' ')}</span>
+                  <span>
+                    {currentMode === 'study' && activeTab === 'recent'
+                      ? 'STUDY SUBJECTS'
+                      : activeTab.replace('-', ' ')}
+                  </span>
                 </div>
               </div>
 

@@ -4,23 +4,15 @@ import {
   ChevronLeft, 
   ChevronRight, 
   RotateCw, 
-  Maximize2, 
-  Minimize2, 
   Download, 
   Printer, 
   X,
   FileText,
   Search,
   BookOpen,
-  Columns,
-  Eye,
-  ChevronDown,
   PanelLeftOpen,
   Folder,
-  Square,
-  Rows,
-  ZoomIn,
-  ZoomOut
+  PenTool
 } from 'lucide-react';
 import { 
   LoadedPDF, 
@@ -37,14 +29,14 @@ import {
 import SearchOverlay from './viewer/SearchOverlay';
 import ViewerNavSidebar from './viewer/ViewerNavSidebar';
 import TextReflowView from './viewer/TextReflowView';
-import FloatingAnnotationToolbar from './viewer/FloatingAnnotationToolbar';
+import StatusBar from './viewer/StatusBar';
+import StudioRibbon from './viewer/StudioRibbon';
 import AnnotationLayer from './viewer/AnnotationLayer';
 import StickyNoteModal from './viewer/StickyNoteModal';
 import DocumentTabBar from './viewer/DocumentTabBar';
 import MinimalStudyBar from './viewer/MinimalStudyBar';
 import PomodoroTimer from './viewer/PomodoroTimer';
 import TextSelectionToolbar, { SelectionData } from './viewer/TextSelectionToolbar';
-import FloatingAnchor from './common/FloatingAnchor';
 import DigitalSignModal from './viewer/DigitalSignModal';
 import { exportToXFDF, exportToJSON, downloadFile, bakeAnnotationsToPDF } from '../utils/annotationExporter';
 import { recordReadingActivity } from '../utils/readingStats';
@@ -184,9 +176,7 @@ export default function PDFViewer({
     }
     return 'continuous';
   });
-  const [facingCoverPage, setFacingCoverPage] = useState<boolean>(true);
-  const [showLayoutMenu, setShowLayoutMenu] = useState<boolean>(false);
-  const layoutBtnRef = useRef<HTMLButtonElement>(null);
+  const [facingCoverPage] = useState<boolean>(true);
 
   const handleSetLayoutMode = useCallback((mode: PageLayoutMode) => {
     setLayoutMode(mode);
@@ -221,6 +211,26 @@ export default function PDFViewer({
     try {
       localStorage.setItem('inkvault_reader_paper_tone', tone);
     } catch {}
+  }, []);
+
+  // Studio Action Ribbon State (WordCraft-style docked toolbar below tabs)
+  const [isStudioRibbonOpen, setIsStudioRibbonOpen] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('inkvault_studio_ribbon_open');
+      return saved !== null ? saved === 'true' : true;
+    } catch {
+      return true;
+    }
+  });
+
+  const handleToggleStudioRibbon = useCallback(() => {
+    setIsStudioRibbonOpen((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('inkvault_studio_ribbon_open', String(next));
+      } catch {}
+      return next;
+    });
   }, []);
 
   // 3. Navigation Panes (Left Drawer)
@@ -1968,9 +1978,6 @@ export default function PDFViewer({
         } else if (isReflowOpen) {
           setIsReflowOpen(false);
           e.preventDefault();
-        } else if (showLayoutMenu) {
-          setShowLayoutMenu(false);
-          e.preventDefault();
         } else if (isNavSidebarOpen) {
           toggleNavSidebar(false);
           e.preventDefault();
@@ -1991,6 +1998,9 @@ export default function PDFViewer({
       } else if ((e.metaKey || e.ctrlKey) && (e.key === 'b' || e.key === 'B')) {
         e.preventDefault();
         toggleNavSidebar();
+      } else if ((e.metaKey || e.ctrlKey) && (e.key === 'e' || e.key === 'E')) {
+        e.preventDefault();
+        handleToggleStudioRibbon();
       } else if (e.ctrlKey && e.key === 'Tab') {
         // Switch between open tabs
         e.preventDefault();
@@ -2097,8 +2107,8 @@ export default function PDFViewer({
   }, [
     isSearchOpen, 
     isReflowOpen, 
-    showLayoutMenu, 
     isNavSidebarOpen, 
+    handleToggleStudioRibbon, 
     activeStickyModalAnn, 
     activeAnnotationTool, 
     handleUndo, 
@@ -2265,346 +2275,206 @@ export default function PDFViewer({
           </div>
         </>
       ) : (
-        <header className={`h-10 border-b border-outline/20 bg-surface/85 backdrop-blur-xl px-3 sm:px-4 flex items-center justify-between gap-3 flex-shrink-0 z-20 transition-all duration-300 ease-caelestia-decel select-none ${
-          focusMode ? 'opacity-20 hover:opacity-100' : 'opacity-100'
-        }`}>
-        
-        {/* Left: Navigation Drawer Toggle & Document details */}
-        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+        <>
+          <header className={`h-9 border-b border-outline/20 bg-surface/85 backdrop-blur-xl px-3 sm:px-4 flex items-center justify-between gap-2 flex-shrink-0 z-20 transition-all duration-300 ease-caelestia-decel select-none ${
+            focusMode ? 'opacity-20 hover:opacity-100' : 'opacity-100'
+          }`}>
           
-
-          {/* Document Title */}
-          <div className="flex items-center gap-1.5 min-w-0">
-            <div className="h-7 w-7 rounded-xl bg-accent/15 border border-accent/30 text-accent flex items-center justify-center flex-shrink-0 shadow-xs">
-              <FileText className="h-3.5 w-3.5" />
-            </div>
-            <span className="text-xs font-bold text-on-surface truncate max-w-[140px] sm:max-w-xs md:max-w-sm">
-              {doc.name}
-            </span>
-            {isStudyMode && doc.subjectName && (
-              <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-accent/15 text-accent border border-accent/25 flex-shrink-0">
-                <Folder className="h-3 w-3" />
-                <span>{doc.subjectName}</span>
-              </span>
-            )}
-          </div>
-
-          <div className="h-4 w-[1px] bg-outline/20 hidden md:block" />
-
-          {/* Page Navigator */}
-          <div className="flex items-center gap-1 bg-surface-container border border-outline/20 rounded-full px-1.5 py-0.5 text-xs font-mono tabular-nums">
-            <button
-              type="button"
-              onClick={() => scrollToPage(Math.max(currentPage - 1, 1))}
-              disabled={currentPage <= 1}
-              className="h-6 w-6 rounded-full flex items-center justify-center hover:bg-surface-high disabled:opacity-30 transition-all duration-200 ease-caelestia-decel focus-visible:outline-none focus-visible:ring-1.5 focus-visible:ring-accent"
-              title="Previous Page"
-              aria-label="Previous Page"
-            >
-              <ChevronLeft className="h-3.5 w-3.5 text-on-surface" aria-hidden="true" />
-            </button>
-            <span className="px-1 text-[11px] font-medium tabular-nums text-on-surface">
-              {currentPage} / {pages.length || 1}
-            </span>
-            <button
-              type="button"
-              onClick={() => scrollToPage(Math.min(currentPage + 1, pages.length))}
-              disabled={currentPage >= pages.length}
-              className="h-6 w-6 rounded-full flex items-center justify-center hover:bg-surface-high disabled:opacity-30 transition-all duration-200 ease-caelestia-decel focus-visible:outline-none focus-visible:ring-1.5 focus-visible:ring-accent"
-              title="Next Page"
-              aria-label="Next Page"
-            >
-              <ChevronRight className="h-3.5 w-3.5 text-on-surface" aria-hidden="true" />
-            </button>
-          </div>
-        </div>
-
-        {/* Center/Right: Feature Controls */}
-        <div className="flex items-center gap-1.5 flex-shrink-0">
-          
-          {/* 1. Page Layout Mode Switcher */}
-          {(initialAppMode === 'reader' || doc.isComic) ? (
-            <div className="flex items-center gap-1">
-              <div className="flex items-center gap-0.5 bg-surface-container border border-outline/20 p-0.5 rounded-full text-xs">
-                <button
-                  type="button"
-                  onClick={() => handleSetLayoutMode('single')}
-                  title="Single Page Mode [1]"
-                  className={`h-7 px-2.5 rounded-full flex items-center gap-1.5 text-xs transition-all duration-200 ${
-                    layoutMode === 'single'
-                      ? 'bg-accent text-accent-on font-bold shadow-xs'
-                      : 'text-on-surface hover:bg-surface-high'
-                  }`}
-                >
-                  <Square className="h-3 w-3" />
-                  <span>Single</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleSetLayoutMode('facing-pages')}
-                  title="Facing Pages (Dual Spread) [2]"
-                  className={`h-7 px-2.5 rounded-full flex items-center gap-1.5 text-xs transition-all duration-200 ${
-                    layoutMode === 'facing-pages'
-                      ? 'bg-accent text-accent-on font-bold shadow-xs'
-                      : 'text-on-surface hover:bg-surface-high'
-                  }`}
-                >
-                  <Columns className="h-3 w-3" />
-                  <span>Facing</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleSetLayoutMode('continuous')}
-                  title="Continuous Scroll [3]"
-                  className={`h-7 px-2.5 rounded-full flex items-center gap-1.5 text-xs transition-all duration-200 ${
-                    layoutMode === 'continuous'
-                      ? 'bg-accent text-accent-on font-bold shadow-xs'
-                      : 'text-on-surface hover:bg-surface-high'
-                  }`}
-                >
-                  <Rows className="h-3 w-3" />
-                  <span>Scroll</span>
-                </button>
+            {/* Left: Document details */}
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="h-6 w-6 rounded-md bg-accent/15 border border-accent/30 text-accent flex items-center justify-center flex-shrink-0 shadow-2xs">
+                <FileText className="h-3 w-3" />
               </div>
+              <span className="text-xs font-bold text-on-surface truncate max-w-[140px] sm:max-w-xs md:max-w-md">
+                {doc.name}
+              </span>
+              {isStudyMode && doc.subjectName && (
+                <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-accent/15 text-accent border border-accent/25 flex-shrink-0">
+                  <Folder className="h-2.5 w-2.5" />
+                  <span>{doc.subjectName}</span>
+                </span>
+              )}
+            </div>
 
-              {/* Single Page Specific Fit Options */}
-              {layoutMode === 'single' && (
-                <div className="hidden sm:flex items-center gap-0.5 bg-surface-container border border-outline/20 p-0.5 rounded-full text-xs">
+            {/* Right: Mode Tools, Global Actions & Drawer Toggle */}
+            <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
+              
+              {/* Studio Mode: Toggle Markup & Annotation Ribbon [Ctrl+E] */}
+              {initialAppMode === 'editor' && !isStudyMode && (
+                <button
+                  type="button"
+                  onClick={handleToggleStudioRibbon}
+                  title={isStudioRibbonOpen ? 'Collapse Markup Ribbon [Ctrl+E]' : 'Show Markup Ribbon [Ctrl+E]'}
+                  className={`h-6.5 px-2.5 rounded-md flex items-center gap-1.5 text-xs font-medium transition-colors cursor-pointer ${
+                    isStudioRibbonOpen
+                      ? 'bg-accent/20 border border-accent/40 text-accent font-semibold shadow-2xs'
+                      : 'hover:bg-surface-high border border-outline/20 text-on-surface'
+                  }`}
+                >
+                  <PenTool className="h-3 w-3 text-accent" />
+                  <span className="hidden sm:inline">Markup</span>
+                </button>
+              )}
+
+              {/* Reader Circadian Paper Tone Switcher */}
+              {initialAppMode === 'reader' && (
+                <div className="flex items-center gap-0.5 bg-surface-container border border-outline/20 p-0.5 rounded-md text-xs">
                   <button
                     type="button"
-                    onClick={handleFitPage}
-                    title="Fit Page in Window [P]"
-                    className="h-7 px-2 rounded-full text-[11px] font-medium text-on-surface hover:bg-surface-high transition-colors"
+                    onClick={() => handleSetReaderPaperTone('warm')}
+                    title="Circadian Warm Paper"
+                    className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors cursor-pointer ${
+                      readerPaperTone === 'warm'
+                        ? 'bg-accent text-accent-on font-semibold'
+                        : 'text-on-surface hover:bg-surface-high'
+                    }`}
                   >
-                    Fit Page
+                    📜 Warm
                   </button>
                   <button
                     type="button"
-                    onClick={handleFitWidth}
-                    title="Fit Width [W]"
-                    className="h-7 px-2 rounded-full text-[11px] font-medium text-on-surface hover:bg-surface-high transition-colors"
+                    onClick={() => handleSetReaderPaperTone('dark')}
+                    title="Espresso Dark Inversion"
+                    className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors cursor-pointer ${
+                      readerPaperTone === 'dark'
+                        ? 'bg-accent text-accent-on font-semibold'
+                        : 'text-on-surface hover:bg-surface-high'
+                    }`}
                   >
-                    Fit Width
+                    🌙 Dark
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSetReaderPaperTone('original')}
+                    title="Original Document"
+                    className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors cursor-pointer ${
+                      readerPaperTone === 'original'
+                        ? 'bg-accent text-accent-on font-semibold'
+                        : 'text-on-surface hover:bg-surface-high'
+                    }`}
+                  >
+                    Original
                   </button>
                 </div>
               )}
-            </div>
-          ) : (
-            <div className="relative">
+
+              {/* Text Reflow Reader Mode Toggle */}
               <button
-                ref={layoutBtnRef}
-                onClick={() => setShowLayoutMenu((prev) => !prev)}
-                title="Page Layout Modes"
-                className={`h-8 px-3 rounded-full border flex items-center gap-1.5 text-xs font-medium transition-all duration-200 ease-caelestia-decel shadow-xs ${
-                  layoutMode !== 'continuous' ? 'bg-accent/15 border-accent/40 text-accent font-semibold' : 'border-outline/20 hover:bg-surface-container text-on-surface'
-                }`}
+                type="button"
+                onClick={() => setIsReflowOpen(true)}
+                title="Text-Reflow Responsive Reader Mode"
+                className="h-6.5 px-2.5 rounded-md border border-outline/20 hover:bg-surface-high flex items-center gap-1 text-xs font-medium text-on-surface transition-colors cursor-pointer shadow-2xs"
               >
-                <Columns className="h-3.5 w-3.5" />
-                <span className="hidden lg:inline capitalize">{layoutMode.replace('-', ' ')}</span>
-                <ChevronDown className="h-3 w-3 opacity-60" />
+                <BookOpen className="h-3 w-3 text-accent" />
+                <span className="hidden md:inline">Reflow</span>
               </button>
 
-              <FloatingAnchor
-                isOpen={showLayoutMenu}
-                onClose={() => setShowLayoutMenu(false)}
-                anchorRef={layoutBtnRef}
-                placement="bottom-end"
-                className="w-52 p-2 rounded-2xl caelestia-glass border border-outline/20 shadow-2xl flex flex-col gap-1 text-xs ring-1 ring-white/10"
+              {/* Search Button [⌘F] */}
+              <button
+                type="button"
+                onClick={() => setIsSearchOpen((prev) => !prev)}
+                title="Find in Document [⌘F / Ctrl+F]"
+                className={`h-6.5 w-6.5 rounded-md border flex items-center justify-center transition-colors cursor-pointer shadow-2xs ${
+                  isSearchOpen ? 'bg-accent text-accent-on border-accent font-bold' : 'border-outline/20 hover:bg-surface-high text-on-surface'
+                }`}
               >
-                <div className="px-2.5 py-1 text-[10px] font-mono text-zinc-400 uppercase font-semibold tracking-wider">Page Layout</div>
-                <button
-                  onClick={() => { handleSetLayoutMode('continuous'); setShowLayoutMenu(false); }}
-                  className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-left transition-all duration-200 ease-caelestia-decel ${layoutMode === 'continuous' ? 'bg-accent text-accent-on font-bold shadow-xs' : 'hover:bg-surface-high text-on-surface'}`}
-                >
-                  <span>Continuous Scroll</span>
-                </button>
-                <button
-                  onClick={() => { handleSetLayoutMode('single'); setShowLayoutMenu(false); }}
-                  className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-left transition-all duration-200 ease-caelestia-decel ${layoutMode === 'single' ? 'bg-accent text-accent-on font-bold shadow-xs' : 'hover:bg-surface-high text-on-surface'}`}
-                >
-                  <span>Single Page View</span>
-                </button>
-                <button
-                  onClick={() => { handleSetLayoutMode('two-page'); setShowLayoutMenu(false); }}
-                  className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-left transition-all duration-200 ease-caelestia-decel ${layoutMode === 'two-page' ? 'bg-accent text-accent-on font-bold shadow-xs' : 'hover:bg-surface-high text-on-surface'}`}
-                >
-                  <span>Two-Page Book View</span>
-                </button>
-                <button
-                  onClick={() => { handleSetLayoutMode('facing-pages'); setShowLayoutMenu(false); }}
-                  className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-left transition-all duration-200 ease-caelestia-decel ${layoutMode === 'facing-pages' ? 'bg-accent text-accent-on font-bold shadow-xs' : 'hover:bg-surface-high text-on-surface'}`}
-                >
-                  <span>Facing Pages</span>
-                </button>
+                <Search className="h-3 w-3" />
+              </button>
 
-                {layoutMode === 'facing-pages' && (
-                  <div className="pt-1.5 mt-1 border-t border-outline/20 px-2.5 flex items-center justify-between text-[11px]">
-                    <span className="text-zinc-400">Separate Cover</span>
-                    <input 
-                      type="checkbox" 
-                      checked={facingCoverPage} 
-                      onChange={(e) => setFacingCoverPage(e.target.checked)}
-                      className="accent-accent cursor-pointer rounded"
-                    />
-                  </div>
+              {/* Rotate Action [R] */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  if (e.shiftKey) {
+                    handleRotateCW();
+                  } else {
+                    handleRotateCurrentPage();
+                  }
+                }}
+                title={`Rotate Page ${currentPage} [R] (Shift+Click for entire document)`}
+                className="h-6.5 w-6.5 rounded-md border border-outline/20 hover:bg-surface-high flex items-center justify-center text-on-surface transition-colors cursor-pointer shadow-2xs"
+              >
+                <RotateCw className="h-3 w-3" />
+              </button>
+
+              {/* Print */}
+              <button
+                type="button"
+                onClick={handlePrint}
+                title="Print Document"
+                className="h-6.5 w-6.5 rounded-md border border-outline/20 hover:bg-surface-high flex items-center justify-center text-on-surface transition-colors cursor-pointer shadow-2xs hidden sm:flex"
+              >
+                <Printer className="h-3 w-3" />
+              </button>
+
+              {/* Download / Save */}
+              <button
+                type="button"
+                onClick={handleDownload}
+                disabled={isBakingAnnotations}
+                title={isBakingAnnotations ? "Baking annotations into PDF..." : (annotations.length > 0 ? "Download PDF with Markups" : "Download PDF File")}
+                className="h-6.5 px-2 rounded-md border border-outline/20 hover:bg-surface-high flex items-center gap-1 text-on-surface transition-colors cursor-pointer shadow-2xs hidden sm:flex disabled:opacity-50 text-xs"
+              >
+                {isBakingAnnotations ? (
+                  <div className="h-3 w-3 rounded-full border-2 border-accent border-t-transparent animate-spin" />
+                ) : (
+                  <Download className="h-3 w-3 text-accent" />
                 )}
-              </FloatingAnchor>
+                <span className="hidden md:inline">Save</span>
+              </button>
+
+              {/* Continuous Pomodoro Study Timer */}
+              <PomodoroTimer />
+
+              <div className="h-3.5 w-px bg-outline/20 mx-0.5 hidden sm:block" />
+
+              {/* Sidebar Toggle Button [⌘B] */}
+              <button
+                type="button"
+                onClick={() => toggleNavSidebar()}
+                title={isNavSidebarOpen ? 'Hide Pages Sidebar [⌘B]' : 'Show Pages Sidebar [⌘B]'}
+                className={`h-6.5 w-6.5 rounded-md border flex items-center justify-center transition-colors cursor-pointer shadow-2xs ${
+                  isNavSidebarOpen ? 'bg-accent/15 border-accent/40 text-accent font-semibold' : 'border-outline/20 hover:bg-surface-high text-on-surface'
+                }`}
+              >
+                <PanelLeftOpen className="h-3 w-3" />
+              </button>
+
+              {onClose && (
+                <button
+                  type="button"
+                  onClick={onClose}
+                  title="Close Document"
+                  className="h-6.5 px-2 rounded-md bg-surface-container hover:bg-rose-500/20 hover:border-rose-500/40 hover:text-rose-300 flex items-center gap-1 text-xs font-semibold transition-colors border border-outline/20 text-on-surface cursor-pointer"
+                >
+                  <X className="h-3.5 w-3.5" />
+                  <span className="hidden lg:inline">Close</span>
+                </button>
+              )}
+
             </div>
-          )}
+          </header>
 
-          {/* Reader Circadian Paper Tone Switcher */}
-          {initialAppMode === 'reader' && (
-            <div className="flex items-center gap-0.5 bg-surface-container border border-outline/20 p-0.5 rounded-full text-xs">
-              <button
-                type="button"
-                onClick={() => handleSetReaderPaperTone('warm')}
-                title="Circadian Warm Paper (Low melanopsin stimulation)"
-                className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-all duration-200 ${
-                  readerPaperTone === 'warm'
-                    ? 'bg-accent text-accent-on font-semibold shadow-xs'
-                    : 'text-on-surface hover:bg-surface-high'
-                }`}
-              >
-                📜 Warm
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSetReaderPaperTone('dark')}
-                title="Espresso Darkroom Inversion"
-                className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-all duration-200 ${
-                  readerPaperTone === 'dark'
-                    ? 'bg-accent text-accent-on font-semibold shadow-xs'
-                    : 'text-on-surface hover:bg-surface-high'
-                }`}
-              >
-                🌙 Dark
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSetReaderPaperTone('original')}
-                title="Original Unfiltered Document"
-                className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-all duration-200 ${
-                  readerPaperTone === 'original'
-                    ? 'bg-accent text-accent-on font-semibold shadow-xs'
-                    : 'text-on-surface hover:bg-surface-high'
-                }`}
-              >
-                Original
-              </button>
-            </div>
-          )}
-
-          {/* 2. Text Reflow Reader Mode Toggle */}
-          <button
-            onClick={() => setIsReflowOpen(true)}
-            title="Text-Reflow Responsive Reader Mode"
-            className="h-8 px-3 rounded-full border border-outline/20 hover:bg-surface-container flex items-center gap-1.5 text-xs font-semibold text-on-surface transition-all duration-200 ease-caelestia-decel shadow-xs"
-          >
-            <BookOpen className="h-3.5 w-3.5 text-accent" />
-            <span className="hidden md:inline">Reflow</span>
-          </button>
-
-          {/* 3. Search Button [⌘F] */}
-          <button
-            onClick={() => setIsSearchOpen((prev) => !prev)}
-            title="Find & Search (⌘F / Ctrl+F)"
-            className={`h-8 w-8 rounded-full border flex items-center justify-center transition-all duration-200 ease-caelestia-decel shadow-xs ${
-              isSearchOpen ? 'bg-accent text-accent-on border-accent font-bold shadow-sm ring-2 ring-accent/30' : 'border-outline/20 hover:bg-surface-container text-on-surface'
-            }`}
-          >
-            <Search className="h-3.5 w-3.5" />
-          </button>
-
-          {/* 4. Focus / Dimming Mode Toggle [Z] */}
-          <button
-            onClick={() => setFocusMode((prev) => !prev)}
-            title={focusMode ? 'Exit Zen Focus Mode [Z]' : 'Enter Zen Focus Mode (Dims UI) [Z]'}
-            className={`h-8 w-8 rounded-full border flex items-center justify-center transition-all duration-200 ease-caelestia-decel shadow-xs ${
-              focusMode ? 'bg-tertiary text-accent-on border-tertiary font-bold shadow-sm ring-2 ring-tertiary/30' : 'border-outline/20 hover:bg-surface-container text-on-surface'
-            }`}
-          >
-            <Eye className="h-3.5 w-3.5" />
-          </button>
-
-          {/* 5. Rotate Action */}
-          <button
-            onClick={(e) => {
-              if (e.shiftKey) {
-                handleRotateCW();
-              } else {
-                handleRotateCurrentPage();
-              }
-            }}
-            title={`Rotate Page ${currentPage} 90° Clockwise [R] (Shift+Click or Shift+R for entire document)`}
-            aria-label={`Rotate Page ${currentPage} 90° Clockwise`}
-            className="h-8 w-8 rounded-full border border-outline/20 hover:bg-surface-container flex items-center justify-center text-on-surface transition-all duration-200 ease-caelestia-decel shadow-xs cursor-pointer"
-          >
-            <RotateCw className="h-3.5 w-3.5" />
-          </button>
-
-          {/* Print & Download */}
-          <button
-            onClick={handlePrint}
-            title="Print Document"
-            className="h-8 w-8 rounded-full border border-outline/20 hover:bg-surface-container flex items-center justify-center text-on-surface transition-all duration-200 ease-caelestia-decel shadow-xs hidden sm:flex"
-          >
-            <Printer className="h-3.5 w-3.5" />
-          </button>
-
-          <button
-            onClick={handleDownload}
-            disabled={isBakingAnnotations}
-            title={isBakingAnnotations ? "Baking annotations into PDF..." : (annotations.length > 0 ? "Download PDF with Markups" : "Download PDF File")}
-            className="h-8 px-2.5 rounded-full border border-outline/20 hover:bg-surface-container flex items-center gap-1.5 text-on-surface transition-all duration-200 ease-caelestia-decel shadow-xs hidden sm:flex disabled:opacity-50"
-          >
-            {isBakingAnnotations ? (
-              <div className="h-3.5 w-3.5 rounded-full border-2 border-accent border-t-transparent animate-spin" />
-            ) : (
-              <Download className="h-3.5 w-3.5" />
-            )}
-            {annotations.length > 0 && !isBakingAnnotations ? (
-              <span className="text-[10px] font-mono text-accent font-semibold">Save</span>
-            ) : null}
-          </button>
-
-          {/* Continuous Pomodoro Study Timer (Shared across normal editor and study mode) */}
-          <PomodoroTimer />
-
-          <div className="h-4 w-[1px] bg-outline/20 mx-0.5 hidden sm:block" />
-
-          {/* Fullscreen Button */}
-          <button
-            type="button"
-            onClick={handleToggleFullscreen}
-            title={isFullscreen ? 'Exit Fullscreen [F]' : 'Fullscreen [F]'}
-            className="h-8 px-3 rounded-full border border-outline/20 hover:bg-surface-container flex items-center gap-1.5 text-xs font-semibold text-on-surface transition-all duration-200 ease-caelestia-decel shadow-xs"
-          >
-            {isFullscreen ? (
-              <>
-                <Minimize2 className="h-4 w-4 text-accent" />
-                <span className="hidden xl:inline">Exit Fullscreen</span>
-              </>
-            ) : (
-              <>
-                <Maximize2 className="h-4 w-4 text-accent" />
-                <span className="hidden xl:inline">Fullscreen</span>
-              </>
-            )}
-          </button>
-
-          {onClose && (
-            <button
-              onClick={onClose}
-              title="Close Document"
-              className="h-8 px-3 rounded-full bg-surface-container hover:bg-rose-500/20 hover:border-rose-500/40 hover:text-rose-300 flex items-center gap-1 text-xs font-semibold transition-all duration-200 ease-caelestia-decel border border-outline/20 text-on-surface"
-            >
-              <X className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Close</span>
-            </button>
-          )}
-        </div>
-
-      </header>
+          {/* 2. Studio Action Ribbon (Docked at top — Office/WordCraft style, zero footer obstruction) */}
+          <StudioRibbon
+            isVisible={isStudioRibbonOpen && initialAppMode === 'editor' && !isStudyMode}
+            activeTool={activeAnnotationTool}
+            onSelectTool={setActiveAnnotationTool}
+            activeColor={activeColor}
+            onSelectColor={setActiveColor}
+            strokeWidth={strokeWidth}
+            onSelectStrokeWidth={setStrokeWidth}
+            canUndo={undoStack.length > 0}
+            canRedo={redoStack.length > 0}
+            onUndo={handleUndo}
+            onRedo={handleRedo}
+            onClearPageAnnotations={handleClearPageAnnotations}
+            onExportXFDF={handleExportXFDF}
+            onExportJSON={handleExportJSON}
+            onExportAnnotatedPDF={handleExportAnnotatedPDF}
+            onOpenSignModal={() => setIsSignModalOpen(true)}
+          />
+        </>
       )}
 
       {/* 2. Floating Search Engine Overlay */}
@@ -2826,205 +2696,30 @@ export default function PDFViewer({
 
       </div>
 
-      {/* 5. Floating Bottom Unified Markup, Annotation & Zoom Toolbar (Exclusively in Editor Mode) */}
-      {initialAppMode === 'editor' && !isStudyMode && (
-        <FloatingAnnotationToolbar
-          activeTool={activeAnnotationTool}
-          onSelectTool={setActiveAnnotationTool}
-          activeColor={activeColor}
-          onSelectColor={setActiveColor}
-          strokeWidth={strokeWidth}
-          onSelectStrokeWidth={setStrokeWidth}
-          canUndo={undoStack.length > 0}
-          canRedo={redoStack.length > 0}
-          onUndo={handleUndo}
-          onRedo={handleRedo}
-          onClearPageAnnotations={handleClearPageAnnotations}
-          onExportXFDF={handleExportXFDF}
-          onExportJSON={handleExportJSON}
-          onExportAnnotatedPDF={handleExportAnnotatedPDF}
-          onOpenSignModal={() => setIsSignModalOpen(true)}
-          scale={scale}
-          onZoomIn={handleZoomIn}
-          onZoomOut={handleZoomOut}
-          onZoomReset={handleZoomReset}
-          onSetScale={setScale}
-          onFitWidth={handleFitWidth}
-          onFitPage={handleFitPage}
-          focusMode={focusMode}
-        />
-      )}
-
-      {/* 5b. Floating Bottom Comic & Reader Navigation Toolbar (Reader Mode / Comics) */}
-      {(initialAppMode === 'reader' || doc.isComic) && (
-        <div 
-          className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5 px-3 py-1.5 rounded-full caelestia-glass border border-outline/20 shadow-2xl backdrop-blur-xl transition-all duration-300 ease-caelestia-decel select-none ${
-            focusMode ? 'opacity-35 hover:opacity-100 hover:scale-102' : 'opacity-100'
-          }`}
-        >
-          {/* Previous Page */}
-          <button
-            type="button"
-            onClick={() => scrollToPage(Math.max(currentPage - (layoutMode === 'facing-pages' || layoutMode === 'two-page' ? 2 : 1), 1))}
-            disabled={currentPage <= 1}
-            title="Previous Page [Left Arrow]"
-            className="h-7 w-7 rounded-full flex items-center justify-center hover:bg-surface-high disabled:opacity-30 text-on-surface transition-colors cursor-pointer"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-
-          {/* Page Indicator */}
-          <span className="px-1 text-xs font-mono tabular-nums font-semibold text-on-surface whitespace-nowrap">
-            {currentPage} <span className="opacity-40">/</span> {pages.length || 1}
-          </span>
-
-          {/* Interactive Page Progress Scrubber */}
-          {pages.length > 1 && (
-            <input
-              type="range"
-              min={1}
-              max={pages.length}
-              value={currentPage}
-              onChange={(e) => scrollToPage(Number(e.target.value))}
-              title={`Page ${currentPage} of ${pages.length}`}
-              className="w-16 sm:w-24 h-1 accent-accent bg-outline/20 rounded-lg cursor-pointer"
-            />
-          )}
-
-          {/* Next Page */}
-          <button
-            type="button"
-            onClick={() => scrollToPage(Math.min(currentPage + (layoutMode === 'facing-pages' || layoutMode === 'two-page' ? 2 : 1), pages.length))}
-            disabled={currentPage >= pages.length}
-            title="Next Page [Right Arrow / Space]"
-            className="h-7 w-7 rounded-full flex items-center justify-center hover:bg-surface-high disabled:opacity-30 text-on-surface transition-colors cursor-pointer"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
-
-          <div className="h-3.5 w-px bg-outline/20 mx-0.5" />
-
-          {/* Quick Layout Mode Buttons: Single | Facing | Scroll */}
-          <div className="flex items-center gap-0.5 bg-surface-container/60 p-0.5 rounded-full border border-outline/10 text-xs">
-            <button
-              type="button"
-              onClick={() => handleSetLayoutMode('single')}
-              title="Single Page Mode [1]"
-              className={`h-6 px-2.5 rounded-full flex items-center gap-1 text-[11px] font-medium transition-all cursor-pointer ${
-                layoutMode === 'single'
-                  ? 'bg-accent text-accent-on font-bold shadow-xs'
-                  : 'text-on-surface hover:bg-surface-high'
-              }`}
-            >
-              <Square className="h-3 w-3" />
-              <span>Single</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSetLayoutMode('facing-pages')}
-              title="Facing Dual Pages [2]"
-              className={`h-6 px-2.5 rounded-full flex items-center gap-1 text-[11px] font-medium transition-all cursor-pointer ${
-                layoutMode === 'facing-pages'
-                  ? 'bg-accent text-accent-on font-bold shadow-xs'
-                  : 'text-on-surface hover:bg-surface-high'
-              }`}
-            >
-              <Columns className="h-3 w-3" />
-              <span>Facing</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSetLayoutMode('continuous')}
-              title="Continuous Scroll [3]"
-              className={`h-6 px-2.5 rounded-full flex items-center gap-1 text-[11px] font-medium transition-all cursor-pointer ${
-                layoutMode === 'continuous'
-                  ? 'bg-accent text-accent-on font-bold shadow-xs'
-                  : 'text-on-surface hover:bg-surface-high'
-              }`}
-            >
-              <Rows className="h-3 w-3" />
-              <span>Scroll</span>
-            </button>
-          </div>
-
-          {/* Single Page Specific Fit Options */}
-          {layoutMode === 'single' && (
-            <>
-              <div className="h-3.5 w-px bg-outline/20 mx-0.5" />
-              <div className="flex items-center gap-0.5 bg-surface-container/60 p-0.5 rounded-full border border-outline/10 text-xs">
-                <button
-                  type="button"
-                  onClick={handleFitPage}
-                  title="Fit Full Page in Window [P]"
-                  className="h-6 px-2 rounded-full text-[11px] font-medium text-on-surface hover:bg-surface-high transition-colors cursor-pointer"
-                >
-                  Fit Page
-                </button>
-                <button
-                  type="button"
-                  onClick={handleFitWidth}
-                  title="Fit Page to Width [W]"
-                  className="h-6 px-2 rounded-full text-[11px] font-medium text-on-surface hover:bg-surface-high transition-colors cursor-pointer"
-                >
-                  Fit Width
-                </button>
-              </div>
-            </>
-          )}
-
-          <div className="h-3.5 w-px bg-outline/20 mx-0.5" />
-
-          {/* Zoom Controls */}
-          <button
-            type="button"
-            onClick={handleZoomOut}
-            title="Zoom Out [-]"
-            className="h-7 w-7 rounded-full flex items-center justify-center hover:bg-surface-high text-on-surface transition-colors cursor-pointer"
-          >
-            <ZoomOut className="h-3.5 w-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={handleZoomReset}
-            title="Reset Zoom (100%)"
-            className="px-1 text-[11px] font-mono tabular-nums text-on-surface hover:text-accent transition-colors cursor-pointer"
-          >
-            {Math.round(scale * 100)}%
-          </button>
-          <button
-            type="button"
-            onClick={handleZoomIn}
-            title="Zoom In [+]"
-            className="h-7 w-7 rounded-full flex items-center justify-center hover:bg-surface-high text-on-surface transition-colors cursor-pointer"
-          >
-            <ZoomIn className="h-3.5 w-3.5" />
-          </button>
-
-          <div className="h-3.5 w-px bg-outline/20 mx-0.5" />
-
-          {/* Zen Focus Toggle */}
-          <button
-            type="button"
-            onClick={() => setFocusMode((prev) => !prev)}
-            title={focusMode ? 'Exit Zen Mode [Z]' : 'Zen Focus Mode [Z]'}
-            className={`h-7 w-7 rounded-full flex items-center justify-center transition-all cursor-pointer ${
-              focusMode ? 'bg-tertiary text-accent-on font-bold' : 'hover:bg-surface-high text-on-surface'
-            }`}
-          >
-            <Eye className="h-3.5 w-3.5" />
-          </button>
-
-          {/* Fullscreen */}
-          <button
-            type="button"
-            onClick={handleToggleFullscreen}
-            title="Toggle Fullscreen [F]"
-            className="h-7 w-7 rounded-full flex items-center justify-center hover:bg-surface-high text-on-surface transition-colors cursor-pointer"
-          >
-            {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
-          </button>
-        </div>
-      )}
+      {/* 5. Unified Office/WordCraft Docked Status & View Bar (Zero document obstruction) */}
+      <StatusBar
+        currentPage={currentPage}
+        totalPages={pages.length}
+        onPageChange={scrollToPage}
+        docName={doc.name}
+        docSize={doc.rawSize || (doc.file as any)?.size}
+        isComic={doc.isComic}
+        appMode={initialAppMode}
+        subjectName={doc.subjectName}
+        layoutMode={layoutMode}
+        onLayoutModeChange={handleSetLayoutMode}
+        scale={scale}
+        onZoomIn={handleZoomIn}
+        onZoomOut={handleZoomOut}
+        onZoomReset={handleZoomReset}
+        onSetScale={setScale}
+        onFitWidth={handleFitWidth}
+        onFitPage={handleFitPage}
+        focusMode={focusMode}
+        onToggleFocusMode={() => setFocusMode((p) => !p)}
+        isFullscreen={isFullscreen}
+        onToggleFullscreen={handleToggleFullscreen}
+      />
 
       {/* 7. Fullscreen Responsive Text Reflow Reader Modal */}
       <TextReflowView

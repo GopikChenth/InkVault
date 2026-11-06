@@ -44,7 +44,6 @@ export function useDocumentLoader({
     assignedSubjectName?: string,
     assignedFolderPath?: string
   ) => {
-    const isReaderMode = currentMode === 'reader';
     const validFiles: File[] = [];
 
     for (let i = 0; i < files.length; i++) {
@@ -54,13 +53,13 @@ export function useDocumentLoader({
       const isComic = lower.endsWith('.cbz') || lower.endsWith('.cbr') || lower.endsWith('.cbn');
       const isEpub = file.type === 'application/epub+zip' || lower.endsWith('.epub');
 
-      if (isPdf || (isReaderMode && (isComic || isEpub))) {
+      if (isPdf || isComic || isEpub) {
         validFiles.push(file);
       }
     }
 
     if (validFiles.length === 0) {
-      alert('Please select valid documents (.pdf' + (isReaderMode ? ', .cbz, .cbr, .epub' : '') + ').');
+      alert('Please select valid documents (.pdf, .cbz, .cbr, .epub).');
       return;
     }
 
@@ -86,52 +85,64 @@ export function useDocumentLoader({
       try {
         if (isComic) {
           setConversionStatus(`Unpacking comic ${file.name}...`);
-          const { loadComicBookArchive } = await import('../modes/reader');
-          const comicResult = await loadComicBookArchive(file);
-          const blob = new Blob([comicResult.pdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' });
-          const blobUrl = URL.createObjectURL(blob);
-          newDocs.push({
-            id: `${Date.now()}-${idx}-${file.name}`,
-            name: file.name,
-            size: formatFileSize(comicResult.pdfBytes.length),
-            rawSize: comicResult.pdfBytes.length,
-            blobUrl,
-            file: new File([blob], file.name, { type: 'application/pdf' }),
-            loadedAt: new Date(),
-            pageCount: comicResult.pageCount,
-            currentPage: 1,
-            lastReadAt: new Date().toISOString(),
-            coverDataUrl: comicResult.coverDataUrl,
-            isComic: true,
-            mode: 'reader',
-            subjectId: effectiveSubjectId,
-            subjectName: effectiveSubjectName,
-            folderPath: assignedFolderPath,
-          });
+          try {
+            const { loadComicBookArchive } = await import('../modes/reader');
+            const comicResult = await loadComicBookArchive(file);
+            const blob = new Blob([comicResult.pdfBytes as unknown as BlobPart], { type: 'application/pdf' });
+            const blobUrl = URL.createObjectURL(blob);
+            const nativeFilePath = (file as any).path || (file as any).webkitRelativePath || undefined;
+            newDocs.push({
+              id: `${Date.now()}-${idx}-${file.name}`,
+              name: file.name,
+              size: formatFileSize(comicResult.pdfBytes.length),
+              rawSize: comicResult.pdfBytes.length,
+              blobUrl,
+              file: new File([blob], file.name, { type: 'application/pdf' }),
+              loadedAt: new Date(),
+              pageCount: comicResult.pageCount,
+              currentPage: 1,
+              lastReadAt: new Date().toISOString(),
+              coverDataUrl: comicResult.coverDataUrl,
+              isComic: true,
+              mode: 'reader',
+              filePath: nativeFilePath,
+              subjectId: effectiveSubjectId,
+              subjectName: effectiveSubjectName,
+              folderPath: assignedFolderPath,
+            });
+          } finally {
+            setConversionStatus(null);
+          }
         } else if (isEpub) {
           setConversionStatus(`Rendering EPUB ${file.name}...`);
-          const { loadEpubBook } = await import('../modes/reader');
-          const epubResult = await loadEpubBook(file);
-          const blob = new Blob([epubResult.pdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' });
-          const blobUrl = URL.createObjectURL(blob);
-          newDocs.push({
-            id: `${Date.now()}-${idx}-${file.name}`,
-            name: file.name,
-            size: formatFileSize(epubResult.pdfBytes.length),
-            rawSize: epubResult.pdfBytes.length,
-            blobUrl,
-            file: new File([blob], file.name, { type: 'application/pdf' }),
-            loadedAt: new Date(),
-            pageCount: epubResult.pageCount,
-            currentPage: 1,
-            lastReadAt: new Date().toISOString(),
-            coverDataUrl: epubResult.coverDataUrl,
-            isEpub: true,
-            mode: 'reader',
-            subjectId: effectiveSubjectId,
-            subjectName: effectiveSubjectName,
-            folderPath: assignedFolderPath,
-          });
+          try {
+            const { loadEpubBook } = await import('../modes/reader');
+            const epubResult = await loadEpubBook(file);
+            const blob = new Blob([epubResult.pdfBytes as unknown as BlobPart], { type: 'application/pdf' });
+            const blobUrl = URL.createObjectURL(blob);
+            const nativeFilePath = (file as any).path || (file as any).webkitRelativePath || undefined;
+            newDocs.push({
+              id: `${Date.now()}-${idx}-${file.name}`,
+              name: file.name,
+              size: formatFileSize(epubResult.pdfBytes.length),
+              rawSize: epubResult.pdfBytes.length,
+              blobUrl,
+              file: new File([blob], file.name, { type: 'application/pdf' }),
+              loadedAt: new Date(),
+              pageCount: epubResult.pageCount,
+              currentPage: 1,
+              lastReadAt: new Date().toISOString(),
+              coverDataUrl: epubResult.coverDataUrl,
+              isEpub: true,
+              mode: 'reader',
+              filePath: nativeFilePath,
+              subjectId: effectiveSubjectId,
+              subjectName: effectiveSubjectName,
+              folderPath: assignedFolderPath,
+            });
+          } finally {
+            setConversionStatus(null);
+          }
         } else {
           let detectedPageCount: number | undefined = undefined;
           try {
@@ -235,16 +246,57 @@ export function useDocumentLoader({
       // 1. Read bytes from disk
       const bytes = await invoke<ArrayBuffer | Uint8Array | number[]>('read_file_bytes', { path: filePath });
       const u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
-      const blob = new Blob([u8.buffer as ArrayBuffer], { type: 'application/pdf' });
-      const file = new File([blob], fileName, { type: 'application/pdf' });
-      const blobUrl = URL.createObjectURL(blob);
 
+      const lower = fileName.toLowerCase();
+      const isComic = lower.endsWith('.cbz') || lower.endsWith('.cbr') || lower.endsWith('.cbn');
+      const isEpub = lower.endsWith('.epub');
+
+      let blobUrl = '';
+      let file: File;
       let detectedPageCount: number | undefined = undefined;
-      try {
-        const { PDFDocument } = await import('pdf-lib');
-        const loaded = await PDFDocument.load(u8, { ignoreEncryption: true });
-        detectedPageCount = loaded.getPageCount();
-      } catch {}
+      let coverDataUrl: string | undefined = undefined;
+      let rawSize = u8.length;
+
+      if (isComic) {
+        setConversionStatus(`Unpacking comic ${fileName}...`);
+        try {
+          const { loadComicBookArchive } = await import('../modes/reader');
+          const rawFile = new File([u8 as unknown as BlobPart], fileName, { type: 'application/octet-stream' });
+          const comicResult = await loadComicBookArchive(rawFile);
+          const blob = new Blob([comicResult.pdfBytes as unknown as BlobPart], { type: 'application/pdf' });
+          blobUrl = URL.createObjectURL(blob);
+          file = new File([blob], fileName, { type: 'application/pdf' });
+          detectedPageCount = comicResult.pageCount;
+          coverDataUrl = comicResult.coverDataUrl;
+          rawSize = comicResult.pdfBytes.length;
+        } finally {
+          setConversionStatus(null);
+        }
+      } else if (isEpub) {
+        setConversionStatus(`Rendering EPUB ${fileName}...`);
+        try {
+          const { loadEpubBook } = await import('../modes/reader');
+          const rawFile = new File([u8 as unknown as BlobPart], fileName, { type: 'application/epub+zip' });
+          const epubResult = await loadEpubBook(rawFile);
+          const blob = new Blob([epubResult.pdfBytes as unknown as BlobPart], { type: 'application/pdf' });
+          blobUrl = URL.createObjectURL(blob);
+          file = new File([blob], fileName, { type: 'application/pdf' });
+          detectedPageCount = epubResult.pageCount;
+          coverDataUrl = epubResult.coverDataUrl;
+          rawSize = epubResult.pdfBytes.length;
+        } finally {
+          setConversionStatus(null);
+        }
+      } else {
+        const blob = new Blob([u8 as unknown as BlobPart], { type: 'application/pdf' });
+        file = new File([blob], fileName, { type: 'application/pdf' });
+        blobUrl = URL.createObjectURL(blob);
+        try {
+          const { PDFDocument } = await import('pdf-lib');
+          const loaded = await PDFDocument.load(u8, { ignoreEncryption: true });
+          detectedPageCount = loaded.getPageCount();
+        } catch {}
+      }
 
       let effectiveSubjectId = activeSubjectId !== 'all' ? activeSubjectId : undefined;
       let effectiveSubjectName: string | undefined = undefined;
@@ -313,8 +365,8 @@ export function useDocumentLoader({
       const openedDoc: LoadedPDF = {
         id: `${Date.now()}-${fileName}`,
         name: fileName,
-        size: formatFileSize(u8.length),
-        rawSize: u8.length,
+        size: formatFileSize(rawSize),
+        rawSize,
         blobUrl,
         file,
         loadedAt: new Date(),
@@ -325,7 +377,10 @@ export function useDocumentLoader({
         folderPath: parentPath,
         subjectId: effectiveSubjectId,
         subjectName: effectiveSubjectName,
-        mode: currentMode,
+        mode: (isComic || isEpub) ? 'reader' : currentMode,
+        isComic: isComic ? true : undefined,
+        isEpub: isEpub ? true : undefined,
+        coverDataUrl,
       };
 
       const allDocsToLoad = [openedDoc, ...siblingDocs];

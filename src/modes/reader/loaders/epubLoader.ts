@@ -247,7 +247,7 @@ export async function loadEpubBook(file: File): Promise<{ pdfBytes: Uint8Array; 
           const coverBytes = await coverEntry.async('uint8array');
           const lowerH = href.toLowerCase();
           const mime = lowerH.endsWith('.png') ? 'image/png' : lowerH.endsWith('.webp') ? 'image/webp' : 'image/jpeg';
-          const blob = new Blob([coverBytes.buffer as ArrayBuffer], { type: mime });
+          const blob = new Blob([coverBytes as unknown as BlobPart], { type: mime });
           coverDataUrl = await new Promise<string>((res) => {
             const reader = new FileReader();
             reader.onloadend = () => res(reader.result as string);

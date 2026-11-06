@@ -329,6 +329,73 @@ export async function loadDocumentsFromStorage(): Promise<LoadedPDF[]> {
   }
 }
 
+export async function getDocumentFromStorage(id: string): Promise<LoadedPDF | null> {
+  try {
+    const db = await openDB();
+    const tx = db.transaction(STORE_NAME, 'readonly');
+    const store = tx.objectStore(STORE_NAME);
+    const request = store.get(id);
+
+    return new Promise((resolve) => {
+      request.onsuccess = () => {
+        const record: SerializedDocRecord | undefined = request.result;
+        if (!record) return resolve(null);
+
+        let blobUrl = '';
+        let file: File;
+        if (record.buffer && record.buffer.byteLength > 0) {
+          const blob = new Blob([record.buffer], { type: 'application/pdf' });
+          file = new File([blob], record.name, { type: 'application/pdf' });
+          blobUrl = URL.createObjectURL(blob);
+        } else {
+          const dummyBlob = new Blob([], { type: 'application/pdf' });
+          file = new File([dummyBlob], record.name, { type: 'application/pdf' });
+        }
+
+        const lower = record.name.toLowerCase();
+        const isComic = Boolean(record.isComic || lower.endsWith('.cbz') || lower.endsWith('.cbr') || lower.endsWith('.cbn'));
+        const isEpub = Boolean(record.isEpub || lower.endsWith('.epub'));
+        const inferredMode: AppMode = record.mode
+          ? record.mode
+          : (isComic || isEpub)
+            ? 'reader'
+            : (record.subjectId || record.folderPath)
+              ? 'study'
+              : 'editor';
+
+        resolve({
+          id: record.id,
+          name: record.name,
+          size: record.size,
+          rawSize: record.rawSize,
+          blobUrl,
+          file,
+          loadedAt: new Date(record.loadedAt),
+          pageCount: record.pageCount,
+          currentPage: record.currentPage,
+          zoomScale: record.zoomScale,
+          rotation: record.rotation,
+          subjectId: record.subjectId,
+          subjectName: record.subjectName,
+          folderPath: record.folderPath,
+          filePath: record.filePath,
+          rating: record.rating,
+          coverDataUrl: record.coverDataUrl,
+          lastReadAt: record.lastReadAt,
+          readingTimeMinutes: record.readingTimeMinutes,
+          isComic,
+          isEpub,
+          mode: inferredMode,
+          isFinished: record.isFinished,
+        });
+      };
+      request.onerror = () => resolve(null);
+    });
+  } catch {
+    return null;
+  }
+}
+
 export async function removeDocumentFromStorage(id: string): Promise<void> {
   removeDocumentFromMetadataCache(id);
   try {

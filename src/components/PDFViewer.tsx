@@ -792,6 +792,15 @@ export default function PDFViewer({
 
       if (isCancelled) return;
       doc.pageCount = loadedPdf.numPages;
+
+      // For comics or wide documents in Reader Mode without an explicit zoom scale, calculate fit scale
+      if (initialAppMode === 'reader' && !initialScale && pageList[0] && pageList[0].width > 0) {
+        const containerW = scrollContainerRef.current?.clientWidth || window.innerWidth;
+        const targetW = layoutMode === 'facing-pages' ? (containerW - 96) / 2 : (containerW - 64);
+        const fitScale = Math.min(1.5, Math.max(0.3, targetW / pageList[0].width));
+        setScale(parseFloat(fitScale.toFixed(2)));
+      }
+
       setPages([...pageList]);
       setLoading(false);
 
@@ -2356,6 +2365,9 @@ export default function PDFViewer({
                         ref={(el) => {
                           if (el) {
                             canvasMapRef.current.set(p.pageNum, el);
+                            if (p.pageNum === 1 || p.pageNum === currentPage || Math.abs(p.pageNum - currentPage) <= 2) {
+                              renderCanvasPage(p.pageNum, rotation, scale);
+                            }
                           } else {
                             canvasMapRef.current.delete(p.pageNum);
                           }

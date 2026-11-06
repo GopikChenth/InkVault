@@ -24,7 +24,10 @@ import {
   removeDocumentFromStorage, 
   loadMetadataCache, 
   saveMetadataCache,
-  getDocsForMode
+  getDocsForMode,
+  getDocumentFromStorage,
+  isReaderDoc,
+  isStudyDoc
 } from '../utils/documentStorage';
 import { useDocumentLoader } from '../hooks/useDocumentLoader';
 
@@ -363,13 +366,26 @@ export default function WorkspacePage({
     loadDocumentsFromStorage().then((stored) => {
       if (!isCancelled && stored && stored.length > 0) {
         setRecentDocs((prev) => {
-          const combined = [...prev];
+          const storedMap = new Map(stored.map((s) => [s.id, s]));
+          const updated = prev.map((p) => {
+            const match = storedMap.get(p.id) || stored.find((s) => s.name === p.name);
+            if (match && match.blobUrl && match.file && match.file.size > 0) {
+              return {
+                ...p,
+                blobUrl: match.blobUrl,
+                file: match.file,
+                rawSize: match.rawSize || p.rawSize,
+                coverDataUrl: match.coverDataUrl || p.coverDataUrl,
+              };
+            }
+            return p;
+          });
           for (const s of stored) {
-            if (!combined.some((c) => c.id === s.id || c.name === s.name)) {
-              combined.push(s);
+            if (!updated.some((u) => u.id === s.id || u.name === s.name)) {
+              updated.push(s);
             }
           }
-          return combined;
+          return updated;
         });
       }
     }).catch((err) => console.warn('Storage restore error:', err));
@@ -383,22 +399,74 @@ export default function WorkspacePage({
       targetDoc = { ...targetDoc, mode: currentMode };
     }
     if (!targetDoc.blobUrl || targetDoc.file.size === 0) {
-      const isTauri = typeof window !== 'undefined' && Boolean((window as any).__TAURI_INTERNALS__);
-      if (isTauri && targetDoc.filePath) {
-        try {
-          const bytes = await invoke<ArrayBuffer | Uint8Array | number[]>('read_file_bytes', { path: targetDoc.filePath });
-          const u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
-          const blob = new Blob([u8.buffer as ArrayBuffer], { type: 'application/pdf' });
-          const file = new File([blob], targetDoc.name, { type: 'application/pdf' });
+      // First try to hydrate from IndexedDB
+      try {
+        const fromDb = await getDocumentFromStorage(targetDoc.id);
+        if (fromDb && fromDb.blobUrl && fromDb.file && fromDb.file.size > 0) {
           targetDoc = {
             ...targetDoc,
-            blobUrl: URL.createObjectURL(blob),
-            file,
-            rawSize: u8.length,
+            blobUrl: fromDb.blobUrl,
+            file: fromDb.file,
+            rawSize: fromDb.rawSize,
+            coverDataUrl: fromDb.coverDataUrl || targetDoc.coverDataUrl,
           };
           setRecentDocs((prev) => prev.map((d) => (d.id === targetDoc.id || d.name === targetDoc.name ? targetDoc : d)));
-        } catch (err) {
-          console.warn('Could not read file on demand from disk:', err);
+        }
+      } catch (dbErr) {
+        console.warn('Could not rehydrate document from IndexedDB:', dbErr);
+      }
+
+      // If still not hydrated and running in Tauri with a filePath on disk:
+      if (!targetDoc.blobUrl || targetDoc.file.size === 0) {
+        const isTauri = typeof window !== 'undefined' && Boolean((window as any).__TAURI_INTERNALS__);
+        if (isTauri && targetDoc.filePath) {
+          try {
+            const bytes = await invoke<ArrayBuffer | Uint8Array | number[]>('read_file_bytes', { path: targetDoc.filePath });
+            const u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+            const lower = targetDoc.name.toLowerCase();
+            const isComic = targetDoc.isComic || lower.endsWith('.cbz') || lower.endsWith('.cbr') || lower.endsWith('.cbn');
+            const isEpub = targetDoc.isEpub || lower.endsWith('.epub');
+
+            if (isComic) {
+              const file = new File([u8 as unknown as BlobPart], targetDoc.name, { type: 'application/octet-stream' });
+              const { loadComicBookArchive } = await import('../modes/reader');
+              const comicResult = await loadComicBookArchive(file);
+              const blob = new Blob([comicResult.pdfBytes as unknown as BlobPart], { type: 'application/pdf' });
+              targetDoc = {
+                ...targetDoc,
+                blobUrl: URL.createObjectURL(blob),
+                file: new File([blob], targetDoc.name, { type: 'application/pdf' }),
+                pageCount: comicResult.pageCount,
+                rawSize: comicResult.pdfBytes.length,
+                coverDataUrl: comicResult.coverDataUrl || targetDoc.coverDataUrl,
+              };
+            } else if (isEpub) {
+              const file = new File([u8 as unknown as BlobPart], targetDoc.name, { type: 'application/epub+zip' });
+              const { loadEpubBook } = await import('../modes/reader');
+              const epubResult = await loadEpubBook(file);
+              const blob = new Blob([epubResult.pdfBytes as unknown as BlobPart], { type: 'application/pdf' });
+              targetDoc = {
+                ...targetDoc,
+                blobUrl: URL.createObjectURL(blob),
+                file: new File([blob], targetDoc.name, { type: 'application/pdf' }),
+                pageCount: epubResult.pageCount,
+                rawSize: epubResult.pdfBytes.length,
+                coverDataUrl: epubResult.coverDataUrl || targetDoc.coverDataUrl,
+              };
+            } else {
+              const blob = new Blob([u8 as unknown as BlobPart], { type: 'application/pdf' });
+              const file = new File([blob], targetDoc.name, { type: 'application/pdf' });
+              targetDoc = {
+                ...targetDoc,
+                blobUrl: URL.createObjectURL(blob),
+                file,
+                rawSize: u8.length,
+              };
+            }
+            setRecentDocs((prev) => prev.map((d) => (d.id === targetDoc.id || d.name === targetDoc.name ? targetDoc : d)));
+          } catch (err) {
+            console.warn('Could not read file on demand from disk:', err);
+          }
         }
       }
     }
@@ -410,21 +478,33 @@ export default function WorkspacePage({
       next[idx] = targetDoc;
       return next;
     });
-    setActiveDocId(targetDoc.id);
+
+    const targetMode = targetDoc.mode || (isReaderDoc(targetDoc) ? 'reader' : isStudyDoc(targetDoc) ? 'study' : currentMode);
+    if (targetMode !== currentMode) {
+      handleModeChange(targetMode);
+    }
+    setActiveDocIdByMode((prev) => ({
+      ...prev,
+      [targetMode]: targetDoc.id,
+    }));
     setActiveTab('viewer');
-  }, [currentMode, setActiveDocId, setActiveTab]);
+  }, [currentMode, handleModeChange, setActiveTab]);
 
   // 5. Document Loader Hook (Delegates I/O, parsing, unzipping, Tauri folder picking)
   const handleDocumentsLoaded = useCallback((newDocs: LoadedPDF[]) => {
     const docsWithMode = newDocs.map((d) => ({
       ...d,
-      mode: d.mode || currentMode,
+      mode: d.mode || (isReaderDoc(d) ? 'reader' : isStudyDoc(d) ? 'study' : currentMode),
     }));
 
     setOpenDocs((prev) => {
       const existingNames = new Set(prev.map((d) => d.name));
+      const next = prev.map((d) => {
+        const replacement = docsWithMode.find((nd) => nd.name === d.name);
+        return replacement || d;
+      });
       const toAdd = docsWithMode.filter((d) => !existingNames.has(d.name));
-      return [...prev, ...(toAdd.length > 0 ? toAdd : docsWithMode)];
+      return [...next, ...toAdd];
     });
 
     setRecentDocs((prev) => {
@@ -436,13 +516,24 @@ export default function WorkspacePage({
       return merged;
     });
 
-    setActiveDocId(docsWithMode[0].id);
+    const firstDoc = docsWithMode[0];
+    if (firstDoc) {
+      const targetMode = firstDoc.mode || (isReaderDoc(firstDoc) ? 'reader' : isStudyDoc(firstDoc) ? 'study' : currentMode);
+      if (targetMode !== currentMode) {
+        handleModeChange(targetMode);
+      }
+      setActiveDocIdByMode((prev) => ({
+        ...prev,
+        [targetMode]: firstDoc.id,
+      }));
+    }
+
     if (currentMode === 'study' && docsWithMode.length > 1) {
       setActiveTab('recent');
     } else {
       setActiveTab('viewer');
     }
-  }, [currentMode, setActiveDocId, setActiveTab]);
+  }, [currentMode, handleModeChange, setActiveTab]);
 
   const {
     fileInputRef,
@@ -638,7 +729,7 @@ export default function WorkspacePage({
         <input
           ref={fileInputRef}
           type="file"
-          accept={currentMode === 'reader' ? '.pdf,.epub,.cbz,.cbr,.cbn,application/pdf,application/epub+zip' : 'application/pdf'}
+          accept=".pdf,.epub,.cbz,.cbr,.cbn,application/pdf,application/epub+zip"
           multiple
           onChange={handleFileChange}
           className="hidden"

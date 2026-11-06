@@ -16,7 +16,11 @@ import {
   Eye,
   ChevronDown,
   PanelLeftOpen,
-  Folder
+  Folder,
+  Square,
+  Rows,
+  ZoomIn,
+  ZoomOut
 } from 'lucide-react';
 import { 
   LoadedPDF, 
@@ -157,12 +161,30 @@ export default function PDFViewer({
   }, [initialAppMode]);
 
   // 1. Page Layout Controls
-  const [layoutMode, setLayoutMode] = useState<PageLayoutMode>(() => 
-    initialAppMode === 'reader' ? 'facing-pages' : 'continuous'
-  );
+  const [layoutMode, setLayoutMode] = useState<PageLayoutMode>(() => {
+    if (initialAppMode === 'reader' || doc.isComic) {
+      try {
+        const saved = localStorage.getItem('inkvault_reader_layout_mode');
+        if (saved === 'single' || saved === 'facing-pages' || saved === 'two-page' || saved === 'continuous') {
+          return saved as PageLayoutMode;
+        }
+      } catch {}
+      return doc.isComic ? 'single' : 'facing-pages';
+    }
+    return 'continuous';
+  });
   const [facingCoverPage, setFacingCoverPage] = useState<boolean>(true);
   const [showLayoutMenu, setShowLayoutMenu] = useState<boolean>(false);
   const layoutBtnRef = useRef<HTMLButtonElement>(null);
+
+  const handleSetLayoutMode = useCallback((mode: PageLayoutMode) => {
+    setLayoutMode(mode);
+    if (initialAppMode === 'reader' || doc.isComic) {
+      try {
+        localStorage.setItem('inkvault_reader_layout_mode', mode);
+      } catch {}
+    }
+  }, [initialAppMode, doc.isComic]);
 
   // 2. Display & Readability Modes
   const [focusMode, setFocusMode] = useState<boolean>(() => initialAppMode === 'reader'); // Zen / background dimming mode
@@ -218,7 +240,18 @@ export default function PDFViewer({
   useEffect(() => {
     if (!initialAppMode) return;
     if (initialAppMode === 'reader') {
-      setLayoutMode('facing-pages');
+      try {
+        const saved = localStorage.getItem('inkvault_reader_layout_mode');
+        if (saved === 'single' || saved === 'facing-pages' || saved === 'two-page' || saved === 'continuous') {
+          setLayoutMode(saved as PageLayoutMode);
+        } else if (doc.isComic) {
+          setLayoutMode('single');
+        } else {
+          setLayoutMode('facing-pages');
+        }
+      } catch {
+        setLayoutMode(doc.isComic ? 'single' : 'facing-pages');
+      }
       setFocusMode(true);
       setStudyTint('default');
       setIsStudyMode(false);
@@ -796,9 +829,17 @@ export default function PDFViewer({
       // For comics or wide documents in Reader Mode without an explicit zoom scale, calculate fit scale
       if (initialAppMode === 'reader' && !initialScale && pageList[0] && pageList[0].width > 0) {
         const containerW = scrollContainerRef.current?.clientWidth || window.innerWidth;
-        const targetW = layoutMode === 'facing-pages' ? (containerW - 96) / 2 : (containerW - 64);
-        const fitScale = Math.min(1.5, Math.max(0.3, targetW / pageList[0].width));
-        setScale(parseFloat(fitScale.toFixed(2)));
+        const containerH = scrollContainerRef.current?.clientHeight || window.innerHeight;
+        if (layoutMode === 'single') {
+          const fitW = (containerW - 64) / pageList[0].width;
+          const fitH = (containerH - 80) / pageList[0].height;
+          const fitScale = Math.min(1.8, Math.max(0.3, Math.min(fitW, fitH)));
+          setScale(parseFloat(fitScale.toFixed(2)));
+        } else {
+          const targetW = layoutMode === 'facing-pages' ? (containerW - 96) / 2 : (containerW - 64);
+          const fitScale = Math.min(1.5, Math.max(0.3, targetW / pageList[0].width));
+          setScale(parseFloat(fitScale.toFixed(2)));
+        }
       }
 
       setPages([...pageList]);
@@ -1532,18 +1573,24 @@ export default function PDFViewer({
   const handleZoomIn = () => setScale((prev) => Math.min(parseFloat((prev + 0.1).toFixed(2)), 2.5));
   const handleZoomOut = () => setScale((prev) => Math.max(parseFloat((prev - 0.1).toFixed(2)), 0.4));
   const handleZoomReset = () => setScale(1.0);
-  const handleFitWidth = () => {
+  const handleFitWidth = useCallback(() => {
     if (!scrollContainerRef.current || pages.length === 0) return;
+    const activePage = pages.find((p) => p.pageNum === currentPage) || pages[0];
     const containerW = scrollContainerRef.current.clientWidth - 80;
-    const pageW = pages[0].width;
-    setScale(parseFloat(Math.min(2.5, Math.max(0.4, containerW / pageW)).toFixed(2)));
-  };
-  const handleFitPage = () => {
+    const pageW = activePage.width;
+    setScale(parseFloat(Math.min(2.5, Math.max(0.3, containerW / pageW)).toFixed(2)));
+  }, [pages, currentPage]);
+
+  const handleFitPage = useCallback(() => {
     if (!scrollContainerRef.current || pages.length === 0) return;
+    const activePage = pages.find((p) => p.pageNum === currentPage) || pages[0];
+    const containerW = scrollContainerRef.current.clientWidth - 64;
     const containerH = scrollContainerRef.current.clientHeight - 80;
-    const pageH = pages[0].height;
-    setScale(parseFloat(Math.min(2.5, Math.max(0.4, containerH / pageH)).toFixed(2)));
-  };
+    const scaleW = containerW / activePage.width;
+    const scaleH = containerH / activePage.height;
+    const fitScale = Math.min(scaleW, scaleH);
+    setScale(parseFloat(Math.min(2.5, Math.max(0.3, fitScale)).toFixed(2)));
+  }, [pages, currentPage]);
 
   // Rotation Helpers
   const handleRotateCW = useCallback(() => setRotation((prev) => (prev + 90) % 360), []);
@@ -1748,6 +1795,21 @@ export default function PDFViewer({
         if (!e.ctrlKey && !e.metaKey) {
           e.preventDefault();
           handleFitPage();
+        }
+      } else if ((initialAppMode === 'reader' || doc.isComic) && e.key === '1') {
+        if (!e.ctrlKey && !e.metaKey) {
+          e.preventDefault();
+          handleSetLayoutMode('single');
+        }
+      } else if ((initialAppMode === 'reader' || doc.isComic) && e.key === '2') {
+        if (!e.ctrlKey && !e.metaKey) {
+          e.preventDefault();
+          handleSetLayoutMode('facing-pages');
+        }
+      } else if ((initialAppMode === 'reader' || doc.isComic) && e.key === '3') {
+        if (!e.ctrlKey && !e.metaKey) {
+          e.preventDefault();
+          handleSetLayoutMode('continuous');
         }
       } else if (e.key === 'f' || e.key === 'F') {
         if (!e.ctrlKey && !e.metaKey) {
@@ -2013,67 +2075,135 @@ export default function PDFViewer({
         {/* Center/Right: Feature Controls */}
         <div className="flex items-center gap-1.5 flex-shrink-0">
           
-          {/* 1. Page Layout Mode Dropdown */}
-          <div className="relative">
-            <button
-              ref={layoutBtnRef}
-              onClick={() => setShowLayoutMenu((prev) => !prev)}
-              title="Page Layout Modes"
-              className={`h-8 px-3 rounded-full border flex items-center gap-1.5 text-xs font-medium transition-all duration-200 ease-caelestia-decel shadow-xs ${
-                layoutMode !== 'continuous' ? 'bg-accent/15 border-accent/40 text-accent font-semibold' : 'border-outline/20 hover:bg-surface-container text-on-surface'
-              }`}
-            >
-              <Columns className="h-3.5 w-3.5" />
-              <span className="hidden lg:inline capitalize">{layoutMode.replace('-', ' ')}</span>
-              <ChevronDown className="h-3 w-3 opacity-60" />
-            </button>
+          {/* 1. Page Layout Mode Switcher */}
+          {(initialAppMode === 'reader' || doc.isComic) ? (
+            <div className="flex items-center gap-1">
+              <div className="flex items-center gap-0.5 bg-surface-container border border-outline/20 p-0.5 rounded-full text-xs">
+                <button
+                  type="button"
+                  onClick={() => handleSetLayoutMode('single')}
+                  title="Single Page Mode [1]"
+                  className={`h-7 px-2.5 rounded-full flex items-center gap-1.5 text-xs transition-all duration-200 ${
+                    layoutMode === 'single'
+                      ? 'bg-accent text-accent-on font-bold shadow-xs'
+                      : 'text-on-surface hover:bg-surface-high'
+                  }`}
+                >
+                  <Square className="h-3 w-3" />
+                  <span>Single</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSetLayoutMode('facing-pages')}
+                  title="Facing Pages (Dual Spread) [2]"
+                  className={`h-7 px-2.5 rounded-full flex items-center gap-1.5 text-xs transition-all duration-200 ${
+                    layoutMode === 'facing-pages'
+                      ? 'bg-accent text-accent-on font-bold shadow-xs'
+                      : 'text-on-surface hover:bg-surface-high'
+                  }`}
+                >
+                  <Columns className="h-3 w-3" />
+                  <span>Facing</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSetLayoutMode('continuous')}
+                  title="Continuous Scroll [3]"
+                  className={`h-7 px-2.5 rounded-full flex items-center gap-1.5 text-xs transition-all duration-200 ${
+                    layoutMode === 'continuous'
+                      ? 'bg-accent text-accent-on font-bold shadow-xs'
+                      : 'text-on-surface hover:bg-surface-high'
+                  }`}
+                >
+                  <Rows className="h-3 w-3" />
+                  <span>Scroll</span>
+                </button>
+              </div>
 
-            <FloatingAnchor
-              isOpen={showLayoutMenu}
-              onClose={() => setShowLayoutMenu(false)}
-              anchorRef={layoutBtnRef}
-              placement="bottom-end"
-              className="w-52 p-2 rounded-2xl caelestia-glass border border-outline/20 shadow-2xl flex flex-col gap-1 text-xs ring-1 ring-white/10"
-            >
-              <div className="px-2.5 py-1 text-[10px] font-mono text-zinc-400 uppercase font-semibold tracking-wider">Page Layout</div>
-              <button
-                onClick={() => { setLayoutMode('continuous'); setShowLayoutMenu(false); }}
-                className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-left transition-all duration-200 ease-caelestia-decel ${layoutMode === 'continuous' ? 'bg-accent text-accent-on font-bold shadow-xs' : 'hover:bg-surface-high text-on-surface'}`}
-              >
-                <span>Continuous Scroll</span>
-              </button>
-              <button
-                onClick={() => { setLayoutMode('single'); setShowLayoutMenu(false); }}
-                className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-left transition-all duration-200 ease-caelestia-decel ${layoutMode === 'single' ? 'bg-accent text-accent-on font-bold shadow-xs' : 'hover:bg-surface-high text-on-surface'}`}
-              >
-                <span>Single Page View</span>
-              </button>
-              <button
-                onClick={() => { setLayoutMode('two-page'); setShowLayoutMenu(false); }}
-                className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-left transition-all duration-200 ease-caelestia-decel ${layoutMode === 'two-page' ? 'bg-accent text-accent-on font-bold shadow-xs' : 'hover:bg-surface-high text-on-surface'}`}
-              >
-                <span>Two-Page Book View</span>
-              </button>
-              <button
-                onClick={() => { setLayoutMode('facing-pages'); setShowLayoutMenu(false); }}
-                className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-left transition-all duration-200 ease-caelestia-decel ${layoutMode === 'facing-pages' ? 'bg-accent text-accent-on font-bold shadow-xs' : 'hover:bg-surface-high text-on-surface'}`}
-              >
-                <span>Facing Pages</span>
-              </button>
-
-              {layoutMode === 'facing-pages' && (
-                <div className="pt-1.5 mt-1 border-t border-outline/20 px-2.5 flex items-center justify-between text-[11px]">
-                  <span className="text-zinc-400">Separate Cover</span>
-                  <input 
-                    type="checkbox" 
-                    checked={facingCoverPage} 
-                    onChange={(e) => setFacingCoverPage(e.target.checked)}
-                    className="accent-accent cursor-pointer rounded"
-                  />
+              {/* Single Page Specific Fit Options */}
+              {layoutMode === 'single' && (
+                <div className="hidden sm:flex items-center gap-0.5 bg-surface-container border border-outline/20 p-0.5 rounded-full text-xs">
+                  <button
+                    type="button"
+                    onClick={handleFitPage}
+                    title="Fit Page in Window [P]"
+                    className="h-7 px-2 rounded-full text-[11px] font-medium text-on-surface hover:bg-surface-high transition-colors"
+                  >
+                    Fit Page
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleFitWidth}
+                    title="Fit Width [W]"
+                    className="h-7 px-2 rounded-full text-[11px] font-medium text-on-surface hover:bg-surface-high transition-colors"
+                  >
+                    Fit Width
+                  </button>
                 </div>
               )}
-            </FloatingAnchor>
-          </div>
+            </div>
+          ) : (
+            <div className="relative">
+              <button
+                ref={layoutBtnRef}
+                onClick={() => setShowLayoutMenu((prev) => !prev)}
+                title="Page Layout Modes"
+                className={`h-8 px-3 rounded-full border flex items-center gap-1.5 text-xs font-medium transition-all duration-200 ease-caelestia-decel shadow-xs ${
+                  layoutMode !== 'continuous' ? 'bg-accent/15 border-accent/40 text-accent font-semibold' : 'border-outline/20 hover:bg-surface-container text-on-surface'
+                }`}
+              >
+                <Columns className="h-3.5 w-3.5" />
+                <span className="hidden lg:inline capitalize">{layoutMode.replace('-', ' ')}</span>
+                <ChevronDown className="h-3 w-3 opacity-60" />
+              </button>
+
+              <FloatingAnchor
+                isOpen={showLayoutMenu}
+                onClose={() => setShowLayoutMenu(false)}
+                anchorRef={layoutBtnRef}
+                placement="bottom-end"
+                className="w-52 p-2 rounded-2xl caelestia-glass border border-outline/20 shadow-2xl flex flex-col gap-1 text-xs ring-1 ring-white/10"
+              >
+                <div className="px-2.5 py-1 text-[10px] font-mono text-zinc-400 uppercase font-semibold tracking-wider">Page Layout</div>
+                <button
+                  onClick={() => { handleSetLayoutMode('continuous'); setShowLayoutMenu(false); }}
+                  className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-left transition-all duration-200 ease-caelestia-decel ${layoutMode === 'continuous' ? 'bg-accent text-accent-on font-bold shadow-xs' : 'hover:bg-surface-high text-on-surface'}`}
+                >
+                  <span>Continuous Scroll</span>
+                </button>
+                <button
+                  onClick={() => { handleSetLayoutMode('single'); setShowLayoutMenu(false); }}
+                  className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-left transition-all duration-200 ease-caelestia-decel ${layoutMode === 'single' ? 'bg-accent text-accent-on font-bold shadow-xs' : 'hover:bg-surface-high text-on-surface'}`}
+                >
+                  <span>Single Page View</span>
+                </button>
+                <button
+                  onClick={() => { handleSetLayoutMode('two-page'); setShowLayoutMenu(false); }}
+                  className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-left transition-all duration-200 ease-caelestia-decel ${layoutMode === 'two-page' ? 'bg-accent text-accent-on font-bold shadow-xs' : 'hover:bg-surface-high text-on-surface'}`}
+                >
+                  <span>Two-Page Book View</span>
+                </button>
+                <button
+                  onClick={() => { handleSetLayoutMode('facing-pages'); setShowLayoutMenu(false); }}
+                  className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-left transition-all duration-200 ease-caelestia-decel ${layoutMode === 'facing-pages' ? 'bg-accent text-accent-on font-bold shadow-xs' : 'hover:bg-surface-high text-on-surface'}`}
+                >
+                  <span>Facing Pages</span>
+                </button>
+
+                {layoutMode === 'facing-pages' && (
+                  <div className="pt-1.5 mt-1 border-t border-outline/20 px-2.5 flex items-center justify-between text-[11px]">
+                    <span className="text-zinc-400">Separate Cover</span>
+                    <input 
+                      type="checkbox" 
+                      checked={facingCoverPage} 
+                      onChange={(e) => setFacingCoverPage(e.target.checked)}
+                      className="accent-accent cursor-pointer rounded"
+                    />
+                  </div>
+                )}
+              </FloatingAnchor>
+            </div>
+          )}
 
           {/* Reader Circadian Paper Tone Switcher */}
           {initialAppMode === 'reader' && (
@@ -2323,13 +2453,44 @@ export default function PDFViewer({
           ref={scrollContainerRef}
           tabIndex={0}
           onMouseUp={handleSelectionMouseUp}
-          className={`flex-1 w-full h-full overflow-y-auto overflow-x-auto py-8 px-4 flex flex-col items-center gap-8 focus:outline-none overscroll-contain bg-background transition-colors duration-200 ${
+          className={`flex-1 w-full h-full overflow-y-auto overflow-x-auto py-8 px-4 flex flex-col items-center gap-8 focus:outline-none overscroll-contain bg-background transition-colors duration-200 relative ${
             layoutMode === 'single' ? 'justify-center min-h-full' : ''
           }`}
           style={{ 
             WebkitOverflowScrolling: 'touch',
           }}
         >
+          {/* Floating Side Navigation Chevrons in Single Page View */}
+          {layoutMode === 'single' && !loading && (
+            <>
+              {currentPage > 1 && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    scrollToPage(currentPage - 1);
+                  }}
+                  title="Previous Page [Left Arrow]"
+                  className="fixed left-6 top-1/2 -translate-y-1/2 z-20 h-11 w-11 rounded-full caelestia-glass border border-outline/20 shadow-xl flex items-center justify-center text-on-surface opacity-30 hover:opacity-100 hover:scale-110 active:scale-95 transition-all duration-200 cursor-pointer"
+                >
+                  <ChevronLeft className="h-6 w-6" />
+                </button>
+              )}
+              {currentPage < pages.length && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    scrollToPage(currentPage + 1);
+                  }}
+                  title="Next Page [Right Arrow / Space]"
+                  className="fixed right-6 top-1/2 -translate-y-1/2 z-20 h-11 w-11 rounded-full caelestia-glass border border-outline/20 shadow-xl flex items-center justify-center text-on-surface opacity-30 hover:opacity-100 hover:scale-110 active:scale-95 transition-all duration-200 cursor-pointer"
+                >
+                  <ChevronRight className="h-6 w-6" />
+                </button>
+              )}
+            </>
+          )}
           {loading ? (
             <div className="flex-1 flex flex-col items-center justify-center py-20 gap-3">
               <div className="h-8 w-8 rounded-full border-2 border-accent border-t-transparent animate-spin" />
@@ -2445,6 +2606,164 @@ export default function PDFViewer({
           onFitPage={handleFitPage}
           focusMode={focusMode}
         />
+      )}
+
+      {/* 5b. Floating Bottom Comic & Reader Navigation Toolbar (Reader Mode / Comics) */}
+      {(initialAppMode === 'reader' || doc.isComic) && (
+        <div 
+          className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5 px-3 py-1.5 rounded-full caelestia-glass border border-outline/20 shadow-2xl backdrop-blur-xl transition-all duration-300 ease-caelestia-decel select-none ${
+            focusMode ? 'opacity-35 hover:opacity-100 hover:scale-102' : 'opacity-100'
+          }`}
+        >
+          {/* Previous Page */}
+          <button
+            type="button"
+            onClick={() => scrollToPage(Math.max(currentPage - (layoutMode === 'facing-pages' || layoutMode === 'two-page' ? 2 : 1), 1))}
+            disabled={currentPage <= 1}
+            title="Previous Page [Left Arrow]"
+            className="h-7 w-7 rounded-full flex items-center justify-center hover:bg-surface-high disabled:opacity-30 text-on-surface transition-colors cursor-pointer"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+
+          {/* Page Indicator */}
+          <span className="px-1 text-xs font-mono tabular-nums font-semibold text-on-surface">
+            {currentPage} <span className="opacity-40">/</span> {pages.length || 1}
+          </span>
+
+          {/* Next Page */}
+          <button
+            type="button"
+            onClick={() => scrollToPage(Math.min(currentPage + (layoutMode === 'facing-pages' || layoutMode === 'two-page' ? 2 : 1), pages.length))}
+            disabled={currentPage >= pages.length}
+            title="Next Page [Right Arrow / Space]"
+            className="h-7 w-7 rounded-full flex items-center justify-center hover:bg-surface-high disabled:opacity-30 text-on-surface transition-colors cursor-pointer"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+
+          <div className="h-3.5 w-px bg-outline/20 mx-0.5" />
+
+          {/* Quick Layout Mode Buttons: Single | Facing | Scroll */}
+          <div className="flex items-center gap-0.5 bg-surface-container/60 p-0.5 rounded-full border border-outline/10 text-xs">
+            <button
+              type="button"
+              onClick={() => handleSetLayoutMode('single')}
+              title="Single Page Mode [1]"
+              className={`h-6 px-2.5 rounded-full flex items-center gap-1 text-[11px] font-medium transition-all cursor-pointer ${
+                layoutMode === 'single'
+                  ? 'bg-accent text-accent-on font-bold shadow-xs'
+                  : 'text-on-surface hover:bg-surface-high'
+              }`}
+            >
+              <Square className="h-3 w-3" />
+              <span>Single</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSetLayoutMode('facing-pages')}
+              title="Facing Dual Pages [2]"
+              className={`h-6 px-2.5 rounded-full flex items-center gap-1 text-[11px] font-medium transition-all cursor-pointer ${
+                layoutMode === 'facing-pages'
+                  ? 'bg-accent text-accent-on font-bold shadow-xs'
+                  : 'text-on-surface hover:bg-surface-high'
+              }`}
+            >
+              <Columns className="h-3 w-3" />
+              <span>Facing</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSetLayoutMode('continuous')}
+              title="Continuous Scroll [3]"
+              className={`h-6 px-2.5 rounded-full flex items-center gap-1 text-[11px] font-medium transition-all cursor-pointer ${
+                layoutMode === 'continuous'
+                  ? 'bg-accent text-accent-on font-bold shadow-xs'
+                  : 'text-on-surface hover:bg-surface-high'
+              }`}
+            >
+              <Rows className="h-3 w-3" />
+              <span>Scroll</span>
+            </button>
+          </div>
+
+          {/* Single Page Specific Fit Options */}
+          {layoutMode === 'single' && (
+            <>
+              <div className="h-3.5 w-px bg-outline/20 mx-0.5" />
+              <div className="flex items-center gap-0.5 bg-surface-container/60 p-0.5 rounded-full border border-outline/10 text-xs">
+                <button
+                  type="button"
+                  onClick={handleFitPage}
+                  title="Fit Full Page in Window [P]"
+                  className="h-6 px-2 rounded-full text-[11px] font-medium text-on-surface hover:bg-surface-high transition-colors cursor-pointer"
+                >
+                  Fit Page
+                </button>
+                <button
+                  type="button"
+                  onClick={handleFitWidth}
+                  title="Fit Page to Width [W]"
+                  className="h-6 px-2 rounded-full text-[11px] font-medium text-on-surface hover:bg-surface-high transition-colors cursor-pointer"
+                >
+                  Fit Width
+                </button>
+              </div>
+            </>
+          )}
+
+          <div className="h-3.5 w-px bg-outline/20 mx-0.5" />
+
+          {/* Zoom Controls */}
+          <button
+            type="button"
+            onClick={handleZoomOut}
+            title="Zoom Out [-]"
+            className="h-7 w-7 rounded-full flex items-center justify-center hover:bg-surface-high text-on-surface transition-colors cursor-pointer"
+          >
+            <ZoomOut className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={handleZoomReset}
+            title="Reset Zoom (100%)"
+            className="px-1 text-[11px] font-mono tabular-nums text-on-surface hover:text-accent transition-colors cursor-pointer"
+          >
+            {Math.round(scale * 100)}%
+          </button>
+          <button
+            type="button"
+            onClick={handleZoomIn}
+            title="Zoom In [+]"
+            className="h-7 w-7 rounded-full flex items-center justify-center hover:bg-surface-high text-on-surface transition-colors cursor-pointer"
+          >
+            <ZoomIn className="h-3.5 w-3.5" />
+          </button>
+
+          <div className="h-3.5 w-px bg-outline/20 mx-0.5" />
+
+          {/* Zen Focus Toggle */}
+          <button
+            type="button"
+            onClick={() => setFocusMode((prev) => !prev)}
+            title={focusMode ? 'Exit Zen Mode [Z]' : 'Zen Focus Mode [Z]'}
+            className={`h-7 w-7 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+              focusMode ? 'bg-tertiary text-accent-on font-bold' : 'hover:bg-surface-high text-on-surface'
+            }`}
+          >
+            <Eye className="h-3.5 w-3.5" />
+          </button>
+
+          {/* Fullscreen */}
+          <button
+            type="button"
+            onClick={handleToggleFullscreen}
+            title="Toggle Fullscreen [F]"
+            className="h-7 w-7 rounded-full flex items-center justify-center hover:bg-surface-high text-on-surface transition-colors cursor-pointer"
+          >
+            {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+          </button>
+        </div>
       )}
 
       {/* 7. Fullscreen Responsive Text Reflow Reader Modal */}

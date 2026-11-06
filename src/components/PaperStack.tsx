@@ -297,10 +297,10 @@ export default function PaperStack() {
                   zIndex,
                   boxShadow: currentPositionInStack === 0
                     ? isOrangeCard
-                      ? '0 25px 60px rgba(255,87,34,0.45), 0 0 35px rgba(255,87,34,0.3)'
+                      ? '0 25px 60px rgba(255,87,34,0.45)'
                       : isSageCard
-                        ? '0 25px 60px rgba(0,0,0,0.6), 0 0 25px rgba(204,216,204,0.2)'
-                        : '0 25px 60px rgba(0,0,0,0.8), 0 0 30px rgba(255,87,34,0.2)'
+                        ? '0 25px 60px rgba(0,0,0,0.6)'
+                        : '0 25px 60px rgba(0,0,0,0.8)'
                     : '0 20px 50px rgba(0,0,0,0.5)',
                   willChange: 'transform, opacity',
                   backgroundImage: isOrangeCard
@@ -403,7 +403,7 @@ export default function PaperStack() {
                         <div className="flex-1 bg-[#121517]/60 rounded-t h-[35%]" />
                         <div className="flex-1 bg-[#121517]/75 rounded-t h-[55%]" />
                         {/* THE ICONIC ORANGE BAR */}
-                        <div className="flex-1 bg-[#ff5722] rounded-t h-[100%] shadow-[0_0_10px_rgba(255,87,34,0.5)]" />
+                        <div className="flex-1 bg-[#ff5722] rounded-t h-[100%]" />
                         <div className="flex-1 bg-[#121517]/60 rounded-t h-[65%]" />
                         <div className="flex-1 bg-[#121517]/80 rounded-t h-[80%]" />
                         <div className="flex-1 bg-[#121517]/50 rounded-t h-[45%]" />

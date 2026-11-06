@@ -35,10 +35,17 @@ import {
 } from '../../types';
 import FolderTreeExplorer from '../study/FolderTreeExplorer';
 import { SIDEBAR_CONSTRAINTS, clampSidebarWidth } from '../../utils/layoutConstraints';
+import { 
+  getThumbnailCacheKey, 
+  getThumbnailBitmap, 
+  thumbnailQueue 
+} from './viewerCache';
 
 interface ThumbnailCardProps {
   pageNum: number;
   isCurrent: boolean;
+  currentPage: number;
+  docKey: string;
   pdfDoc: pdfjsLib.PDFDocumentProxy | null;
   rotation: number;
   pageRotations?: Record<number, number>;
@@ -74,12 +81,11 @@ function getSharedThumbnailObserver(): IntersectionObserver {
   return sharedThumbnailObserver;
 }
 
-// In-memory cache for rendered thumbnail ImageBitmaps (instant tab restore)
-const thumbnailBitmapCache = new Map<string, ImageBitmap>();
-
 const ThumbnailCard: React.FC<ThumbnailCardProps> = React.memo(({
   pageNum,
   isCurrent,
+  currentPage,
+  docKey,
   pdfDoc,
   rotation,
   pageRotations,
@@ -92,14 +98,23 @@ const ThumbnailCard: React.FC<ThumbnailCardProps> = React.memo(({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [rendered, setRendered] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
-  const [dimensions, setDimensions] = useState<{ width: number; height: number }>({ width: 150, height: 200 });
+  const [dimensions, setDimensions] = useState<{ width: number; height: number }>({ width: 150, height: 210 });
 
   const pageExtra = pageRotations?.[pageNum] || 0;
+  const totalRotation = (rotation + pageExtra) % 360;
+  const thumbKey = getThumbnailCacheKey(docKey, pageNum, totalRotation);
 
-  // Reset rendered flag on layout, rotation, page rotation, or sidebar width change
+  // Compute CSS layout dimensions adaptively based on columns and sidebar width
   useEffect(() => {
-    setRendered(false);
-  }, [columns, rotation, pageExtra, sidebarWidth]);
+    const availableWidth = sidebarWidth - SIDEBAR_CONSTRAINTS.CONTENT_PADDING;
+    const cssWidth = columns === '2' 
+      ? Math.max(85, Math.floor((availableWidth - 14) / 2)) 
+      : Math.min(Math.max(140, availableWidth - 16), 340);
+    setDimensions((prev) => ({
+      width: cssWidth,
+      height: prev.width > 0 && prev.height > 0 ? Math.round(cssWidth * (prev.height / prev.width)) : Math.round(cssWidth * 1.4),
+    }));
+  }, [columns, sidebarWidth]);
 
   // Connect to shared IntersectionObserver
   useEffect(() => {
@@ -137,101 +152,66 @@ const ThumbnailCard: React.FC<ThumbnailCardProps> = React.memo(({
     }
   }, [isCurrent]);
 
-  // Lazy render thumbnail canvas with native integer-pixel scale targets
+  // Check cache immediately (e.g. populated by main viewer or prefetch)
+  useEffect(() => {
+    const cachedBmp = getThumbnailBitmap(thumbKey);
+    if (cachedBmp && canvasRef.current) {
+      const canvas = canvasRef.current;
+      canvas.width = dimensions.width;
+      canvas.height = dimensions.height;
+      const ctx = canvas.getContext('2d', { alpha: false });
+      if (ctx) {
+        ctx.drawImage(cachedBmp, 0, 0, dimensions.width, dimensions.height);
+        setRendered(true);
+      }
+    }
+  }, [thumbKey, dimensions.width, dimensions.height]);
+
+  // Prioritized non-blocking thumbnail queue execution
   useEffect(() => {
     if (!pdfDoc || !canvasRef.current || !isVisible || rendered) return;
 
-    let isCancelled = false;
-    let renderTask: any = null;
-
-    (async () => {
-      try {
-        const page = await pdfDoc.getPage(pageNum);
-        if (isCancelled || !canvasRef.current) return;
-
-        const pageRotate = page.rotate || 0;
-        const totalRotation = (pageRotate + rotation + pageExtra) % 360;
-        const unscaledVp = page.getViewport({ scale: 1.0, rotation: totalRotation });
-        const currentAspect = unscaledVp.width / unscaledVp.height;
-
-        // 1. Native Integer-Pixel Target Width & Height (Dynamically adapts to sidebar expansion)
-        const availableWidth = sidebarWidth - SIDEBAR_CONSTRAINTS.CONTENT_PADDING;
-        const cssWidth = columns === '2' 
-          ? Math.max(85, Math.floor((availableWidth - 14) / 2)) 
-          : Math.min(Math.max(140, availableWidth - 16), 340);
-        const cssHeight = Math.round(cssWidth / currentAspect);
-        setDimensions({ width: cssWidth, height: cssHeight });
-
-        const scale = cssWidth / unscaledVp.width;
-        const viewport = page.getViewport({ scale, rotation: totalRotation });
-
-        const outputScale = window.devicePixelRatio || 1;
-        const canvas = canvasRef.current;
-        
-        // 2. Exact Integer Canvas Buffer (Physical Device Pixels)
-        canvas.width = Math.round(viewport.width * outputScale);
-        canvas.height = Math.round(viewport.height * outputScale);
-
-        // 3. Exact Integer CSS Layout Size (1:1 with Screen Grid)
-        canvas.style.width = `${Math.round(viewport.width)}px`;
-        canvas.style.height = `${Math.round(viewport.height)}px`;
-
-        const ctx = canvas.getContext('2d', { alpha: false });
-        if (!ctx) return;
-
-        // 4. Solid Opaque Paper Backing
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        const cacheKey = `${(pdfDoc as any).fingerprint || 'doc'}_${pageNum}_${rotation}_${pageExtra}_${Math.round(viewport.width * outputScale)}`;
-        const cachedBmp = thumbnailBitmapCache.get(cacheKey);
-        if (cachedBmp) {
-          ctx.drawImage(cachedBmp, 0, 0);
-          setRendered(true);
-          return;
-        }
-
-        // 5. Native OutputScale Matrix Transform (Autohinted Vector Rasterization)
-        const transform = outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : undefined;
-
-        renderTask = page.render({
-          canvasContext: ctx,
-          transform,
-          viewport,
-          canvas,
-        });
-
-        await renderTask.promise;
-        if (!isCancelled) {
-          setRendered(true);
-          if (typeof window !== 'undefined' && 'createImageBitmap' in window) {
-            window.createImageBitmap(canvas).then((bmp) => {
-              if (thumbnailBitmapCache.size > 80) {
-                const oldest = thumbnailBitmapCache.keys().next().value;
-                if (oldest) {
-                  const b = thumbnailBitmapCache.get(oldest);
-                  b?.close?.();
-                  thumbnailBitmapCache.delete(oldest);
-                }
-              }
-              thumbnailBitmapCache.set(cacheKey, bmp);
-            }).catch(() => {});
-          }
-        }
-      } catch (err: any) {
-        if (err?.name !== 'RenderingCancelledException') {
-          console.error(`Thumbnail render error for page ${pageNum}:`, err);
-        }
+    const cachedBmp = getThumbnailBitmap(thumbKey);
+    if (cachedBmp) {
+      const canvas = canvasRef.current;
+      canvas.width = dimensions.width;
+      canvas.height = dimensions.height;
+      const ctx = canvas.getContext('2d', { alpha: false });
+      if (ctx) {
+        ctx.drawImage(cachedBmp, 0, 0, dimensions.width, dimensions.height);
+        setRendered(true);
       }
-    })();
+      return;
+    }
+
+    let isCancelled = false;
+
+    thumbnailQueue.enqueue({
+      id: thumbKey,
+      pageNum,
+      docKey,
+      pdfDoc,
+      rotation: totalRotation,
+      currentPage,
+      cancelled: false,
+      onSuccess: (bmp) => {
+        if (isCancelled || !canvasRef.current) return;
+        const canvas = canvasRef.current;
+        canvas.width = dimensions.width;
+        canvas.height = dimensions.height;
+        const ctx = canvas.getContext('2d', { alpha: false });
+        if (ctx) {
+          ctx.drawImage(bmp, 0, 0, dimensions.width, dimensions.height);
+          setRendered(true);
+        }
+      },
+    });
 
     return () => {
       isCancelled = true;
-      if (renderTask) {
-        try { renderTask.cancel(); } catch {}
-      }
+      thumbnailQueue.cancel(thumbKey);
     };
-  }, [pdfDoc, pageNum, rotation, pageExtra, rendered, columns, sidebarWidth, isVisible]);
+  }, [pdfDoc, pageNum, thumbKey, totalRotation, isVisible, rendered, currentPage, dimensions.width, dimensions.height, docKey]);
 
   return (
     <div
@@ -253,7 +233,7 @@ const ThumbnailCard: React.FC<ThumbnailCardProps> = React.memo(({
       <div 
         className={`bg-white rounded-md overflow-hidden relative transition-all duration-200 flex items-center justify-center ${
           isCurrent
-            ? 'ring-2 ring-accent shadow-[0_0_15px_rgba(129,211,224,0.35)]'
+            ? 'ring-2 ring-accent'
             : 'border border-border shadow-xs group-hover:border-accent/40 group-hover:shadow-sm'
         }`}
         style={{
@@ -569,7 +549,7 @@ function ViewerNavSidebar({
         }`}
       >
         <div className={`w-[2px] h-10 rounded-full transition-colors ${
-          isResizing ? 'bg-accent shadow-[0_0_12px_rgba(129,211,224,0.6)]' : 'bg-transparent group-hover/sidebar:bg-accent/40'
+          isResizing ? 'bg-accent' : 'bg-transparent group-hover/sidebar:bg-accent/40'
         }`} />
       </div>
       
@@ -689,6 +669,8 @@ function ViewerNavSidebar({
                 key={pageNum}
                 pageNum={pageNum}
                 isCurrent={pageNum === currentPage}
+                currentPage={currentPage}
+                docKey={activeDocId || docName || (pdfDoc as any)?.fingerprint || 'doc'}
                 pdfDoc={pdfDoc}
                 rotation={rotation}
                 pageRotations={pageRotations}

@@ -49,6 +49,17 @@ import DigitalSignModal from './viewer/DigitalSignModal';
 import { exportToXFDF, exportToJSON, downloadFile, bakeAnnotationsToPDF } from '../utils/annotationExporter';
 import { recordReadingActivity } from '../utils/readingStats';
 import { nativeRedactPDF } from '../utils/nativePdfBridge';
+import {
+  globalPageBitmapCache,
+  getPageRenderKey,
+  getThumbnailCacheKey,
+  getThumbnailBitmap,
+  shareCanvasAsThumbnail,
+  prunePageBitmapCache,
+  setMainViewerRendering,
+  isMainViewerRendering,
+  clearDocumentBitmapCache,
+} from './viewer/viewerCache';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -371,6 +382,13 @@ export default function PDFViewer({
   const activeRenderTasksRef = useRef<Map<number, any>>(new Map());
   const activeTextTasksRef = useRef<Map<number, any>>(new Map());
   const isExtractingTextRef = useRef(false);
+  const lastWheelFlipTimeRef = useRef<number>(0);
+  const layoutModeRef = useRef(layoutMode);
+  layoutModeRef.current = layoutMode;
+  const currentPageRef = useRef(currentPage);
+  currentPageRef.current = currentPage;
+  const pagesCountRef = useRef(pages.length);
+  pagesCountRef.current = pages.length;
 
   // Memoize annotations by page to isolate updates and avoid re-rendering untouched pages
   const annotationsByPage = useMemo(() => {
@@ -929,6 +947,7 @@ export default function PDFViewer({
 
     return () => {
       isCancelled = true;
+      clearDocumentBitmapCache(doc.id || doc.name);
       activeRenderTasksRef.current.forEach((task) => {
         try { task.cancel(); } catch {}
       });
@@ -936,17 +955,183 @@ export default function PDFViewer({
     };
   }, [doc.blobUrl]);
 
-  // 2. High-DPI Page & Text Layer Rendering Engine
+  const activePrefetchKeysRef = useRef<Set<string>>(new Set());
+
+  // Render Official PDF.js Text Selection Layer asynchronously
+  const renderTextLayer = useCallback(async (pageNum: number, rot: number, currentScale: number, existingPage?: any) => {
+    if (!pdfDoc) return;
+    const textContainer = textLayerMapRef.current.get(pageNum);
+    if (!textContainer) return;
+
+    if (activeTextTasksRef.current.has(pageNum)) {
+      try { activeTextTasksRef.current.get(pageNum)?.cancel(); } catch {}
+      activeTextTasksRef.current.delete(pageNum);
+    }
+
+    let textLayerTask: any = null;
+    try {
+      const page = existingPage || (await pdfDoc.getPage(pageNum));
+      const pageExtra = pageRotations[pageNum] || 0;
+      const pageRotate = page.rotate || 0;
+      const totalRotation = (pageRotate + rot + pageExtra) % 360;
+
+      textContainer.innerHTML = '';
+      const textViewport = page.getViewport({ scale: currentScale, rotation: totalRotation });
+      textContainer.style.width = `${Math.floor(textViewport.width)}px`;
+      textContainer.style.height = `${Math.floor(textViewport.height)}px`;
+      textContainer.style.setProperty('--scale-factor', `${currentScale}`);
+      textContainer.style.setProperty('--total-scale-factor', `${currentScale}`);
+
+      const textContent = await page.getTextContent();
+      textLayerTask = new pdfjsLib.TextLayer({
+        textContentSource: textContent,
+        container: textContainer,
+        viewport: textViewport,
+      });
+
+      activeTextTasksRef.current.set(pageNum, textLayerTask);
+      await textLayerTask.render();
+      if (activeTextTasksRef.current.get(pageNum) === textLayerTask) {
+        activeTextTasksRef.current.delete(pageNum);
+      }
+    } catch (err: any) {
+      if (err?.name !== 'RenderingCancelledException') {
+        console.warn(`Text layer on page ${pageNum}:`, err);
+      }
+      if (activeTextTasksRef.current.get(pageNum) === textLayerTask) {
+        activeTextTasksRef.current.delete(pageNum);
+      }
+    }
+  }, [pdfDoc, pageRotations]);
+
+  // Background Neighboring Page Lookahead Pre-fetcher
+  const prefetchNeighbors = useCallback(async (centerPage: number, rot: number, currentScale: number) => {
+    if (!pdfDoc || pages.length === 0) return;
+    const docKey = doc.id || doc.name;
+
+    let targets: number[] = [];
+    if (layoutMode === 'facing-pages' || layoutMode === 'two-page') {
+      targets = [centerPage + 2, centerPage + 3, centerPage - 2, centerPage - 1];
+    } else {
+      targets = [centerPage + 1, centerPage + 2, centerPage - 1];
+    }
+
+    for (const pNum of targets) {
+      if (pNum < 1 || pNum > pages.length) continue;
+      const pExtra = pageRotations[pNum] || 0;
+      const tRot = (rot + pExtra) % 360;
+      const key = getPageRenderKey(docKey, pNum, tRot, currentScale);
+
+      if (globalPageBitmapCache.has(key) || activePrefetchKeysRef.current.has(key)) continue;
+
+      if (isMainViewerRendering()) {
+        await yieldToBrowser();
+        if (isMainViewerRendering()) break;
+      }
+
+      activePrefetchKeysRef.current.add(key);
+
+      try {
+        const page = await pdfDoc.getPage(pNum);
+        const outputScale = window.devicePixelRatio || 1;
+        const pRotate = page.rotate || 0;
+        const totalRotation = (pRotate + rot + pExtra) % 360;
+        const viewport = page.getViewport({ scale: currentScale, rotation: totalRotation });
+
+        const scaledWidth = Math.max(1, Math.floor(viewport.width * outputScale));
+        const scaledHeight = Math.max(1, Math.floor(viewport.height * outputScale));
+
+        const offscreen = document.createElement('canvas');
+        offscreen.width = scaledWidth;
+        offscreen.height = scaledHeight;
+        const offCtx = offscreen.getContext('2d', { alpha: false });
+        if (!offCtx) continue;
+
+        offCtx.fillStyle = '#ffffff';
+        offCtx.fillRect(0, 0, scaledWidth, scaledHeight);
+
+        const transform = outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : undefined;
+        const task = page.render({
+          canvasContext: offCtx,
+          transform,
+          viewport,
+          canvas: offscreen,
+        });
+
+        await task.promise;
+
+        if (typeof window !== 'undefined' && 'createImageBitmap' in window) {
+          const bmp = await window.createImageBitmap(offscreen);
+          prunePageBitmapCache(docKey, centerPage, 4);
+          globalPageBitmapCache.set(key, {
+            bitmap: bmp,
+            width: scaledWidth,
+            height: scaledHeight,
+            pageNum: pNum,
+            renderKey: key,
+          });
+        }
+
+        shareCanvasAsThumbnail(docKey, pNum, totalRotation, offscreen);
+      } catch {
+        // Silently catch prefetch cancellation
+      } finally {
+        activePrefetchKeysRef.current.delete(key);
+      }
+
+      await yieldToBrowser();
+    }
+  }, [pdfDoc, pages.length, doc.id, doc.name, layoutMode, pageRotations]);
+
+  // 2. High-DPI Page & Text Layer Rendering Engine with 0ms Fast Path
   const renderCanvasPage = useCallback(async (pageNum: number, rot: number, currentScale: number) => {
     if (!pdfDoc) return;
     const canvas = canvasMapRef.current.get(pageNum);
     if (!canvas) return;
 
+    const docKey = doc.id || doc.name;
     const pageExtra = pageRotations[pageNum] || 0;
-    const renderKey = `${pageNum}-${rot}-${pageExtra}-${currentScale}`;
+    const totalRotation = (rot + pageExtra) % 360;
+    const renderKey = getPageRenderKey(docKey, pageNum, totalRotation, currentScale);
+
     if (renderedPagesRef.current.has(renderKey) || pendingRenderKeysRef.current.has(renderKey)) return;
     pendingRenderKeysRef.current.add(renderKey);
     requestedRenderKeysRef.current.set(pageNum, renderKey);
+
+    // 1. Fast Path: Instant Blit from High-Res Page Bitmap Cache (0ms!)
+    const cachedPage = globalPageBitmapCache.get(renderKey);
+    if (cachedPage) {
+      canvas.width = cachedPage.width;
+      canvas.height = cachedPage.height;
+      const ctx = canvas.getContext('2d', { alpha: false });
+      if (ctx) {
+        ctx.drawImage(cachedPage.bitmap, 0, 0);
+      }
+      renderedPagesRef.current.add(renderKey);
+      pendingRenderKeysRef.current.delete(renderKey);
+
+      // Auto-share with thumbnail cache if needed
+      shareCanvasAsThumbnail(docKey, pageNum, totalRotation, canvas);
+
+      // Trigger pre-rendering of neighboring pages
+      prefetchNeighbors(pageNum, rot, currentScale);
+
+      // Render text layer asynchronously
+      renderTextLayer(pageNum, rot, currentScale);
+      return;
+    }
+
+    // 2. Immediate Low-Res Preview from Thumbnail (Eliminates the blank white flash!)
+    const thumbKey = getThumbnailCacheKey(docKey, pageNum, totalRotation);
+    const thumbBmp = getThumbnailBitmap(thumbKey);
+    if (thumbBmp && canvas.width === 0) {
+      canvas.width = Math.round(thumbBmp.width * 2);
+      canvas.height = Math.round(thumbBmp.height * 2);
+      const tctx = canvas.getContext('2d', { alpha: false });
+      if (tctx) {
+        tctx.drawImage(thumbBmp, 0, 0, canvas.width, canvas.height);
+      }
+    }
 
     if (activeRenderTasksRef.current.has(pageNum)) {
       try {
@@ -963,28 +1148,27 @@ export default function PDFViewer({
     }
 
     let renderTask: any = null;
-    let textLayerTask: any = null;
 
     try {
+      // Prioritize main page over background thumbnail worker
+      setMainViewerRendering(true);
+
       const page = await pdfDoc.getPage(pageNum);
       const outputScale = window.devicePixelRatio || 1;
       const pageRotate = page.rotate || 0;
-      const totalRotation = (pageRotate + rot + pageExtra) % 360;
-      const viewport = page.getViewport({ scale: currentScale, rotation: totalRotation });
+      const pageRotTotal = (pageRotate + rot + pageExtra) % 360;
+      const viewport = page.getViewport({ scale: currentScale, rotation: pageRotTotal });
 
       const scaledWidth = Math.max(1, Math.floor(viewport.width * outputScale));
       const scaledHeight = Math.max(1, Math.floor(viewport.height * outputScale));
 
-      // Double-buffered rendering via dedicated per-page offscreen canvas:
-      // Completely isolated per page to eliminate concurrent render collisions, #canvasInUse conflicts,
-      // and compound transform matrix inversions.
+      // Double-buffered rendering via dedicated per-page offscreen canvas
       const offscreenCanvas = document.createElement('canvas');
       offscreenCanvas.width = scaledWidth;
       offscreenCanvas.height = scaledHeight;
       const offscreenCtx = offscreenCanvas.getContext('2d', { alpha: false });
       if (!offscreenCtx) return;
 
-      // Solid opaque white paper backing
       offscreenCtx.fillStyle = '#ffffff';
       offscreenCtx.fillRect(0, 0, scaledWidth, scaledHeight);
 
@@ -1005,8 +1189,7 @@ export default function PDFViewer({
         activeRenderTasksRef.current.delete(pageNum);
       }
 
-      // A zoom/rotation change may have started a newer render while this task
-      // was waiting. Never let an obsolete frame replace the current canvas.
+      // A zoom/rotation change may have started a newer render while this task was waiting
       if (requestedRenderKeysRef.current.get(pageNum) !== renderKey) return;
 
       // Instantly paint the completed high-res frame to visible canvas with zero flicker
@@ -1017,6 +1200,23 @@ export default function PDFViewer({
         ctx.drawImage(offscreenCanvas, 0, 0);
       }
       renderedPagesRef.current.add(renderKey);
+
+      // Cache the rendered bitmap for instantaneous backward/forward returns
+      if (typeof window !== 'undefined' && 'createImageBitmap' in window) {
+        window.createImageBitmap(offscreenCanvas).then((bmp) => {
+          prunePageBitmapCache(docKey, pageNum, 4);
+          globalPageBitmapCache.set(renderKey, {
+            bitmap: bmp,
+            width: scaledWidth,
+            height: scaledHeight,
+            pageNum,
+            renderKey,
+          });
+        }).catch(() => {});
+      }
+
+      // Auto-share with thumbnail cache!
+      shareCanvasAsThumbnail(docKey, pageNum, totalRotation, offscreenCanvas);
 
       // Auto-extract cover thumbnail from page 1 if not already stored
       if (pageNum === 1 && !doc.coverDataUrl && canvas.width > 10) {
@@ -1030,29 +1230,11 @@ export default function PDFViewer({
         } catch {}
       }
 
-      // Render Official PDF.js Text Selection Layer
-      const textContainer = textLayerMapRef.current.get(pageNum);
-      if (textContainer) {
-        textContainer.innerHTML = '';
-        const textViewport = page.getViewport({ scale: currentScale, rotation: totalRotation });
-        textContainer.style.width = `${Math.floor(textViewport.width)}px`;
-        textContainer.style.height = `${Math.floor(textViewport.height)}px`;
-        textContainer.style.setProperty('--scale-factor', `${currentScale}`);
-        textContainer.style.setProperty('--total-scale-factor', `${currentScale}`);
+      // Pre-fetch next & previous pages into cache
+      prefetchNeighbors(pageNum, rot, currentScale);
 
-        const textContent = await page.getTextContent();
-        textLayerTask = new pdfjsLib.TextLayer({
-          textContentSource: textContent,
-          container: textContainer,
-          viewport: textViewport,
-        });
-
-        activeTextTasksRef.current.set(pageNum, textLayerTask);
-        await textLayerTask.render();
-        if (activeTextTasksRef.current.get(pageNum) === textLayerTask) {
-          activeTextTasksRef.current.delete(pageNum);
-        }
-      }
+      // Render text layer
+      renderTextLayer(pageNum, rot, currentScale, page);
     } catch (err: any) {
       if (err?.name !== 'RenderingCancelledException') {
         console.error(`Page render error on page ${pageNum}:`, err);
@@ -1060,13 +1242,11 @@ export default function PDFViewer({
       if (activeRenderTasksRef.current.get(pageNum) === renderTask) {
         activeRenderTasksRef.current.delete(pageNum);
       }
-      if (activeTextTasksRef.current.get(pageNum) === textLayerTask) {
-        activeTextTasksRef.current.delete(pageNum);
-      }
     } finally {
+      setMainViewerRendering(false);
       pendingRenderKeysRef.current.delete(renderKey);
     }
-  }, [pdfDoc, pageRotations]);
+  }, [pdfDoc, pageRotations, doc.id, doc.name, prefetchNeighbors, renderTextLayer]);
 
   // Virtual GPU Canvas Discarding: Reclaims GPU VRAM for offscreen pages
   const unloadCanvasPage = useCallback((pageNum: number) => {
@@ -1097,7 +1277,7 @@ export default function PDFViewer({
 
     // Unmark page so it renders cleanly when scrolled back
     Array.from(renderedPagesRef.current).forEach((key) => {
-      if (key.startsWith(`${pageNum}-`)) {
+      if (key.includes(`_${pageNum}_`) || key.startsWith(`${pageNum}-`)) {
         renderedPagesRef.current.delete(key);
       }
     });
@@ -1203,7 +1383,7 @@ export default function PDFViewer({
     return () => clearTimeout(timer);
   }, [isActive, pdfDoc, pages.length, rotation, scale, currentPage, renderCanvasPage]);
 
-  // 4. Zoom Controls & Wheel Listener
+  // 4. Zoom Controls & Wheel Navigation Listener
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
@@ -1216,6 +1396,33 @@ export default function PDFViewer({
           const next = Math.min(Math.max(prev * factor, 0.4), 2.5);
           return parseFloat(next.toFixed(2));
         });
+        return;
+      }
+
+      // Single-page, Two-page & Facing mode: Natural mouse-wheel page turning when not vertically overflowing or at boundaries
+      const currentMode = layoutModeRef.current;
+      if (currentMode === 'single' || currentMode === 'facing-pages' || currentMode === 'two-page') {
+        const isScrollable = container.scrollHeight > container.clientHeight + 16;
+        const isAtBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 8;
+        const isAtTop = container.scrollTop <= 8;
+
+        if (!isScrollable || (e.deltaY > 0 && isAtBottom) || (e.deltaY < 0 && isAtTop)) {
+          if (Math.abs(e.deltaY) > 20) {
+            const now = Date.now();
+            if (now - lastWheelFlipTimeRef.current > 260) {
+              const step = currentMode === 'facing-pages' ? 2 : 1;
+              if (e.deltaY > 0 && currentPageRef.current < pagesCountRef.current) {
+                e.preventDefault();
+                lastWheelFlipTimeRef.current = now;
+                scrollToPageRef.current(Math.min(currentPageRef.current + step, pagesCountRef.current));
+              } else if (e.deltaY < 0 && currentPageRef.current > 1) {
+                e.preventDefault();
+                lastWheelFlipTimeRef.current = now;
+                scrollToPageRef.current(Math.max(currentPageRef.current - step, 1));
+              }
+            }
+          }
+        }
       }
     };
 
@@ -1265,6 +1472,20 @@ export default function PDFViewer({
       });
     }
   }, []);
+
+  const scrollToPageRef = useRef(scrollToPage);
+  scrollToPageRef.current = scrollToPage;
+
+  // 5a. Adjacent page pre-fetching for instant single/facing page flips (0ms transition)
+  useEffect(() => {
+    if (!pdfDoc || pages.length <= 1) return;
+    const targetPages = [currentPage + 1, currentPage - 1, currentPage + 2];
+    for (const p of targetPages) {
+      if (p >= 1 && p <= pages.length) {
+        pdfDoc.getPage(p).catch(() => {});
+      }
+    }
+  }, [pdfDoc, currentPage, pages.length]);
 
   // 5b. Pre-calculate page center Y positions for instantaneous O(log N) scroll positioning
   const pageOffsets = useMemo(() => {
@@ -1592,6 +1813,24 @@ export default function PDFViewer({
     setScale(parseFloat(Math.min(2.5, Math.max(0.3, fitScale)).toFixed(2)));
   }, [pages, currentPage]);
 
+  // Auto-recalibrate fit-page scale on container resize in single-page mode
+  useEffect(() => {
+    if (layoutMode !== 'single' || !scrollContainerRef.current) return;
+    const container = scrollContainerRef.current;
+    let resizeTimer: any = null;
+    const observer = new ResizeObserver(() => {
+      if (resizeTimer) clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        handleFitPage();
+      }, 150);
+    });
+    observer.observe(container);
+    return () => {
+      if (resizeTimer) clearTimeout(resizeTimer);
+      observer.disconnect();
+    };
+  }, [layoutMode, handleFitPage]);
+
   // Rotation Helpers
   const handleRotateCW = useCallback(() => setRotation((prev) => (prev + 90) % 360), []);
 
@@ -1780,12 +2019,20 @@ export default function PDFViewer({
         } else if (onOpenDocument) {
           onOpenDocument();
         }
-      } else if ((isStudyMode || initialAppMode === 'reader') && (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ')) {
+      } else if ((isStudyMode || initialAppMode === 'reader' || layoutMode === 'single' || layoutMode === 'facing-pages') && (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ')) {
         e.preventDefault();
-        scrollToPage(Math.min(pages.length, currentPage + 1));
-      } else if ((isStudyMode || initialAppMode === 'reader') && (e.key === 'ArrowLeft' || e.key === 'PageUp')) {
+        const step = (layoutMode === 'facing-pages' || layoutMode === 'two-page') ? 2 : 1;
+        scrollToPage(Math.min(pages.length, currentPage + step));
+      } else if ((isStudyMode || initialAppMode === 'reader' || layoutMode === 'single' || layoutMode === 'facing-pages') && (e.key === 'ArrowLeft' || e.key === 'PageUp')) {
         e.preventDefault();
-        scrollToPage(Math.max(1, currentPage - 1));
+        const step = (layoutMode === 'facing-pages' || layoutMode === 'two-page') ? 2 : 1;
+        scrollToPage(Math.max(1, currentPage - step));
+      } else if (e.key === 'Home' && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        scrollToPage(1);
+      } else if (e.key === 'End' && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        scrollToPage(pages.length);
       } else if ((isStudyMode || initialAppMode === 'reader') && (e.key === 'w' || e.key === 'W')) {
         if (!e.ctrlKey && !e.metaKey) {
           e.preventDefault();
@@ -2453,9 +2700,7 @@ export default function PDFViewer({
           ref={scrollContainerRef}
           tabIndex={0}
           onMouseUp={handleSelectionMouseUp}
-          className={`flex-1 w-full h-full overflow-y-auto overflow-x-auto py-8 px-4 flex flex-col items-center gap-8 focus:outline-none overscroll-contain bg-background transition-colors duration-200 relative ${
-            layoutMode === 'single' ? 'justify-center min-h-full' : ''
-          }`}
+          className="flex-1 w-full h-full overflow-y-auto overflow-x-auto py-8 px-4 flex flex-col items-center gap-8 focus:outline-none overscroll-contain bg-background transition-colors duration-200 relative min-h-full"
           style={{ 
             WebkitOverflowScrolling: 'touch',
           }}
@@ -2500,7 +2745,9 @@ export default function PDFViewer({
             layoutGroups.map((group, groupIdx) => (
               <div 
                 key={groupIdx} 
-                className={`flex items-center justify-center gap-6 mx-auto flex-shrink-0 ${layoutMode === 'two-page' || layoutMode === 'facing-pages' ? 'flex-row' : 'flex-col'}`}
+                className={`flex items-center justify-center gap-6 mx-auto flex-shrink-0 ${
+                  layoutMode === 'single' ? 'my-auto' : ''
+                } ${layoutMode === 'two-page' || layoutMode === 'facing-pages' ? 'flex-row' : 'flex-col'}`}
               >
                 {group.map((p) => {
                   const pageExtra = pageRotations[p.pageNum] || 0;
@@ -2519,7 +2766,7 @@ export default function PDFViewer({
                         height: `${displayHeight}px`,
                         ...tintStyle,
                       }}
-                      className="relative bg-white rounded-md shadow-[0_8px_30px_rgba(0,0,0,0.1)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.5)] border border-black/10 dark:border-white/15 overflow-hidden flex-shrink-0"
+                      className="relative bg-white rounded-md border border-black/10 dark:border-white/15 overflow-hidden flex-shrink-0 shadow-none"
                     >
                       {/* 1. High-DPI Razor-Sharp Canvas Layer */}
                       <canvas
@@ -2627,9 +2874,22 @@ export default function PDFViewer({
           </button>
 
           {/* Page Indicator */}
-          <span className="px-1 text-xs font-mono tabular-nums font-semibold text-on-surface">
+          <span className="px-1 text-xs font-mono tabular-nums font-semibold text-on-surface whitespace-nowrap">
             {currentPage} <span className="opacity-40">/</span> {pages.length || 1}
           </span>
+
+          {/* Interactive Page Progress Scrubber */}
+          {pages.length > 1 && (
+            <input
+              type="range"
+              min={1}
+              max={pages.length}
+              value={currentPage}
+              onChange={(e) => scrollToPage(Number(e.target.value))}
+              title={`Page ${currentPage} of ${pages.length}`}
+              className="w-16 sm:w-24 h-1 accent-accent bg-outline/20 rounded-lg cursor-pointer"
+            />
+          )}
 
           {/* Next Page */}
           <button

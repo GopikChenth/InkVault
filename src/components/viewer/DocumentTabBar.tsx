@@ -46,7 +46,7 @@ const DocumentTabItem = React.memo(function DocumentTabItem({
     >
       {/* Active Indicator Accent Dot */}
       {isActive ? (
-        <div className="h-1.5 w-1.5 rounded-full bg-accent flex-shrink-0 shadow-[0_0_8px_rgba(129,211,224,0.6)]" />
+        <div className="h-1.5 w-1.5 rounded-full bg-accent flex-shrink-0" />
       ) : null}
 
       {/* Document Icon */}

@@ -95,7 +95,7 @@ function SearchOverlay({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed top-14 right-3 sm:right-6 z-40 w-[min(94vw,400px)] max-w-full flex flex-col gap-2 p-2.5 rounded-3xl caelestia-glass shadow-2xl text-on-surface select-none animate-in fade-in slide-in-from-top-2 duration-150 ring-1 ring-border">
+    <div className="fixed top-14 right-3 sm:right-6 z-40 w-[min(96vw,450px)] max-w-full flex flex-col gap-2 p-2.5 rounded-3xl caelestia-glass shadow-2xl text-on-surface select-none animate-in fade-in slide-in-from-top-2 duration-150 ring-1 ring-border">
       
       {/* Search Input Row */}
       <div className="flex items-center gap-1.5 w-full">
@@ -169,14 +169,14 @@ function SearchOverlay({
           <button
             onClick={onToggleCaseSensitive}
             title="Match Case (Alt+C)"
-            className={`h-6 px-2.5 rounded-full flex items-center gap-1.5 text-[11px] font-mono transition-all ${
+            className={`h-6 px-2 sm:px-2.5 rounded-full flex items-center gap-1.5 text-[11px] font-mono whitespace-nowrap cursor-pointer transition-all ${
               isCaseSensitive 
                 ? 'bg-accent text-accent-on font-bold shadow-xs' 
                 : 'text-zinc-700 dark:text-zinc-200 hover:bg-surface-container hover:text-zinc-950 dark:hover:text-white'
             }`}
           >
-            <CaseSensitive className="h-3.5 w-3.5 text-zinc-600 dark:text-zinc-300" />
-            <span>Match Case</span>
+            <CaseSensitive className="h-3.5 w-3.5 shrink-0 opacity-90" />
+            <span className="whitespace-nowrap">Match Case</span>
           </button>
 
           {/* Exact / Whole Word */}
@@ -184,28 +184,28 @@ function SearchOverlay({
             onClick={onToggleWholeWord}
             disabled={isRegex}
             title="Match Whole Word (Alt+W)"
-            className={`h-6 px-2.5 rounded-full flex items-center gap-1.5 text-[11px] font-mono transition-all disabled:opacity-30 ${
+            className={`h-6 px-2 sm:px-2.5 rounded-full flex items-center gap-1.5 text-[11px] font-mono whitespace-nowrap cursor-pointer transition-all disabled:opacity-30 ${
               isWholeWord && !isRegex
                 ? 'bg-accent text-accent-on font-bold shadow-xs' 
                 : 'text-zinc-700 dark:text-zinc-200 hover:bg-surface-container hover:text-zinc-950 dark:hover:text-white'
             }`}
           >
-            <WholeWord className="h-3.5 w-3.5 text-zinc-600 dark:text-zinc-300" />
-            <span>Whole Word</span>
+            <WholeWord className="h-3.5 w-3.5 shrink-0 opacity-90" />
+            <span className="whitespace-nowrap">Whole Word</span>
           </button>
 
           {/* Regex Search */}
           <button
             onClick={onToggleRegex}
             title="Use Regular Expression (Alt+R)"
-            className={`h-6 px-2.5 rounded-full flex items-center gap-1.5 text-[11px] font-mono transition-all ${
+            className={`h-6 px-2 sm:px-2.5 rounded-full flex items-center gap-1.5 text-[11px] font-mono whitespace-nowrap cursor-pointer transition-all ${
               isRegex 
                 ? 'bg-accent text-accent-on font-bold shadow-xs' 
                 : 'text-zinc-700 dark:text-zinc-200 hover:bg-surface-container hover:text-zinc-950 dark:hover:text-white'
             }`}
           >
-            <Regex className="h-3.5 w-3.5 text-zinc-600 dark:text-zinc-300" />
-            <span>Regex</span>
+            <Regex className="h-3.5 w-3.5 shrink-0 opacity-90" />
+            <span className="whitespace-nowrap">Regex</span>
           </button>
         </div>
 
@@ -213,14 +213,14 @@ function SearchOverlay({
         <button
           onClick={onToggleMultiDoc}
           title="Search across all open documents in session"
-          className={`h-6 px-2.5 rounded-full flex items-center gap-1.5 text-[11px] font-mono transition-all ${
+          className={`h-6 px-2 sm:px-2.5 rounded-full flex items-center gap-1.5 text-[11px] font-mono whitespace-nowrap cursor-pointer transition-all ${
             isMultiDoc 
               ? 'bg-tertiary text-white shadow-xs font-bold' 
               : 'text-zinc-700 dark:text-zinc-200 hover:bg-surface-container hover:text-zinc-950 dark:hover:text-white'
           }`}
         >
-          <FileStack className="h-3.5 w-3.5 text-zinc-600 dark:text-zinc-300" />
-          <span>All Open Docs</span>
+          <FileStack className="h-3.5 w-3.5 shrink-0 opacity-90" />
+          <span className="whitespace-nowrap">All Open Docs</span>
         </button>
       </div>
 
